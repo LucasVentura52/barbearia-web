@@ -1,0 +1,185 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --display-font: 'Bebas Neue', sans-serif;
+  --body-font: 'Manrope', sans-serif;
+  --ink-900: #0b1f24;
+  --ink-700: #27424a;
+  --ink-500: #4b6a73;
+  --ink-300: #8aa0a6;
+  --gold-400: #c8a35a;
+  --accent-500: #e0623a;
+  --surface: #ffffff;
+  --surface-soft: rgba(255, 255, 255, 0.78);
+  --stroke-soft: rgba(11, 31, 36, 0.08);
+  --shadow-soft: 0 16px 40px rgba(11, 31, 36, 0.12);
+  font-family: var(--body-font);
+  color: var(--ink-900);
+  background-color: #f6f1e8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--body-font);
+  background-color: #f6f1e8;
+}
+
+h1, h2, h3, .display-font {
+  font-family: var(--display-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.section-title::before {
+  content: '';
+  width: 28px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--accent-500);
+}
+
+.section-label {
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-size: 0.75rem;
+  color: var(--ink-500);
+}
+
+.glass-card {
+  background: var(--surface-soft);
+  border: 1px solid var(--stroke-soft);
+  border-radius: 20px;
+  box-shadow: var(--shadow-soft);
+}
+
+.soft-shadow {
+  box-shadow: 0 10px 30px rgba(11, 31, 36, 0.12);
+}
+
+.text-muted {
+  color: rgba(11, 31, 36, 0.65);
+}
+
+.card-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.card-grid.cols-3 {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(200, 163, 90, 0.4);
+  background: rgba(200, 163, 90, 0.16);
+  color: var(--ink-900);
+  font-size: 0.8rem;
+}
+
+.stat-card {
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(11, 31, 36, 0.05);
+  border: 1px dashed rgba(11, 31, 36, 0.12);
+}
+
+.stat-value {
+  font-family: var(--display-font);
+  font-size: 1.6rem;
+}
+
+.stat-label {
+  color: var(--ink-500);
+  font-size: 0.85rem;
+}
+
+.feature-card {
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid var(--stroke-soft);
+  background: #ffffff;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(11, 31, 36, 0.12);
+}
+
+.feature-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.feature-desc {
+  color: var(--ink-500);
+  font-size: 0.95rem;
+}
+
+/* Global spacing between form fields */
+.v-input + .v-input {
+  margin-top: 12px;
+}
+
+.v-form > .v-input + .v-input {
+  margin-top: 12px;
+}
+
+/* Respect grid spacing (avoid double margin inside rows/cols) */
+.v-row .v-input + .v-input {
+  margin-top: 0;
+}
+
+/* Standardize single-line field heights */
+.v-text-field .v-field,
+.v-select .v-field,
+.v-autocomplete .v-field,
+.v-file-input .v-field,
+.v-date-input .v-field {
+  --v-field-height: 36px;
+  --v-input-control-height: 36px;
+}
+
+/* Global rounding for fields and buttons */
+
+
+.v-btn {
+  height: 36px;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: rise 0.6s ease both;
+}

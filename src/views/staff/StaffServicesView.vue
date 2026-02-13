@@ -1,0 +1,360 @@
+<template>
+  <v-container>
+    <div class="section-title">
+      <h2>Serviços</h2>
+    </div>
+
+    <v-card class="staff-toolbar-card" elevation="0">
+      <v-card-text class="toolbar">
+        <v-text-field v-model="search" label="Buscar serviço" variant="outlined" prepend-inner-icon="mdi-magnify" />
+        <div class="toolbar-actions">
+          <v-btn color="secondary" size="large" @click="openCreate">Novo serviço</v-btn>
+        </div>
+      </v-card-text>
+    </v-card>
+
+    <v-card class="glass-card" elevation="0">
+      <v-card-text>
+        <v-table class="staff-table">
+          <thead>
+            <tr>
+              <th class="text-left">Foto</th>
+              <th class="text-left">Serviço</th>
+              <th class="text-left">Duração</th>
+              <th class="text-left">Preço</th>
+              <th class="text-left">Status</th>
+              <th class="text-left">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="service in filteredServices" :key="service.id">
+              <td>
+                <div class="cell-avatar">
+                  <v-img v-if="service.photo_url" :src="resolveMediaUrl(service.photo_url)" cover
+                    class="cell-avatar__img" />
+                  <div v-else class="cell-avatar__initials">
+                    {{ service.name?.slice(0, 1) || '?' }}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="cell-title">{{ service.name }}</div>
+                <div class="text-muted line-clamp">
+                  {{ service.description || 'Sem descrição' }}
+                </div>
+              </td>
+              <td>{{ service.duration_minutes }} min</td>
+              <td>R$ {{ Number(service.price).toFixed(2) }}</td>
+              <td>
+                <v-chip size="small" :color="service.active ? 'success' : 'warning'" variant="tonal">
+                  {{ service.active ? 'Ativo' : 'Inativo' }}
+                </v-chip>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <v-btn icon="mdi-pencil-outline" variant="text" @click="openEdit(service)" />
+                  <v-btn icon="mdi-delete-outline" variant="text" color="error" @click="askDelete(service)" />
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
+
+        <div v-if="!filteredServices.length" class="empty-state">
+          Nenhum serviço encontrado.
+        </div>
+      </v-card-text>
+    </v-card>
+
+    <v-dialog v-model="dialog" max-width="640">
+      <v-card class="modal-card">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">{{ editing ? 'Editar serviço' : 'Novo serviço' }}</div>
+            <div class="modal-subtitle">Mantenha o catálogo sempre atualizado.</div>
+          </div>
+          <v-icon icon="mdi-scissors-cutting" />
+        </div>
+        <v-card-text class="form-grid">
+          <v-text-field v-model="form.name" label="Nome" variant="outlined" />
+          <v-textarea v-model="form.description" label="Descrição" variant="outlined" rows="3" />
+          <div class="form-row">
+            <v-text-field v-model.number="form.duration_minutes" type="number" min="1" label="Duração (min)"
+              variant="outlined" />
+            <v-text-field v-model.number="form.price" type="number" min="0" step="0.01" label="Preço" prefix="R$"
+              variant="outlined" />
+          </div>
+          <v-switch v-model="form.active" color="secondary" label="Ativo" inset />
+          <v-file-input v-model="photoFile" label="Foto do serviço" accept="image/*" prepend-icon="mdi-image-outline"
+            variant="outlined" />
+        </v-card-text>
+        <v-card-actions class="dialog-actions">
+          <v-btn variant="text" @click="dialog = false">Cancelar</v-btn>
+          <v-btn color="secondary" :loading="saving" @click="saveService">
+            Salvar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="confirmDelete" max-width="420">
+      <v-card>
+        <v-card-title>Excluir serviço</v-card-title>
+        <v-card-text>
+          Tem certeza que deseja excluir <strong>{{ deleting?.name }}</strong>?
+        </v-card-text>
+        <v-card-actions class="dialog-actions">
+          <v-btn variant="text" @click="confirmDelete = false">Cancelar</v-btn>
+          <v-btn color="error" :loading="deletingLoading" @click="deleteService">
+            Excluir
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </v-container>
+</template>
+
+<script setup>
+import { computed, onMounted, ref } from 'vue'
+import api from '@/lib/api'
+import { resolveMediaUrl } from '@/lib/media'
+import { useAlertStore } from '@/stores/alerts'
+
+const services = ref([])
+const search = ref('')
+const dialog = ref(false)
+const confirmDelete = ref(false)
+const saving = ref(false)
+const deletingLoading = ref(false)
+const editing = ref(null)
+const deleting = ref(null)
+const photoFile = ref(null)
+const alerts = useAlertStore()
+
+const form = ref({
+  name: '',
+  description: '',
+  duration_minutes: 30,
+  price: 0,
+  active: true,
+})
+
+const filteredServices = computed(() => {
+  const term = search.value.trim().toLowerCase()
+  if (!term) return services.value
+  return services.value.filter((service) => {
+    return (
+      service.name?.toLowerCase().includes(term) ||
+      service.description?.toLowerCase().includes(term)
+    )
+  })
+})
+
+const loadServices = async () => {
+  const { data } = await api.get('/api/services?include_inactive=1')
+  services.value = data
+}
+
+const resetForm = () => {
+  form.value = {
+    name: '',
+    description: '',
+    duration_minutes: 30,
+    price: 0,
+    active: true,
+  }
+  photoFile.value = null
+}
+
+const openCreate = () => {
+  editing.value = null
+  resetForm()
+  dialog.value = true
+}
+
+const openEdit = (service) => {
+  editing.value = service
+  form.value = {
+    name: service.name,
+    description: service.description || '',
+    duration_minutes: service.duration_minutes,
+    price: Number(service.price),
+    active: Boolean(service.active),
+  }
+  photoFile.value = null
+  dialog.value = true
+}
+
+const saveService = async () => {
+  saving.value = true
+  try {
+    const payload = {
+      ...form.value,
+      duration_minutes: Number(form.value.duration_minutes),
+      price: Number(form.value.price),
+    }
+
+    let serviceId = editing.value?.id
+    if (editing.value) {
+      await api.put(`/api/services/${serviceId}`, payload)
+    } else {
+      const { data } = await api.post('/api/services', payload)
+      serviceId = data.id
+    }
+
+    if (photoFile.value && serviceId) {
+      const file = Array.isArray(photoFile.value) ? photoFile.value[0] : photoFile.value
+      if (file) {
+        const formData = new FormData()
+        formData.append('file', file)
+        await api.post(`/api/services/${serviceId}/photo`, formData)
+      }
+    }
+
+    alerts.success('Serviço salvo com sucesso.')
+    dialog.value = false
+    await loadServices()
+  } finally {
+    saving.value = false
+  }
+}
+
+const askDelete = (service) => {
+  deleting.value = service
+  confirmDelete.value = true
+}
+
+const deleteService = async () => {
+  if (!deleting.value) return
+  deletingLoading.value = true
+  try {
+    await api.delete(`/api/services/${deleting.value.id}`)
+    alerts.success('Serviço removido.')
+    confirmDelete.value = false
+    await loadServices()
+  } finally {
+    deletingLoading.value = false
+  }
+}
+
+onMounted(loadServices)
+</script>
+
+<style scoped>
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.toolbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: stretch;
+}
+
+.toolbar :deep(.v-input) {
+  min-width: 260px;
+}
+
+.toolbar-actions .v-btn {
+  height: 40px;
+}
+
+.staff-table :deep(th) {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.cell-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(11, 31, 36, 0.08);
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+}
+
+.cell-avatar__img {
+  width: 100%;
+  height: 100%;
+}
+
+.cell-avatar__initials {
+  font-size: 1rem;
+}
+
+.cell-title {
+  font-weight: 600;
+}
+
+.line-clamp {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.form-grid {
+  display: grid;
+}
+
+.form-row {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  align-items: end;
+}
+
+.dialog-actions {
+  padding: 16px 24px 20px;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modal-card {
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 24px;
+  background: linear-gradient(135deg, rgba(200, 163, 90, 0.22), rgba(240, 179, 90, 0.16));
+  color: #0b1f24;
+  border-bottom: 1px solid rgba(11, 31, 36, 0.08);
+}
+
+.modal-title {
+  font-family: var(--display-font);
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.modal-subtitle {
+  font-size: 0.85rem;
+  color: rgba(11, 31, 36, 0.6);
+  margin-top: 4px;
+}
+
+.modal-card :deep(.v-card-text) {
+  padding: 20px 24px 8px;
+}
+
+.empty-state {
+  padding: 24px;
+  text-align: center;
+  color: rgba(11, 31, 36, 0.6);
+}
+</style>
