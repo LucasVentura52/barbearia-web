@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <div class="app-bg"></div>
-    <v-navigation-drawer v-model="drawer" :permanent="mdAndUp" class="app-drawer">
+    <v-navigation-drawer v-model="drawer" :permanent="mdAndUp" :temporary="!mdAndUp" class="app-drawer">
       <div class="drawer-header">
         <div class="brand-mark"></div>
         <div>
@@ -11,7 +11,7 @@
       </div>
       <v-list nav density="comfortable">
         <v-list-item v-for="item in visibleNav" :key="item.to" :to="item.to" :prepend-icon="item.icon"
-          :title="item.title" />
+          :title="item.title" @click="handleNavClick" />
       </v-list>
       <div class="drawer-footer">
         <v-btn v-if="!auth.isAuthenticated" color="primary" size="large" block :to="{ name: 'login' }">
@@ -29,15 +29,30 @@
       </v-btn>
       <div class="app-bar-title">Barbearia</div>
       <v-spacer />
-      <v-chip v-if="auth.user" color="secondary" variant="flat" class="me-3">
+      <v-chip v-if="auth.user && !smAndDown" color="secondary" variant="flat" class="me-3">
         {{ auth.user.name }}
       </v-chip>
-      <v-btn v-if="!auth.isAuthenticated" color="primary" variant="flat" :to="{ name: 'login' }">
-        Login
-      </v-btn>
-      <v-btn v-else color="primary" variant="outlined" @click="handleLogout">
-        Sair
-      </v-btn>
+      <v-menu v-if="smAndDown" location="bottom end">
+        <template #activator="{ props }">
+          <v-btn v-bind="props" icon>
+            <v-icon icon="mdi-dots-vertical" />
+          </v-btn>
+        </template>
+        <v-list density="compact" min-width="200">
+          <v-list-item v-if="auth.user" :title="auth.user.name" />
+          <v-divider v-if="auth.user" />
+          <v-list-item v-if="!auth.isAuthenticated" :to="{ name: 'login' }" prepend-icon="mdi-login" title="Login" />
+          <v-list-item v-else prepend-icon="mdi-logout" title="Sair" @click="handleLogout" />
+        </v-list>
+      </v-menu>
+      <template v-else>
+        <v-btn v-if="!auth.isAuthenticated" color="primary" variant="flat" :to="{ name: 'login' }">
+          Login
+        </v-btn>
+        <v-btn v-else color="primary" variant="outlined" @click="handleLogout">
+          Sair
+        </v-btn>
+      </template>
     </v-app-bar>
 
     <v-main>
@@ -49,12 +64,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
 
-const { mdAndUp } = useDisplay()
-const drawer = ref(true)
+const { mdAndUp, smAndDown } = useDisplay()
+const drawer = ref(mdAndUp.value)
 const auth = useAuthStore()
 
 const navItems = [
@@ -73,8 +88,14 @@ const handleLogout = async () => {
   await auth.logout()
 }
 
-onMounted(() => {
-  auth.loadMe()
+const handleNavClick = () => {
+  if (!mdAndUp.value) {
+    drawer.value = false
+  }
+}
+
+watch(mdAndUp, (desktop) => {
+  drawer.value = desktop
 })
 </script>
 
@@ -85,14 +106,14 @@ onMounted(() => {
   background:
     radial-gradient(circle at top left, rgba(200, 163, 90, 0.15), transparent 45%),
     radial-gradient(circle at 30% 20%, rgba(224, 98, 58, 0.12), transparent 40%),
-    linear-gradient(135deg, #f6f1e8 0%, #f1e9dd 35%, #f7f3ec 100%);
+    linear-gradient(135deg, #edf3f7 0%, #f1e9dd 35%, #f7f3ec 100%);
   z-index: 0;
 }
 
 .app-bar {
   background: rgba(246, 241, 232, 0.8) !important;
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(11, 31, 36, 0.08);
+  border-bottom: 1px solid rgba(35, 58, 74, 0.08);
 }
 
 .app-bar-title {
@@ -100,12 +121,12 @@ onMounted(() => {
   font-size: 1.4rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #0b1f24;
+  color: #203241;
 }
 
 .app-drawer {
   background: rgba(255, 255, 255, 0.92);
-  border-right: 1px solid rgba(11, 31, 36, 0.08);
+  border-right: 1px solid rgba(35, 58, 74, 0.08);
 }
 
 .drawer-header {
@@ -119,8 +140,8 @@ onMounted(() => {
   width: 38px;
   height: 38px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0b1f24 0%, #205c6a 100%);
-  box-shadow: 0 10px 24px rgba(11, 31, 36, 0.25);
+  background: linear-gradient(135deg, #203241 0%, #205c6a 100%);
+  box-shadow: 0 10px 24px rgba(35, 58, 74, 0.25);
 }
 
 .brand-title {
@@ -128,12 +149,12 @@ onMounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.12em;
   font-size: 1rem;
-  color: #0b1f24;
+  color: #203241;
 }
 
 .brand-subtitle {
   font-size: 0.85rem;
-  color: rgba(11, 31, 36, 0.6);
+  color: rgba(35, 58, 74, 0.6);
 }
 
 .drawer-footer {
@@ -146,6 +167,12 @@ onMounted(() => {
   z-index: 1;
   padding: 32px 24px 64px;
   animation: fadeUp 0.6s ease both;
+}
+
+@media (max-width: 960px) {
+  .page-shell {
+    padding: 24px 16px 48px;
+  }
 }
 
 @keyframes fadeUp {

@@ -232,8 +232,8 @@ onMounted(async () => {
 }
 
 .hero-panel-card {
-  background: #0b1f24;
-  color: #f6f1e8;
+  background: linear-gradient(165deg, #283f4e 0%, #36586d 100%);
+  color: #edf3f7;
   padding: 24px;
   border-radius: 22px;
 }
@@ -259,7 +259,7 @@ onMounted(async () => {
 
 .panel-subtitle {
   font-size: 0.85rem;
-  color: rgba(246, 241, 232, 0.7);
+  color: rgba(237, 243, 247, 0.74);
 }
 
 .panel-body {
@@ -278,7 +278,7 @@ onMounted(async () => {
 }
 
 .hero-panel-card--light .panel-slot {
-  background: rgba(11, 31, 36, 0.06);
+  background: rgba(35, 58, 74, 0.06);
 }
 
 .slot-time {
@@ -292,7 +292,7 @@ onMounted(async () => {
 
 .slot-subtitle {
   font-size: 0.8rem;
-  color: rgba(246, 241, 232, 0.7);
+  color: rgba(237, 243, 247, 0.74);
 }
 
 .hero-panel-card--light .slot-subtitle {
@@ -309,7 +309,7 @@ onMounted(async () => {
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: var(--gold-400);
+  background: var(--accent-500);
 }
 
 .highlight-title {
@@ -318,7 +318,7 @@ onMounted(async () => {
 
 .highlight-subtitle {
   font-size: 0.85rem;
-  color: rgba(11, 31, 36, 0.65);
+  color: rgba(35, 58, 74, 0.65);
 }
 
 .experience-section {
@@ -351,14 +351,14 @@ onMounted(async () => {
   border-radius: 24px;
   overflow: hidden;
   min-height: 280px;
-  background: linear-gradient(135deg, #0b1f24 0%, #205c6a 55%, #c8a35a 100%);
-  color: #f6f1e8;
+  background: linear-gradient(140deg, #263b4a 0%, #46677d 58%, #9f8665 100%);
+  color: #edf3f7;
 }
 
 .experience-overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.2), transparent 55%);
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.16), transparent 55%);
 }
 
 .experience-content {
@@ -372,7 +372,7 @@ onMounted(async () => {
   align-self: start;
   padding: 6px 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.16);
   display: inline-flex;
 }
 
@@ -388,7 +388,7 @@ onMounted(async () => {
 
 .experience-label {
   font-size: 0.85rem;
-  color: rgba(246, 241, 232, 0.75);
+  color: rgba(237, 243, 247, 0.78);
 }
 
 .staff-card {
@@ -403,7 +403,7 @@ onMounted(async () => {
   height: 64px;
   border-radius: 18px;
   overflow: hidden;
-  background: rgba(11, 31, 36, 0.08);
+  background: rgba(35, 58, 74, 0.08);
   display: grid;
   place-items: center;
 }

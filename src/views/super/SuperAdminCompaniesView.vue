@@ -15,57 +15,96 @@
           variant="outlined"
           density="compact"
           class="company-select"
+          hide-details="auto"
           @update:model-value="loadMemberships"
         />
-        <v-btn color="secondary" @click="openCreateCompany">Nova empresa</v-btn>
-        <v-btn color="primary" variant="outlined" :disabled="!selectedCompanyId" @click="openEditCompany">Editar empresa</v-btn>
-        <v-btn color="error" variant="outlined" :disabled="!selectedCompanyId" @click="deleteCompany">Excluir empresa</v-btn>
+        <v-btn color="secondary" :block="smAndDown" @click="openCreateCompany">Nova empresa</v-btn>
+        <v-btn color="primary" variant="outlined" :block="smAndDown" :disabled="!selectedCompanyId"
+          @click="openEditCompany">
+          Editar empresa
+        </v-btn>
+        <v-btn color="error" variant="outlined" :block="smAndDown" :disabled="!selectedCompanyId" @click="deleteCompany">
+          Excluir empresa
+        </v-btn>
       </v-card-text>
     </v-card>
 
     <v-row>
       <v-col cols="12" lg="8">
         <v-card class="glass-card" elevation="0">
-          <v-card-title class="d-flex justify-space-between align-center">
+          <v-card-title class="d-flex justify-space-between align-center flex-wrap ga-2">
             <span>Membros da empresa</span>
             <v-btn color="secondary" size="small" :disabled="!selectedCompanyId" @click="openCreateMembership">
               Novo vínculo
             </v-btn>
           </v-card-title>
           <v-card-text>
-            <v-table class="staff-table">
-              <thead>
-                <tr>
-                  <th class="text-left">Nome</th>
-                  <th class="text-left">Telefone</th>
-                  <th class="text-left">Papel</th>
-                  <th class="text-left">Status</th>
-                  <th class="text-left">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="membership in memberships" :key="membership.id">
-                  <td>{{ membership.user?.name || '-' }}</td>
-                  <td>{{ formatPhoneFromE164(membership.user?.phone) || membership.user?.phone || '-' }}</td>
-                  <td>
-                    <v-chip size="small" variant="tonal" color="primary">
-                      {{ membership.role }}
-                    </v-chip>
-                  </td>
-                  <td>
-                    <v-chip size="small" variant="tonal" :color="membership.active ? 'success' : 'warning'">
-                      {{ membership.active ? 'Ativo' : 'Inativo' }}
-                    </v-chip>
-                  </td>
-                  <td>
-                    <div class="row-actions">
-                      <v-btn icon="mdi-pencil-outline" variant="text" @click="openEditMembership(membership)" />
-                      <v-btn icon="mdi-delete-outline" variant="text" color="error" @click="deleteMembership(membership)" />
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </v-table>
+            <template v-if="!smAndDown">
+              <v-table class="staff-table">
+                <thead>
+                  <tr>
+                    <th class="text-left">Nome</th>
+                    <th class="text-left">Telefone</th>
+                    <th class="text-left">Papel</th>
+                    <th class="text-left">Status</th>
+                    <th class="text-left">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="membership in memberships" :key="membership.id">
+                    <td>{{ membership.user?.name || '-' }}</td>
+                    <td>{{ formatPhoneFromE164(membership.user?.phone) || membership.user?.phone || '-' }}</td>
+                    <td>
+                      <v-chip size="small" variant="tonal" color="primary">
+                        {{ membership.role }}
+                      </v-chip>
+                    </td>
+                    <td>
+                      <v-chip size="small" variant="tonal" :color="membership.active ? 'success' : 'warning'">
+                        {{ membership.active ? 'Ativo' : 'Inativo' }}
+                      </v-chip>
+                    </td>
+                    <td>
+                      <div class="row-actions">
+                        <v-btn icon="mdi-pencil-outline" variant="text" @click="openEditMembership(membership)" />
+                        <v-btn icon="mdi-delete-outline" variant="text" color="error"
+                          @click="deleteMembership(membership)" />
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </v-table>
+            </template>
+            <template v-else>
+              <v-row dense>
+                <v-col v-for="membership in memberships" :key="membership.id" cols="12">
+                  <v-card variant="outlined" class="membership-mobile-card">
+                    <v-card-item>
+                      <v-card-title class="text-body-1">{{ membership.user?.name || '-' }}</v-card-title>
+                      <v-card-subtitle>{{ formatPhoneFromE164(membership.user?.phone) || membership.user?.phone || '-' }}</v-card-subtitle>
+                    </v-card-item>
+                    <v-card-text class="pt-0">
+                      <div class="row-actions mb-2">
+                        <v-chip size="small" variant="tonal" color="primary">{{ membership.role }}</v-chip>
+                        <v-chip size="small" variant="tonal" :color="membership.active ? 'success' : 'warning'">
+                          {{ membership.active ? 'Ativo' : 'Inativo' }}
+                        </v-chip>
+                      </div>
+                      <div class="row-actions">
+                        <v-btn size="small" variant="tonal" prepend-icon="mdi-pencil-outline"
+                          @click="openEditMembership(membership)">
+                          Editar
+                        </v-btn>
+                        <v-btn size="small" variant="text" color="error" prepend-icon="mdi-delete-outline"
+                          @click="deleteMembership(membership)">
+                          Excluir
+                        </v-btn>
+                      </div>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+              </v-row>
+            </template>
 
             <div v-if="!memberships.length" class="empty-state">
               Sem vínculos para a empresa selecionada.
@@ -87,6 +126,7 @@
               variant="outlined"
               density="compact"
               prepend-inner-icon="mdi-magnify"
+              hide-details="auto"
               @update:model-value="loadUsers"
             />
             <v-list density="compact" class="user-list">
@@ -163,6 +203,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { useAlertStore } from '@/stores/alerts'
 import { buildE164, formatPhone, formatPhoneFromE164, normalizePhone } from '@/lib/phone'
@@ -175,6 +216,7 @@ const users = ref([])
 const selectedCompanyId = ref(null)
 const userSearch = ref('')
 const saving = ref(false)
+const { smAndDown } = useDisplay()
 
 const companyDialog = ref(false)
 const membershipDialog = ref(false)
@@ -444,12 +486,16 @@ onMounted(async () => {
 
 .phone-row {
   display: grid;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
 .user-list {
   max-height: 480px;
   overflow: auto;
+}
+
+.membership-mobile-card {
+  border-radius: 14px;
 }
 </style>

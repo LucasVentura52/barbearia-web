@@ -72,7 +72,7 @@ const logout = () => auth.logout()
   height: 84px;
   border-radius: 24px;
   overflow: hidden;
-  background: rgba(11, 31, 36, 0.1);
+  background: rgba(35, 58, 74, 0.1);
   display: grid;
   place-items: center;
 }

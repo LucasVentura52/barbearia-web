@@ -1,38 +1,59 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap');
 
 :root {
-  --display-font: 'Bebas Neue', sans-serif;
+  --display-font: 'Sora', sans-serif;
   --body-font: 'Manrope', sans-serif;
-  --ink-900: #0b1f24;
-  --ink-700: #27424a;
-  --ink-500: #4b6a73;
-  --ink-300: #8aa0a6;
-  --gold-400: #c8a35a;
-  --accent-500: #e0623a;
+
+  --bg-base: #f2f5f8;
+  --bg-soft: #e9eff4;
+
+  --ink-900: #243443;
+  --ink-700: #445b6d;
+  --ink-500: #6f8595;
+  --ink-300: #9aabb7;
+
+  --accent-500: #b3a086;
+  --accent-300: #d6c9bb;
+
   --surface: #ffffff;
-  --surface-soft: rgba(255, 255, 255, 0.78);
-  --stroke-soft: rgba(11, 31, 36, 0.08);
-  --shadow-soft: 0 16px 40px rgba(11, 31, 36, 0.12);
+  --surface-soft: rgba(255, 255, 255, 0.88);
+  --stroke-soft: rgba(28, 47, 63, 0.1);
+  --stroke-strong: rgba(28, 47, 63, 0.16);
+  --shadow-soft: 0 12px 32px rgba(22, 38, 52, 0.1);
+  --shadow-soft-hover: 0 20px 38px rgba(22, 38, 52, 0.14);
+
   font-family: var(--body-font);
   color: var(--ink-900);
-  background-color: #f6f1e8;
+  background-color: var(--bg-base);
 }
 
 * {
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  font-family: var(--body-font);
-  background-color: #f6f1e8;
+html,
+body,
+#app {
+  min-height: 100%;
 }
 
-h1, h2, h3, .display-font {
+body {
+  margin: 0;
+  font-family: var(--body-font);
+  background:
+    radial-gradient(circle at -8% -6%, rgba(179, 160, 134, 0.18), transparent 34%),
+    radial-gradient(circle at 108% -4%, rgba(111, 143, 166, 0.18), transparent 38%),
+    radial-gradient(circle at 50% 118%, rgba(154, 175, 189, 0.12), transparent 34%),
+    linear-gradient(180deg, var(--bg-base) 0%, #ebf1f6 100%);
+}
+
+h1,
+h2,
+h3,
+.display-font {
   font-family: var(--display-font);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-transform: none;
 }
 
 a {
@@ -43,38 +64,47 @@ a {
 .section-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 16px;
 }
 
 .section-title::before {
   content: '';
-  width: 28px;
-  height: 4px;
+  width: 14px;
+  height: 14px;
   border-radius: 999px;
-  background: var(--accent-500);
+  background: linear-gradient(135deg, var(--accent-500), var(--accent-300));
+  box-shadow: 0 0 0 6px rgba(179, 160, 134, 0.16);
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
 }
 
 .section-label {
   text-transform: uppercase;
-  letter-spacing: 0.3em;
-  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+  font-weight: 700;
   color: var(--ink-500);
 }
 
 .glass-card {
   background: var(--surface-soft);
   border: 1px solid var(--stroke-soft);
-  border-radius: 20px;
+  border-radius: 18px;
   box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(8px);
 }
 
 .soft-shadow {
-  box-shadow: 0 10px 30px rgba(11, 31, 36, 0.12);
+  box-shadow: var(--shadow-soft);
 }
 
 .text-muted {
-  color: rgba(11, 31, 36, 0.65);
+  color: rgba(35, 51, 64, 0.7);
 }
 
 .card-grid {
@@ -90,90 +120,143 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
+  padding: 7px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(200, 163, 90, 0.4);
-  background: rgba(200, 163, 90, 0.16);
+  border: 1px solid rgba(179, 160, 134, 0.34);
+  background: rgba(179, 160, 134, 0.16);
   color: var(--ink-900);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
 .stat-card {
   padding: 16px;
-  border-radius: 16px;
-  background: rgba(11, 31, 36, 0.05);
-  border: 1px dashed rgba(11, 31, 36, 0.12);
+  border-radius: 14px;
+  background: rgba(61, 86, 106, 0.06);
+  border: 1px solid rgba(61, 86, 106, 0.14);
 }
 
 .stat-value {
   font-family: var(--display-font);
-  font-size: 1.6rem;
+  font-size: 1.5rem;
+  font-weight: 700;
 }
 
 .stat-label {
   color: var(--ink-500);
-  font-size: 0.85rem;
+  font-size: 0.84rem;
 }
 
 .feature-card {
   padding: 20px;
-  border-radius: 18px;
+  border-radius: 14px;
   border: 1px solid var(--stroke-soft);
-  background: #ffffff;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .feature-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 18px 40px rgba(11, 31, 36, 0.12);
+  transform: translateY(-2px);
+  border-color: var(--stroke-strong);
+  box-shadow: var(--shadow-soft-hover);
 }
 
 .feature-title {
-  font-weight: 600;
+  font-weight: 700;
   margin-bottom: 6px;
 }
 
 .feature-desc {
   color: var(--ink-500);
-  font-size: 0.95rem;
+  font-size: 0.93rem;
 }
 
-/* Global spacing between form fields */
-.v-input + .v-input {
-  margin-top: 12px;
+.v-main {
+  color: var(--ink-900);
 }
 
+.v-input + .v-input,
 .v-form > .v-input + .v-input {
   margin-top: 12px;
 }
 
-/* Respect grid spacing (avoid double margin inside rows/cols) */
 .v-row .v-input + .v-input {
   margin-top: 0;
 }
 
-/* Standardize single-line field heights */
 .v-text-field .v-field,
 .v-select .v-field,
 .v-autocomplete .v-field,
 .v-file-input .v-field,
-.v-date-input .v-field {
-  --v-field-height: 36px;
-  --v-input-control-height: 36px;
+.v-date-input .v-field,
+.v-textarea .v-field {
+  --v-field-height: 40px;
+  --v-input-control-height: 40px;
 }
 
-/* Global rounding for fields and buttons */
-
-
 .v-btn {
-  height: 36px;
+  letter-spacing: 0;
+}
+
+.v-dialog .v-card {
+  border: 1px solid var(--stroke-soft);
+  box-shadow: var(--shadow-soft-hover);
+}
+
+.staff-toolbar-card {
+  margin-bottom: 16px;
+  border: 1px solid var(--stroke-soft);
+  background: rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(8px);
+}
+
+.staff-table {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.staff-table :is(th, td) {
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+}
+
+.staff-table thead {
+  background: rgba(35, 58, 74, 0.04);
+}
+
+.staff-table tbody tr + tr {
+  border-top: 1px solid rgba(35, 58, 74, 0.08);
+}
+
+.mobile-row-card {
+  border-color: rgba(35, 58, 74, 0.12) !important;
+  background: rgba(255, 255, 255, 0.84);
+}
+
+.modal-card {
+  border: 1px solid rgba(35, 58, 74, 0.14);
+  box-shadow: 0 20px 40px rgba(20, 38, 52, 0.2);
+}
+
+.modal-header {
+  background: linear-gradient(145deg, rgba(111, 143, 166, 0.2), rgba(179, 160, 134, 0.18));
+  border-bottom: 1px solid rgba(35, 58, 74, 0.1);
+}
+
+.modal-title {
+  color: var(--ink-900);
+}
+
+.modal-subtitle {
+  color: rgba(53, 74, 90, 0.7);
 }
 
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -181,5 +264,66 @@ a {
 }
 
 .fade-in {
-  animation: rise 0.6s ease both;
+  animation: rise 0.5s ease both;
+}
+
+@media (max-width: 960px) {
+  .section-title h2 {
+    font-size: 1.38rem;
+  }
+
+  .glass-card {
+    border-radius: 14px;
+  }
+
+  .toolbar,
+  .calendar-toolbar,
+  .dashboard-toolbar,
+  .schedule-toolbar,
+  .appointments-toolbar,
+  .toolbar-left,
+  .toolbar-actions,
+  .phone-row,
+  .confirm-row,
+  .slots-header,
+  .appointment-header,
+  .appointment-footer,
+  .profile-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar .v-input,
+  .calendar-toolbar .v-input,
+  .dashboard-toolbar .v-input,
+  .schedule-toolbar .v-input,
+  .appointments-toolbar .v-input,
+  .toolbar-actions .v-btn,
+  .staff-select,
+  .status-filter,
+  .company-select,
+  .phone-country,
+  .phone-input {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .staff-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .staff-table table {
+    min-width: 680px;
+  }
+
+  .v-dialog .v-card-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .v-dialog .v-card-actions .v-btn {
+    flex: 1 1 auto;
+  }
 }

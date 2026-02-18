@@ -1,38 +1,42 @@
 <template>
   <v-container>
-    <div class="services-hero glass-card">
-      <div>
-        <div class="section-label">Catálogo</div>
-        <h2 class="services-title">Serviços feitos sob medida</h2>
-        <p class="services-text">
-          Escolha os combos e monte a experiência ideal. Preços transparentes e tempo estimado.
-        </p>
-      </div>
-      <v-btn color="primary" size="large" :to="{ name: 'client-booking' }">
-        Agendar agora
-      </v-btn>
-    </div>
+    <v-card class="services-hero glass-card mb-6" elevation="0">
+      <v-card-text class="d-flex flex-wrap justify-space-between align-center ga-4">
+        <div>
+          <div class="section-label">Catálogo</div>
+          <h2 class="services-title">Serviços feitos sob medida</h2>
+          <p class="services-text">
+            Escolha os combos e monte a experiência ideal. Preços transparentes e tempo estimado.
+          </p>
+        </div>
+        <v-btn color="primary" size="large" :block="smAndDown" :to="{ name: 'client-booking' }">
+          Agendar agora
+        </v-btn>
+      </v-card-text>
+    </v-card>
 
     <v-row>
       <v-col v-for="service in services" :key="service.id" cols="12" md="4">
         <v-card class="glass-card" elevation="0">
-          <v-card-text>
-            <div class="service-card">
-              <div class="service-icon">
+          <v-card-item>
+            <template #prepend>
+              <div class="service-icon me-3">
                 <v-img v-if="service.photo_url" :src="resolveMediaUrl(service.photo_url)" cover class="service-icon__img" />
                 <v-icon v-else icon="mdi-content-cut" size="28" />
               </div>
-              <div>
-                <div class="service-name">{{ service.name }}</div>
-                <div class="text-muted">{{ service.description || 'Serviço premium' }}</div>
-                <div class="service-meta">
-                  <v-chip size="small" color="secondary" variant="tonal">
-                    {{ service.duration_minutes }} min
-                  </v-chip>
-                  <v-chip size="small" color="primary" variant="tonal">
-                    R$ {{ Number(service.price).toFixed(2) }}
-                  </v-chip>
-                </div>
+            </template>
+            <v-card-title class="text-body-1">{{ service.name }}</v-card-title>
+            <v-card-subtitle class="text-wrap">{{ service.description || 'Serviço premium' }}</v-card-subtitle>
+          </v-card-item>
+          <v-card-text class="pt-0">
+            <div class="service-card">
+              <div class="service-meta">
+                <v-chip size="small" color="secondary" variant="tonal">
+                  {{ service.duration_minutes }} min
+                </v-chip>
+                <v-chip size="small" color="primary" variant="tonal">
+                  R$ {{ Number(service.price).toFixed(2) }}
+                </v-chip>
               </div>
             </div>
           </v-card-text>
@@ -44,10 +48,12 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
+import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
 
 const services = ref([])
+const { smAndDown } = useDisplay()
 
 onMounted(async () => {
   const { data } = await api.get('/api/services')
@@ -57,13 +63,7 @@ onMounted(async () => {
 
 <style scoped>
 .services-hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 28px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
+  padding: 4px;
 }
 
 .services-title {
@@ -78,16 +78,14 @@ onMounted(async () => {
 
 .service-card {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 16px;
-  align-items: center;
+  gap: 12px;
 }
 
 .service-icon {
   width: 52px;
   height: 52px;
   border-radius: 16px;
-  background: rgba(11, 31, 36, 0.08);
+  background: rgba(35, 58, 74, 0.08);
   display: grid;
   place-items: center;
   color: var(--ink-900);

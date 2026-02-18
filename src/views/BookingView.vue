@@ -259,7 +259,7 @@ onMounted(async () => {
   width: 52px;
   height: 52px;
   border-radius: 16px;
-  background: rgba(11, 31, 36, 0.08);
+  background: rgba(35, 58, 74, 0.08);
   display: grid;
   place-items: center;
   font-weight: 600;
@@ -285,7 +285,7 @@ onMounted(async () => {
 }
 
 .staff-option__avatar {
-  background: rgba(11, 31, 36, 0.08);
+  background: rgba(35, 58, 74, 0.08);
   font-weight: 600;
   border-radius: 12px;
   overflow: hidden;
@@ -306,7 +306,7 @@ onMounted(async () => {
 }
 
 .staff-selection__avatar {
-  background: rgba(11, 31, 36, 0.08);
+  background: rgba(35, 58, 74, 0.08);
   font-weight: 600;
   border-radius: 10px;
   overflow: hidden;

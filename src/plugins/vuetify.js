@@ -5,18 +5,39 @@ import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import { VDateInput } from 'vuetify/labs/VDateInput'
 import { pt } from 'vuetify/locale'
 
-const barberTheme = {
+const barberLight = {
   dark: false,
   colors: {
-    background: '#F6F1E8',
+    background: '#F2F5F8',
     surface: '#FFFFFF',
-    primary: '#0B1F24',
-    secondary: '#C8A35A',
-    accent: '#E0623A',
-    info: '#205C6A',
-    success: '#2D6A4F',
-    warning: '#C77D44',
-    error: '#B13E3E',
+    'surface-variant': '#EAF0F4',
+    primary: '#5B778D',
+    secondary: '#859BAA',
+    accent: '#B3A086',
+    info: '#7292A7',
+    success: '#6D8E79',
+    warning: '#A88C6A',
+    error: '#B08080',
+    'on-surface': '#243443',
+    'on-surface-variant': '#6B8191',
+  },
+}
+
+const barberStaff = {
+  dark: false,
+  colors: {
+    background: '#F2F5F8',
+    surface: '#FFFFFF',
+    'surface-variant': '#EAF0F4',
+    primary: '#5B778D',
+    secondary: '#859BAA',
+    accent: '#B3A086',
+    info: '#7292A7',
+    success: '#6D8E79',
+    warning: '#A88C6A',
+    error: '#B08080',
+    'on-surface': '#243443',
+    'on-surface-variant': '#6B8191',
   },
 }
 
@@ -33,20 +54,67 @@ export default createVuetify({
     locale: { pt: 'pt-BR' },
   },
   theme: {
-    defaultTheme: 'barberTheme',
+    defaultTheme: 'barberLight',
     themes: {
-      barberTheme,
+      barberLight,
+      barberStaff,
     },
   },
   defaults: {
-    VTextField: { density: 'compact', clearable: true, rounded: "xl" },
-    VSelect: { density: 'compact', clearable: true, rounded: "xl" },
-    VTextarea: { density: 'compact', clearable: true, rounded: "xl" },
-    VFileInput: { density: 'compact', clearable: true , rounded: "xl"},
-    VBtn: { class: 'text-none', rounded: "xl" },
+    VAppBar: {
+      flat: true,
+      elevation: 0,
+      height: 68,
+    },
+    VNavigationDrawer: {
+      width: 292,
+      elevation: 0,
+    },
+    VCard: {
+      rounded: 'xl',
+      elevation: 0,
+    },
+    VSheet: {
+      rounded: 'xl',
+      elevation: 0,
+    },
+    VTextField: {
+      density: 'compact',
+      variant: 'outlined',
+      rounded: 'lg',
+      color: 'primary',
+    },
+    VSelect: {
+      density: 'compact',
+      variant: 'outlined',
+      rounded: 'lg',
+      color: 'primary',
+    },
+    VTextarea: {
+      density: 'compact',
+      variant: 'outlined',
+      rounded: 'lg',
+      color: 'primary',
+    },
+    VFileInput: {
+      density: 'compact',
+      variant: 'outlined',
+      rounded: 'lg',
+      color: 'primary',
+    },
+    VBtn: {
+      class: 'text-none font-weight-medium',
+      rounded: 'lg',
+      height: 40,
+    },
+    VChip: {
+      rounded: 'lg',
+      size: 'small',
+    },
     VDateInput: {
       density: 'compact',
-      clearable: true,
+      variant: 'outlined',
+      rounded: 'lg',
       prependIcon: '',
       appendInnerIcon: '',
     },

@@ -6,59 +6,101 @@
 
     <v-card class="staff-toolbar-card" elevation="0">
       <v-card-text class="toolbar">
-        <v-text-field v-model="search" label="Buscar produto" variant="outlined" prepend-inner-icon="mdi-magnify" />
+        <v-text-field v-model="search" label="Buscar produto" variant="outlined" prepend-inner-icon="mdi-magnify"
+          density="compact" hide-details="auto" />
         <div class="toolbar-actions">
-          <v-btn color="secondary" class="text-none" size="large" @click="openCreate">Novo produto</v-btn>
+          <v-btn color="secondary" class="text-none" size="large" :block="smAndDown" @click="openCreate">Novo produto</v-btn>
         </div>
       </v-card-text>
     </v-card>
 
     <v-card class="glass-card" elevation="0">
       <v-card-text>
-        <v-table class="staff-table">
-          <thead>
-            <tr>
-              <th class="text-left">Foto</th>
-              <th class="text-left">Produto</th>
-              <th class="text-left">Preço</th>
-              <th class="text-left">Estoque</th>
-              <th class="text-left">Status</th>
-              <th class="text-left">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="product in filteredProducts" :key="product.id">
-              <td>
-                <div class="cell-avatar">
-                  <v-img v-if="product.photo_url" :src="resolveMediaUrl(product.photo_url)" cover
-                    class="cell-avatar__img" />
-                  <div v-else class="cell-avatar__initials">
-                    {{ product.name?.slice(0, 1) || '?' }}
+        <template v-if="!smAndDown">
+          <v-table class="staff-table">
+            <thead>
+              <tr>
+                <th class="text-left">Foto</th>
+                <th class="text-left">Produto</th>
+                <th class="text-left">Preço</th>
+                <th class="text-left">Estoque</th>
+                <th class="text-left">Status</th>
+                <th class="text-left">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="product in filteredProducts" :key="product.id">
+                <td>
+                  <div class="cell-avatar">
+                    <v-img v-if="product.photo_url" :src="resolveMediaUrl(product.photo_url)" cover
+                      class="cell-avatar__img" />
+                    <div v-else class="cell-avatar__initials">
+                      {{ product.name?.slice(0, 1) || '?' }}
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td>
-                <div class="cell-title">{{ product.name }}</div>
-                <div class="text-muted line-clamp">
-                  {{ product.description || 'Sem descrição' }}
-                </div>
-              </td>
-              <td>R$ {{ Number(product.price).toFixed(2) }}</td>
-              <td>{{ product.stock ?? '—' }}</td>
-              <td>
-                <v-chip size="small" :color="product.active ? 'success' : 'warning'" variant="tonal">
-                  {{ product.active ? 'Ativo' : 'Inativo' }}
-                </v-chip>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <v-btn icon="mdi-pencil-outline" variant="text" @click="openEdit(product)" />
-                  <v-btn icon="mdi-delete-outline" variant="text" color="error" @click="askDelete(product)" />
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
+                </td>
+                <td>
+                  <div class="cell-title">{{ product.name }}</div>
+                  <div class="text-muted line-clamp">
+                    {{ product.description || 'Sem descrição' }}
+                  </div>
+                </td>
+                <td>R$ {{ Number(product.price).toFixed(2) }}</td>
+                <td>{{ product.stock ?? '—' }}</td>
+                <td>
+                  <v-chip size="small" :color="product.active ? 'success' : 'warning'" variant="tonal">
+                    {{ product.active ? 'Ativo' : 'Inativo' }}
+                  </v-chip>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <v-btn icon="mdi-pencil-outline" variant="text" @click="openEdit(product)" />
+                    <v-btn icon="mdi-delete-outline" variant="text" color="error" @click="askDelete(product)" />
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </template>
+        <template v-else>
+          <v-row dense>
+            <v-col v-for="product in filteredProducts" :key="product.id" cols="12">
+              <v-card variant="outlined" class="mobile-row-card">
+                <v-card-item>
+                  <template #prepend>
+                    <div class="cell-avatar me-3">
+                      <v-img v-if="product.photo_url" :src="resolveMediaUrl(product.photo_url)" cover
+                        class="cell-avatar__img" />
+                      <div v-else class="cell-avatar__initials">
+                        {{ product.name?.slice(0, 1) || '?' }}
+                      </div>
+                    </div>
+                  </template>
+                  <v-card-title class="text-body-1">{{ product.name }}</v-card-title>
+                  <v-card-subtitle class="text-wrap">{{ product.description || 'Sem descrição' }}</v-card-subtitle>
+                </v-card-item>
+                <v-card-text class="pt-0">
+                  <div class="mobile-meta">
+                    <v-chip size="small" color="primary" variant="tonal">R$ {{ Number(product.price).toFixed(2) }}</v-chip>
+                    <v-chip size="small" color="secondary" variant="tonal">Estoque: {{ product.stock ?? '—' }}</v-chip>
+                    <v-chip size="small" :color="product.active ? 'success' : 'warning'" variant="tonal">
+                      {{ product.active ? 'Ativo' : 'Inativo' }}
+                    </v-chip>
+                  </div>
+                  <div class="mobile-actions">
+                    <v-btn size="small" variant="tonal" prepend-icon="mdi-pencil-outline" @click="openEdit(product)">
+                      Editar
+                    </v-btn>
+                    <v-btn size="small" variant="text" color="error" prepend-icon="mdi-delete-outline"
+                      @click="askDelete(product)">
+                      Excluir
+                    </v-btn>
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+        </template>
 
         <div v-if="!filteredProducts.length" class="empty-state">
           Nenhum produto encontrado.
@@ -115,6 +157,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
 import { useAlertStore } from '@/stores/alerts'
@@ -129,6 +172,7 @@ const editing = ref(null)
 const deleting = ref(null)
 const photoFile = ref(null)
 const alerts = useAlertStore()
+const { smAndDown } = useDisplay()
 
 const form = ref({
   name: '',
@@ -271,7 +315,7 @@ onMounted(loadProducts)
   height: 48px;
   border-radius: 16px;
   overflow: hidden;
-  background: rgba(11, 31, 36, 0.08);
+  background: rgba(35, 58, 74, 0.08);
   display: grid;
   place-items: center;
   font-weight: 600;
@@ -302,6 +346,23 @@ onMounted(loadProducts)
   gap: 4px;
 }
 
+.mobile-row-card {
+  border-radius: 14px;
+}
+
+.mobile-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.mobile-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .form-grid {
   display: grid;
 }
@@ -329,9 +390,9 @@ onMounted(loadProducts)
   justify-content: space-between;
   align-items: center;
   padding: 10px 24px;
-  background: linear-gradient(135deg, rgba(200, 163, 90, 0.22), rgba(240, 179, 90, 0.16));
-  color: #0b1f24;
-  border-bottom: 1px solid rgba(11, 31, 36, 0.08);
+  background: linear-gradient(145deg, rgba(126, 151, 170, 0.16), rgba(109, 128, 142, 0.12));
+  color: #2a3c4a;
+  border-bottom: 1px solid rgba(74, 97, 114, 0.12);
 }
 
 .modal-title {
@@ -339,11 +400,12 @@ onMounted(loadProducts)
   font-size: 1.1rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: #2a3c4a;
 }
 
 .modal-subtitle {
   font-size: 0.85rem;
-  color: rgba(11, 31, 36, 0.6);
+  color: rgba(42, 60, 74, 0.62);
   margin-top: 4px;
 }
 
@@ -354,6 +416,6 @@ onMounted(loadProducts)
 .empty-state {
   padding: 24px;
   text-align: center;
-  color: rgba(11, 31, 36, 0.6);
+  color: rgba(35, 58, 74, 0.6);
 }
 </style>

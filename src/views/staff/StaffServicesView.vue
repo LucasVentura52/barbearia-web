@@ -6,59 +6,101 @@
 
     <v-card class="staff-toolbar-card" elevation="0">
       <v-card-text class="toolbar">
-        <v-text-field v-model="search" label="Buscar serviço" variant="outlined" prepend-inner-icon="mdi-magnify" />
+        <v-text-field v-model="search" label="Buscar serviço" variant="outlined" prepend-inner-icon="mdi-magnify"
+          density="compact" hide-details="auto" />
         <div class="toolbar-actions">
-          <v-btn color="secondary" size="large" @click="openCreate">Novo serviço</v-btn>
+          <v-btn color="secondary" size="large" :block="smAndDown" @click="openCreate">Novo serviço</v-btn>
         </div>
       </v-card-text>
     </v-card>
 
     <v-card class="glass-card" elevation="0">
       <v-card-text>
-        <v-table class="staff-table">
-          <thead>
-            <tr>
-              <th class="text-left">Foto</th>
-              <th class="text-left">Serviço</th>
-              <th class="text-left">Duração</th>
-              <th class="text-left">Preço</th>
-              <th class="text-left">Status</th>
-              <th class="text-left">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="service in filteredServices" :key="service.id">
-              <td>
-                <div class="cell-avatar">
-                  <v-img v-if="service.photo_url" :src="resolveMediaUrl(service.photo_url)" cover
-                    class="cell-avatar__img" />
-                  <div v-else class="cell-avatar__initials">
-                    {{ service.name?.slice(0, 1) || '?' }}
+        <template v-if="!smAndDown">
+          <v-table class="staff-table">
+            <thead>
+              <tr>
+                <th class="text-left">Foto</th>
+                <th class="text-left">Serviço</th>
+                <th class="text-left">Duração</th>
+                <th class="text-left">Preço</th>
+                <th class="text-left">Status</th>
+                <th class="text-left">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="service in filteredServices" :key="service.id">
+                <td>
+                  <div class="cell-avatar">
+                    <v-img v-if="service.photo_url" :src="resolveMediaUrl(service.photo_url)" cover
+                      class="cell-avatar__img" />
+                    <div v-else class="cell-avatar__initials">
+                      {{ service.name?.slice(0, 1) || '?' }}
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td>
-                <div class="cell-title">{{ service.name }}</div>
-                <div class="text-muted line-clamp">
-                  {{ service.description || 'Sem descrição' }}
-                </div>
-              </td>
-              <td>{{ service.duration_minutes }} min</td>
-              <td>R$ {{ Number(service.price).toFixed(2) }}</td>
-              <td>
-                <v-chip size="small" :color="service.active ? 'success' : 'warning'" variant="tonal">
-                  {{ service.active ? 'Ativo' : 'Inativo' }}
-                </v-chip>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <v-btn icon="mdi-pencil-outline" variant="text" @click="openEdit(service)" />
-                  <v-btn icon="mdi-delete-outline" variant="text" color="error" @click="askDelete(service)" />
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
+                </td>
+                <td>
+                  <div class="cell-title">{{ service.name }}</div>
+                  <div class="text-muted line-clamp">
+                    {{ service.description || 'Sem descrição' }}
+                  </div>
+                </td>
+                <td>{{ service.duration_minutes }} min</td>
+                <td>R$ {{ Number(service.price).toFixed(2) }}</td>
+                <td>
+                  <v-chip size="small" :color="service.active ? 'success' : 'warning'" variant="tonal">
+                    {{ service.active ? 'Ativo' : 'Inativo' }}
+                  </v-chip>
+                </td>
+                <td>
+                  <div class="row-actions">
+                    <v-btn icon="mdi-pencil-outline" variant="text" @click="openEdit(service)" />
+                    <v-btn icon="mdi-delete-outline" variant="text" color="error" @click="askDelete(service)" />
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </template>
+        <template v-else>
+          <v-row dense>
+            <v-col v-for="service in filteredServices" :key="service.id" cols="12">
+              <v-card variant="outlined" class="mobile-row-card">
+                <v-card-item>
+                  <template #prepend>
+                    <div class="cell-avatar me-3">
+                      <v-img v-if="service.photo_url" :src="resolveMediaUrl(service.photo_url)" cover
+                        class="cell-avatar__img" />
+                      <div v-else class="cell-avatar__initials">
+                        {{ service.name?.slice(0, 1) || '?' }}
+                      </div>
+                    </div>
+                  </template>
+                  <v-card-title class="text-body-1">{{ service.name }}</v-card-title>
+                  <v-card-subtitle class="text-wrap">{{ service.description || 'Sem descrição' }}</v-card-subtitle>
+                </v-card-item>
+                <v-card-text class="pt-0">
+                  <div class="mobile-meta">
+                    <v-chip size="small" color="secondary" variant="tonal">{{ service.duration_minutes }} min</v-chip>
+                    <v-chip size="small" color="primary" variant="tonal">R$ {{ Number(service.price).toFixed(2) }}</v-chip>
+                    <v-chip size="small" :color="service.active ? 'success' : 'warning'" variant="tonal">
+                      {{ service.active ? 'Ativo' : 'Inativo' }}
+                    </v-chip>
+                  </div>
+                  <div class="mobile-actions">
+                    <v-btn size="small" variant="tonal" prepend-icon="mdi-pencil-outline" @click="openEdit(service)">
+                      Editar
+                    </v-btn>
+                    <v-btn size="small" variant="text" color="error" prepend-icon="mdi-delete-outline"
+                      @click="askDelete(service)">
+                      Excluir
+                    </v-btn>
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+        </template>
 
         <div v-if="!filteredServices.length" class="empty-state">
           Nenhum serviço encontrado.
@@ -116,6 +158,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
 import { useAlertStore } from '@/stores/alerts'
@@ -130,6 +173,7 @@ const editing = ref(null)
 const deleting = ref(null)
 const photoFile = ref(null)
 const alerts = useAlertStore()
+const { smAndDown } = useDisplay()
 
 const form = ref({
   name: '',
@@ -272,7 +316,7 @@ onMounted(loadServices)
   height: 48px;
   border-radius: 16px;
   overflow: hidden;
-  background: rgba(11, 31, 36, 0.08);
+  background: rgba(35, 58, 74, 0.08);
   display: grid;
   place-items: center;
   font-weight: 600;
@@ -303,6 +347,23 @@ onMounted(loadServices)
   gap: 4px;
 }
 
+.mobile-row-card {
+  border-radius: 14px;
+}
+
+.mobile-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.mobile-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .form-grid {
   display: grid;
 }
@@ -330,9 +391,9 @@ onMounted(loadServices)
   justify-content: space-between;
   align-items: center;
   padding: 10px 24px;
-  background: linear-gradient(135deg, rgba(200, 163, 90, 0.22), rgba(240, 179, 90, 0.16));
-  color: #0b1f24;
-  border-bottom: 1px solid rgba(11, 31, 36, 0.08);
+  background: linear-gradient(145deg, rgba(126, 151, 170, 0.16), rgba(109, 128, 142, 0.12));
+  color: #2a3c4a;
+  border-bottom: 1px solid rgba(74, 97, 114, 0.12);
 }
 
 .modal-title {
@@ -340,11 +401,12 @@ onMounted(loadServices)
   font-size: 1.1rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: #2a3c4a;
 }
 
 .modal-subtitle {
   font-size: 0.85rem;
-  color: rgba(11, 31, 36, 0.6);
+  color: rgba(42, 60, 74, 0.62);
   margin-top: 4px;
 }
 
@@ -355,6 +417,6 @@ onMounted(loadServices)
 .empty-state {
   padding: 24px;
   text-align: center;
-  color: rgba(11, 31, 36, 0.6);
+  color: rgba(35, 58, 74, 0.6);
 }
 </style>

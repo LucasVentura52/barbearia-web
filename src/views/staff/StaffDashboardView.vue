@@ -6,33 +6,45 @@
 
     <v-card class="staff-toolbar-card pb-4" elevation="0">
       <v-card-text class="dashboard-toolbar">
-        <v-date-input v-model="date" label="Data" variant="outlined" hide-details />
-        <v-btn color="secondary" size="large" @click="loadDashboard" :loading="loading">
+        <v-date-input v-model="date" label="Data" variant="outlined" hide-details class="dashboard-date" />
+        <v-btn color="secondary" size="large" :block="smAndDown" @click="loadDashboard" :loading="loading">
           Atualizar
         </v-btn>
       </v-card-text>
     </v-card>
 
-    <div class="dashboard-grid">
-      <div class="glass-card dashboard-card">
-        <div class="card-label">Agendamentos</div>
-        <div class="card-value">{{ totals.appointments_total }}</div>
-        <div class="card-meta">Total do dia</div>
-      </div>
-      <div class="glass-card dashboard-card">
-        <div class="card-label">Receita prevista</div>
-        <div class="card-value">R$ {{ totals.revenue_total.toFixed(2) }}</div>
-        <div class="card-meta">Agendamentos + finalizados</div>
-      </div>
-      <div class="glass-card dashboard-card">
-        <div class="card-label">Status</div>
-        <div class="status-badges">
-          <v-chip size="small" color="primary" variant="tonal">Agendados {{ statusCount('scheduled') }}</v-chip>
-          <v-chip size="small" color="success" variant="tonal">Finalizados {{ statusCount('done') }}</v-chip>
-          <v-chip size="small" color="error" variant="tonal">Cancelados {{ statusCount('canceled') }}</v-chip>
-        </div>
-      </div>
-    </div>
+    <v-row class="mb-2">
+      <v-col cols="12" md="4">
+        <v-card class="glass-card dashboard-card" elevation="0">
+          <v-card-text>
+            <div class="card-label">Agendamentos</div>
+            <div class="card-value">{{ totals.appointments_total }}</div>
+            <div class="card-meta">Total do dia</div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+      <v-col cols="12" md="4">
+        <v-card class="glass-card dashboard-card" elevation="0">
+          <v-card-text>
+            <div class="card-label">Receita prevista</div>
+            <div class="card-value">R$ {{ totals.revenue_total.toFixed(2) }}</div>
+            <div class="card-meta">Agendamentos + finalizados</div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+      <v-col cols="12" md="4">
+        <v-card class="glass-card dashboard-card" elevation="0">
+          <v-card-text>
+            <div class="card-label">Status</div>
+            <div class="status-badges">
+              <v-chip size="small" color="primary" variant="tonal">Agendados {{ statusCount('scheduled') }}</v-chip>
+              <v-chip size="small" color="success" variant="tonal">Finalizados {{ statusCount('done') }}</v-chip>
+              <v-chip size="small" color="error" variant="tonal">Cancelados {{ statusCount('canceled') }}</v-chip>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
 
     <v-row>
       <v-col cols="12" md="6">
@@ -77,6 +89,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 
 const toLocalDateString = (value) => {
@@ -87,6 +100,7 @@ const toLocalDateString = (value) => {
 
 const date = ref(toLocalDateString(new Date()))
 const loading = ref(false)
+const { smAndDown } = useDisplay()
 
 const totals = ref({
   appointments_total: 0,
@@ -129,22 +143,15 @@ loadDashboard()
   height: 40px;
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
 .dashboard-card {
-  padding: 20px;
+  height: 100%;
 }
 
 .card-label {
   text-transform: uppercase;
   letter-spacing: 0.2em;
   font-size: 0.75rem;
-  color: rgba(11, 31, 36, 0.6);
+  color: rgba(35, 58, 74, 0.6);
 }
 
 .card-value {
@@ -154,7 +161,7 @@ loadDashboard()
 }
 
 .card-meta {
-  color: rgba(11, 31, 36, 0.6);
+  color: rgba(35, 58, 74, 0.6);
 }
 
 .status-badges {
@@ -174,7 +181,7 @@ loadDashboard()
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(11, 31, 36, 0.05);
+  background: rgba(35, 58, 74, 0.05);
   padding: 12px 14px;
   border-radius: 16px;
 }

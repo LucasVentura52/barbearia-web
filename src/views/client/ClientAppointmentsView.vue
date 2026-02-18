@@ -4,19 +4,18 @@
       <h2>Meus agendamentos</h2>
     </div>
 
-    <div class="appointments-toolbar">
-      <div class="toolbar-left">
-        <v-chip v-for="item in statusOptions" :key="item.value"
-          :color="statusFilter === item.value ? 'primary' : 'secondary'"
-          :variant="statusFilter === item.value ? 'flat' : 'tonal'" @click="statusFilter = item.value">
-          {{ item.label }} ({{ item.count }})
-        </v-chip>
-      </div>
-      <v-btn variant="outlined" color="primary" @click="loadAppointments">
-        Atualizar
-      </v-btn>
-    </div>
-
+    <v-card class="glass-card mb-4" elevation="0">
+      <v-card-text class="appointments-toolbar">
+        <v-chip-group v-model="statusFilter" class="toolbar-left" selected-class="text-primary" mandatory>
+          <v-chip v-for="item in statusOptions" :key="item.value" :value="item.value" color="secondary" variant="tonal">
+            {{ item.label }} ({{ item.count }})
+          </v-chip>
+        </v-chip-group>
+        <v-btn variant="outlined" color="primary" :block="smAndDown" @click="loadAppointments">
+          Atualizar
+        </v-btn>
+      </v-card-text>
+    </v-card>
     <v-row>
       <v-col v-for="appointment in filteredAppointments" :key="appointment.id" cols="12" md="6">
         <v-card class="glass-card" elevation="0">
@@ -52,7 +51,6 @@
         </v-card>
       </v-col>
     </v-row>
-
     <v-alert v-if="filteredAppointments.length === 0" class="mt-5" type="info" variant="tonal">
       Nenhum agendamento encontrado para este filtro.
     </v-alert>
@@ -61,12 +59,14 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { useAlertStore } from '@/stores/alerts'
 
 const appointments = ref([])
 const statusFilter = ref('all')
 const alerts = useAlertStore()
+const { smAndDown } = useDisplay()
 
 const loadAppointments = async () => {
   const { data } = await api.get('/api/appointments')
@@ -128,7 +128,6 @@ onMounted(loadAppointments)
   flex-wrap: wrap;
   gap: 12px;
   justify-content: space-between;
-  margin-bottom: 18px;
 }
 
 .toolbar-left {

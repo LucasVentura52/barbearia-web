@@ -7,7 +7,7 @@
     <v-card v-if="isAdmin" class="staff-toolbar-card" elevation="0">
       <v-card-text class="schedule-toolbar">
         <v-select v-model="selectedStaffId" :items="staffOptions" item-title="name" item-value="id" label="Colaborador"
-          variant="outlined" class="staff-select" />
+          variant="outlined" class="staff-select" density="compact" hide-details="auto" />
       </v-card-text>
     </v-card>
 
@@ -21,7 +21,7 @@
                 label="Dia da semana" variant="outlined" />
               <v-text-field v-model="workingForm.start_time" label="Início" type="time" variant="outlined" />
               <v-text-field v-model="workingForm.end_time" label="Fim" type="time" variant="outlined" />
-              <v-btn color="secondary" type="submit" :loading="loadingWorking">
+              <v-btn color="secondary" type="submit" :loading="loadingWorking" :block="smAndDown">
                 Adicionar
               </v-btn>
             </v-form>
@@ -50,7 +50,7 @@
               <v-text-field v-model="timeOffForm.start_at" label="Início" type="datetime-local" variant="outlined" />
               <v-text-field v-model="timeOffForm.end_at" label="Fim" type="datetime-local" variant="outlined" />
               <v-text-field v-model="timeOffForm.reason" label="Motivo" variant="outlined" />
-              <v-btn color="secondary" type="submit" :loading="loadingTimeOff">
+              <v-btn color="secondary" type="submit" :loading="loadingTimeOff" :block="smAndDown">
                 Registrar
               </v-btn>
             </v-form>
@@ -76,6 +76,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { useAlertStore } from '@/stores/alerts'
 import { useAuthStore } from '@/stores/auth'
@@ -96,6 +97,7 @@ const loadingWorking = ref(false)
 const loadingTimeOff = ref(false)
 const alerts = useAlertStore()
 const auth = useAuthStore()
+const { smAndDown } = useDisplay()
 
 const staffOptions = ref([])
 const selectedStaffId = ref(null)
@@ -243,7 +245,7 @@ watch(
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(11, 31, 36, 0.05);
+  background: rgba(35, 58, 74, 0.05);
   padding: 12px 14px;
   border-radius: 16px;
 }

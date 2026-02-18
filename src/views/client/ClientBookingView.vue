@@ -14,7 +14,7 @@
             <v-select v-model="selectedServices" :items="availableServices" item-title="name" item-value="id"
               label="Serviços" multiple chips variant="outlined" required :disabled="!availableServices.length" />
             <v-date-input v-model="selectedDate" label="Data" variant="outlined" required />
-            <v-btn color="primary" size="large" :loading="loading" @click="loadAvailability">
+            <v-btn color="primary" size="large" :loading="loading" :block="smAndDown" @click="loadAvailability">
               Buscar horários
             </v-btn>
           </v-card-text>
@@ -71,9 +71,9 @@
                 {{ formatSlot(slot) }}
               </v-chip>
             </div>
-            <div v-else class="empty-slots">
+            <v-alert v-else type="info" variant="tonal" class="empty-slots">
               Nenhum horário encontrado. Ajuste a data ou serviços.
-            </div>
+            </v-alert>
 
             <v-divider class="my-6" />
 
@@ -85,7 +85,8 @@
               <div class="text-muted">
                 Total: <strong>R$ {{ totalPrice.toFixed(2) }}</strong>
               </div>
-              <v-btn color="primary" size="large" :disabled="!selectedSlot" :loading="saving" @click="confirmBooking">
+              <v-btn color="primary" size="large" :block="smAndDown" :disabled="!selectedSlot" :loading="saving"
+                @click="confirmBooking">
                 Confirmar
               </v-btn>
             </div>
@@ -98,6 +99,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
 import { formatPhoneFromE164 } from '@/lib/phone'
@@ -120,6 +122,7 @@ const toDateString = (value) => {
 
 const staffOptions = ref([])
 const alerts = useAlertStore()
+const { smAndDown } = useDisplay()
 
 const selectedStaff = ref(null)
 const selectedServices = ref([])
@@ -265,7 +268,7 @@ watch(
   width: 52px;
   height: 52px;
   border-radius: 12px;
-  background: rgba(11, 31, 36, 0.08);
+  background: rgba(35, 58, 74, 0.08);
   display: grid;
   place-items: center;
   font-weight: 600;
@@ -291,7 +294,7 @@ watch(
 }
 
 .staff-option__avatar {
-  background: rgba(11, 31, 36, 0.08);
+  background: rgba(35, 58, 74, 0.08);
   font-weight: 600;
   border-radius: 12px;
   overflow: hidden;
@@ -312,7 +315,7 @@ watch(
 }
 
 .staff-selection__avatar {
-  background: rgba(11, 31, 36, 0.08);
+  background: rgba(35, 58, 74, 0.08);
   font-weight: 600;
   border-radius: 10px;
   overflow: hidden;

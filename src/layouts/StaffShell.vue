@@ -1,7 +1,7 @@
 <template>
   <v-app class="staff-app">
     <div class="staff-bg"></div>
-    <v-navigation-drawer v-model="drawer" :permanent="mdAndUp" class="staff-drawer">
+    <v-navigation-drawer v-model="drawer" :permanent="mdAndUp" :temporary="!mdAndUp" class="staff-drawer">
       <div class="drawer-header">
         <div class="brand-mark"></div>
         <div>
@@ -11,10 +11,13 @@
       </div>
       <v-list nav density="comfortable">
         <v-list-item v-for="item in visibleNav" :key="item.to" :to="item.to" :prepend-icon="item.icon"
-          :title="item.title" />
+          :title="item.title" @click="handleNavClick" />
       </v-list>
+      <div v-if="auth.isSuperAdmin && smAndDown" class="drawer-company px-4 pb-2">
+        <CompanySwitcher />
+      </div>
       <div class="drawer-footer">
-        <v-btn variant="tonal" color="secondary" size="large" block @click="handleLogout">
+        <v-btn variant="tonal" color="primary" size="large" block @click="handleLogout">
           Sair
         </v-btn>
       </div>
@@ -26,11 +29,24 @@
       </v-btn>
       <div class="app-bar-title ml-2">{{ appBarTitle }}</div>
       <v-spacer />
-      <CompanySwitcher v-if="auth.isAuthenticated" class="me-3" />
-      <v-chip v-if="auth.user" color="secondary" variant="flat" class="me-3">
+      <CompanySwitcher v-if="auth.isSuperAdmin && !smAndDown" class="me-3 app-company-switcher" />
+      <v-chip v-if="auth.user && !smAndDown" color="secondary" variant="flat" class="me-3">
         {{ auth.user.name }}
       </v-chip>
-      <v-btn color="secondary" variant="outlined" :to="{ name: 'client-home' }">
+      <v-menu v-if="smAndDown" location="bottom end">
+        <template #activator="{ props }">
+          <v-btn v-bind="props" icon>
+            <v-icon icon="mdi-dots-vertical" />
+          </v-btn>
+        </template>
+        <v-list density="compact" min-width="220">
+          <v-list-item v-if="auth.user" :title="auth.user.name" :subtitle="subtitle" />
+          <v-divider v-if="auth.user" />
+          <v-list-item :to="{ name: 'client-home' }" prepend-icon="mdi-account-outline" title="Área do cliente" />
+          <v-list-item prepend-icon="mdi-logout" title="Sair" @click="handleLogout" />
+        </v-list>
+      </v-menu>
+      <v-btn v-else color="primary" variant="outlined" :to="{ name: 'client-home' }">
         Ver área do cliente
       </v-btn>
     </v-app-bar>
@@ -44,14 +60,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
 import CompanySwitcher from '@/components/CompanySwitcher.vue'
 
-const { mdAndUp } = useDisplay()
-const drawer = ref(true)
+const { mdAndUp, smAndDown } = useDisplay()
+const drawer = ref(mdAndUp.value)
 const auth = useAuthStore()
 const router = useRouter()
 
@@ -90,101 +106,79 @@ const handleLogout = async () => {
   router.replace({ name: 'login' })
 }
 
-onMounted(() => {
-  auth.loadMe()
+const handleNavClick = () => {
+  if (!mdAndUp.value) {
+    drawer.value = false
+  }
+}
+
+watch(mdAndUp, (desktop) => {
+  drawer.value = desktop
 })
 </script>
 
 <style scoped>
 .staff-app {
-  --staff-surface: rgba(255, 255, 255, 0.92);
-  --staff-surface-strong: rgba(255, 255, 255, 0.98);
-  --staff-border: rgba(200, 163, 90, 0.28);
-  --staff-ink: #0b1f24;
-  --staff-muted: rgba(11, 31, 36, 0.6);
-  --staff-shadow: 0 18px 40px rgba(5, 14, 18, 0.32);
-  color: #f6f1e8;
+  color: #21313d;
 }
 
 .staff-bg {
   position: fixed;
   inset: 0;
-  background:
-    radial-gradient(circle at 15% 10%, rgba(200, 163, 90, 0.25), transparent 48%),
-    radial-gradient(circle at 85% 0%, rgba(32, 92, 106, 0.3), transparent 46%),
-    linear-gradient(150deg, #0b1f24 0%, #102c33 55%, #f1e6d6 100%);
   z-index: 0;
-}
-
-.staff-bg::after {
-  content: '';
-  position: absolute;
-  inset: 0;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, transparent 45%),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.04) 1px, transparent 1px, transparent 18px);
-  opacity: 0.6;
-  pointer-events: none;
+    radial-gradient(circle at -8% -6%, rgba(179, 160, 134, 0.2), transparent 34%),
+    radial-gradient(circle at 108% -4%, rgba(111, 143, 166, 0.2), transparent 38%),
+    radial-gradient(circle at 50% 118%, rgba(154, 175, 189, 0.12), transparent 34%),
+    linear-gradient(180deg, #f2f5f8 0%, #ebf1f6 100%);
 }
 
 .staff-bar {
-  background: rgba(9, 25, 30, 0.94) !important;
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(200, 163, 90, 0.3);
-  color: #f6f1e8;
+  background: rgba(252, 253, 255, 0.82) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(74, 97, 114, 0.14);
 }
 
 .app-bar-title {
   font-family: var(--display-font);
-  font-size: 1.2rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #f6f1e8;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  font-weight: 700;
+  color: #2a4354;
 }
 
 .staff-drawer {
-  background: rgba(9, 22, 26, 0.98);
-  color: #f6f1e8;
-  border-right: 1px solid rgba(200, 163, 90, 0.15);
-}
-
-.staff-drawer :deep(.v-list-item-title),
-.staff-drawer :deep(.v-list-item-subtitle),
-.staff-drawer :deep(.v-list-item__content) {
-  color: #f6f1e8;
-}
-
-.staff-drawer :deep(.v-list-item--active) {
-  background: linear-gradient(90deg, rgba(200, 163, 90, 0.22), rgba(200, 163, 90, 0.04));
-  border-left: 3px solid rgba(200, 163, 90, 0.7);
+  background: rgba(252, 254, 255, 0.86);
+  backdrop-filter: blur(8px);
+  border-right: 1px solid rgba(74, 97, 114, 0.12);
 }
 
 .drawer-header {
   display: flex;
-  gap: 12px;
-  padding: 24px 20px 12px;
+  gap: 10px;
+  padding: 22px 18px 10px;
   align-items: center;
 }
 
 .brand-mark {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #c8a35a 0%, #f0b35a 45%, #e0623a 100%);
-  box-shadow: 0 12px 26px rgba(11, 31, 36, 0.5);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #5f7f96 0%, #95adbc 100%);
+  box-shadow: 0 8px 20px rgba(66, 90, 108, 0.2);
 }
 
 .brand-title {
   font-family: var(--display-font);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 1rem;
-  color: #f6f1e8;
+  letter-spacing: 0.01em;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #2b4352;
 }
 
 .brand-subtitle {
-  font-size: 0.85rem;
-  color: rgba(246, 241, 232, 0.6);
+  font-size: 0.8rem;
+  color: rgba(57, 79, 95, 0.64);
 }
 
 .drawer-footer {
@@ -192,115 +186,24 @@ onMounted(() => {
   padding: 16px;
 }
 
+.drawer-company :deep(.company-switcher) {
+  min-width: 0;
+}
+
+.app-company-switcher :deep(.company-switcher) {
+  min-width: 200px;
+}
+
 .page-shell {
   position: relative;
   z-index: 1;
-  padding: 32px 24px 64px;
+  padding: 28px 22px 56px;
   animation: fadeUp 0.6s ease both;
-  color: #f6f1e8;
 }
 
-.page-shell :deep(.glass-card) {
-  border: 1px solid var(--staff-border);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.86));
-  box-shadow: var(--staff-shadow);
-  backdrop-filter: blur(12px);
-}
-
-.page-shell :deep(.v-table) {
-  background: transparent;
-}
-
-.page-shell :deep(.v-table thead th) {
-  color: rgba(11, 31, 36, 0.7);
-}
-
-.page-shell :deep(.v-table tbody tr:hover) {
-  background: rgba(11, 31, 36, 0.04);
-}
-
-.page-shell :deep(.section-title),
-.page-shell :deep(.section-title h2) {
-  color: #f6f1e8;
-}
-
-.page-shell :deep(.section-title::before) {
-  background: #c8a35a;
-}
-
-.page-shell :deep(.glass-card) {
-  color: var(--staff-ink);
-}
-
-.page-shell :deep(.glass-card .text-muted) {
-  color: var(--staff-muted);
-}
-
-
-.page-shell :deep(.staff-table thead th) {
-  font-size: 0.72rem;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: rgba(11, 31, 36, 0.65);
-}
-
-.page-shell :deep(.staff-table tbody tr) {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.page-shell :deep(.staff-table tbody tr:hover) {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 20px rgba(11, 31, 36, 0.08);
-}
-
-.page-shell :deep(.staff-toolbar-card) {
-  margin-bottom: 16px;
-  border-radius: 20px;
-}
-
-.page-shell :deep(.staff-toolbar-card .v-card-text) {
-  padding: 8px 12px;
-}
-
-@media (max-width: 720px) {
+@media (max-width: 960px) {
   .page-shell {
-    padding: 24px 16px 48px;
-  }
-
-  .page-shell :deep(.staff-toolbar-card .toolbar),
-  .page-shell :deep(.staff-toolbar-card .calendar-toolbar),
-  .page-shell :deep(.staff-toolbar-card .dashboard-toolbar),
-  .page-shell :deep(.staff-toolbar-card .schedule-toolbar) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .page-shell :deep(.staff-toolbar-card .toolbar-actions),
-  .page-shell :deep(.staff-toolbar-card .toolbar-left) {
-    width: 100%;
-  }
-
-  .page-shell :deep(.staff-toolbar-card .toolbar-actions .v-btn) {
-    width: 100%;
-  }
-
-  .page-shell :deep(.staff-toolbar-card .staff-select),
-  .page-shell :deep(.staff-toolbar-card .status-filter) {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .page-shell :deep(.staff-toolbar-card .v-input) {
-    width: 100%;
-  }
-
-  .page-shell :deep(.staff-table) {
-    display: block;
-    overflow-x: auto;
-  }
-
-  .page-shell :deep(.staff-table table) {
-    min-width: 720px;
+    padding: 22px 14px 42px;
   }
 }
 

@@ -29,13 +29,13 @@
               <v-file-input v-model="file" label="Atualizar foto" accept="image/*" prepend-icon="mdi-camera"
                 variant="outlined" />
               <div class="profile-buttons">
-                <v-btn color="primary" size="large" :loading="uploading" @click="uploadPhoto">
+                <v-btn color="primary" size="large" :block="smAndDown" :loading="uploading" @click="uploadPhoto">
                   Salvar foto
                 </v-btn>
-                <v-btn color="primary" variant="outlined" size="large" @click="refresh">
+                <v-btn color="primary" variant="outlined" size="large" :block="smAndDown" @click="refresh">
                   Atualizar dados
                 </v-btn>
-                <v-btn variant="outlined" color="primary" size="large" @click="logout">
+                <v-btn variant="outlined" color="primary" size="large" :block="smAndDown" @click="logout">
                   Sair
                 </v-btn>
               </div>
@@ -50,7 +50,7 @@
               <v-text-field v-model="passwordForm.confirmation" label="Repetir nova senha" type="password"
                 variant="outlined" />
               <div class="profile-buttons">
-                <v-btn color="primary" size="large" :loading="updatingPassword" @click="updatePassword">
+                <v-btn color="primary" size="large" :block="smAndDown" :loading="updatingPassword" @click="updatePassword">
                   Atualizar senha
                 </v-btn>
               </div>
@@ -64,6 +64,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/lib/api'
 import { useAlertStore } from '@/stores/alerts'
@@ -76,6 +77,7 @@ const file = ref(null)
 const uploading = ref(false)
 const updatingPassword = ref(false)
 const alerts = useAlertStore()
+const { smAndDown } = useDisplay()
 const passwordForm = ref({
   current: '',
   password: '',
@@ -146,7 +148,7 @@ const updatePassword = async () => {
   height: 128px;
   border-radius: 28px;
   overflow: hidden;
-  background: rgba(11, 31, 36, 0.1);
+  background: rgba(35, 58, 74, 0.1);
   display: grid;
   place-items: center;
 }

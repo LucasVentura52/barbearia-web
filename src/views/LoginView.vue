@@ -1,40 +1,58 @@
 <template>
-  <v-container class="login-shell">
-    <v-row justify="center">
-      <v-col cols="12" md="9" lg="8">
-        <v-card class="glass-card mb-15" elevation="0">
-          <v-card-text class="login-card">
-            <div class="login-grid">
-              <div>
-                <div class="section-title">
-                  <h2>Entrar na plataforma</h2>
-                </div>
-                <p class="text-muted">
-                  Use seu telefone e senha para acessar. Cadastro disponível apenas para clientes.
-                </p>
-                <CompanySwitcher :reload-on-change="false" class="mb-4" />
+  <v-container fluid class="login-shell pa-0">
+    <v-row class="ma-0 fill-height" align="center" justify="center">
+      <v-col cols="12" sm="11" md="10" lg="9" xl="8">
+        <v-card class="glass-card overflow-hidden" rounded="xl" elevation="6">
+          <v-row no-gutters>
+            <v-col cols="12" md="7">
+              <v-card-text :class="formPaddingClass">
+                <v-card-item class="px-0 pt-0 pb-3">
+                  <template #prepend>
+                    <v-avatar color="primary" variant="tonal" size="44" class="me-3">
+                      <v-icon icon="mdi-account-lock-outline" />
+                    </v-avatar>
+                  </template>
+                  <v-card-title class="text-h5 text-sm-h4">Entrar na plataforma</v-card-title>
+                  <v-card-subtitle class="text-wrap text-body-2">
+                    Use seu telefone e senha para acessar. Cadastro disponível apenas para clientes.
+                  </v-card-subtitle>
+                </v-card-item>
 
-                <v-tabs v-model="tab" class="mb-4" color="primary">
-                  <v-tab value="login">Login</v-tab>
-                  <v-tab value="register">Cadastrar conta</v-tab>
+                <CompanySwitcher :reload-on-change="false" class="mb-5" />
+
+                <v-tabs v-model="tab" color="primary" grow  class="mb-4">
+                  <v-tab value="login" prepend-icon="mdi-login">Login</v-tab>
+                  <v-tab value="register" prepend-icon="mdi-account-plus-outline">Cadastrar conta</v-tab>
                 </v-tabs>
 
-                <v-window v-model="tab">
+                <v-window v-model="tab" :touch="false">
                   <v-window-item value="login">
                     <v-form @submit.prevent="handleLogin">
-                      <v-alert v-if="loginErrors._form" type="error" variant="tonal" class="mb-4">
+                      <v-alert v-if="loginErrors._form" type="error" variant="tonal" class="mb-4" >
                         {{ loginErrors._form[0] }}
                       </v-alert>
-                      <div class="phone-row mt-2">
-                        <v-select v-model="loginForm.country" :items="countryOptions" item-title="label"
-                          item-value="code" label="País" variant="outlined" density="compact" class="phone-country" />
-                        <v-text-field v-model="loginPhone" label="Telefone" placeholder="(11) 99999-9999"
-                          variant="outlined" type="tel" class="phone-input" maxlength="15"
-                          :error-messages="loginErrors.phone" required />
-                      </div>
-                      <v-text-field v-model="loginForm.password" label="Senha" type="password" variant="outlined"
-                        :error-messages="loginErrors.password" required />
-                      <v-btn color="primary" size="large" type="submit" :loading="loading">
+
+                      <v-row dense class="mt-1">
+                        <v-col cols="12" sm="4">
+                          <v-select v-model="loginForm.country" :items="countryOptions" item-title="label"
+                            item-value="code" label="País" variant="outlined" 
+                            hide-details="auto" />
+                        </v-col>
+                        <v-col cols="12" sm="8">
+                          <v-text-field v-model="loginPhone" label="Telefone" placeholder="(11) 99999-9999"
+                            variant="outlined"  prepend-inner-icon="mdi-phone-outline" type="tel"
+                            maxlength="15" :error-messages="loginErrors.phone" required />
+                        </v-col>
+                      </v-row>
+
+                      <v-text-field v-model="loginForm.password" label="Senha"
+                        :type="showLoginPassword ? 'text' : 'password'" variant="outlined" 
+                        prepend-inner-icon="mdi-lock-outline"
+                        :append-inner-icon="showLoginPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                        :error-messages="loginErrors.password" required
+                        @click:append-inner="showLoginPassword = !showLoginPassword" />
+
+                      <v-btn color="primary" size="large" type="submit" :loading="loading" block>
                         Entrar
                       </v-btn>
                     </v-form>
@@ -42,58 +60,95 @@
 
                   <v-window-item value="register">
                     <v-form @submit.prevent="handleRegister">
-                      <v-alert v-if="registerErrors._form" type="error" variant="tonal" class="mb-4">
+                      <v-alert v-if="registerErrors._form" type="error" variant="tonal" class="mb-4"
+                        >
                         {{ registerErrors._form[0] }}
                       </v-alert>
-                      <v-text-field v-model="registerForm.name" class="mt-2" label="Nome" variant="outlined"
+
+                      <v-text-field v-model="registerForm.name" class="mt-1" label="Nome" variant="outlined"
+                         prepend-inner-icon="mdi-account-outline"
                         :error-messages="registerErrors.name" required />
-                      <div class="phone-row">
-                        <v-select v-model="registerForm.country" :items="countryOptions" item-title="label"
-                          item-value="code" label="País" variant="outlined" class="phone-country" />
-                        <v-text-field v-model="registerPhone" label="Telefone" placeholder="(11) 99999-9999"
-                          variant="outlined" type="tel" class="phone-input" maxlength="15"
-                          :error-messages="registerErrors.phone" required />
-                      </div>
+
+                      <v-row dense>
+                        <v-col cols="12" sm="4">
+                          <v-select v-model="registerForm.country" :items="countryOptions" item-title="label"
+                            item-value="code" label="País" variant="outlined" 
+                            hide-details="auto" />
+                        </v-col>
+                        <v-col cols="12" sm="8">
+                          <v-text-field v-model="registerPhone" label="Telefone" placeholder="(11) 99999-9999"
+                            variant="outlined"  prepend-inner-icon="mdi-phone-outline" type="tel"
+                            maxlength="15" :error-messages="registerErrors.phone" required />
+                        </v-col>
+                      </v-row>
+
                       <v-text-field v-model="registerForm.email" label="Email (opcional)" variant="outlined"
+                         prepend-inner-icon="mdi-email-outline"
                         :error-messages="registerErrors.email" />
-                      <v-text-field v-model="registerForm.password" label="Senha" type="password" variant="outlined"
-                        :error-messages="registerErrors.password" required />
-                      <v-text-field v-model="registerForm.confirm" label="Confirmar senha" type="password"
-                        variant="outlined" :error-messages="registerErrors.confirm" required />
-                      <v-btn color="primary" size="large" type="submit" :loading="loading">
+
+                      <v-text-field v-model="registerForm.password" label="Senha"
+                        :type="showRegisterPassword ? 'text' : 'password'" variant="outlined" 
+                        prepend-inner-icon="mdi-lock-outline"
+                        :append-inner-icon="showRegisterPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                        :error-messages="registerErrors.password" required
+                        @click:append-inner="showRegisterPassword = !showRegisterPassword" />
+
+                      <v-text-field v-model="registerForm.confirm" label="Confirmar senha"
+                        :type="showRegisterConfirm ? 'text' : 'password'" variant="outlined" 
+                        prepend-inner-icon="mdi-lock-check-outline"
+                        :append-inner-icon="showRegisterConfirm ? 'mdi-eye-off' : 'mdi-eye'"
+                        :error-messages="registerErrors.confirm" required
+                        @click:append-inner="showRegisterConfirm = !showRegisterConfirm" />
+
+                      <v-btn color="primary" size="large" type="submit" :loading="loading" block>
                         Criar conta
                       </v-btn>
                     </v-form>
                   </v-window-item>
                 </v-window>
-              </div>
+              </v-card-text>
+            </v-col>
 
-              <div class="login-aside">
-                <div class="aside-title">Por que usar o nosso sistema?</div>
-                <div class="aside-item">
-                  <v-icon icon="mdi-calendar-check" />
-                  <div>
-                    <div class="aside-name">Sem conflitos</div>
-                    <div class="aside-desc">Horários sincronizados em tempo real.</div>
-                  </div>
-                </div>
-                <div class="aside-item">
-                  <v-icon icon="mdi-flash" />
-                  <div>
-                    <div class="aside-name">Rápido e simples</div>
-                    <div class="aside-desc">Agendamento em poucos cliques.</div>
-                  </div>
-                </div>
-                <div class="aside-item">
-                  <v-icon icon="mdi-star" />
-                  <div>
-                    <div class="aside-name">Experiência premium</div>
-                    <div class="aside-desc">Mais conforto para você e para o barbeiro.</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </v-card-text>
+            <v-col cols="12" md="5">
+              <v-sheet class="login-aside h-100" :class="asidePaddingClass" rounded="0">
+                <v-chip color="white" variant="tonal" size="small" class="mb-4">
+                  Experiência premium
+                </v-chip>
+
+                <div class="text-h5 text-sm-h4 mb-2">Por que usar o nosso sistema?</div>
+                <p class="text-body-2 text-white-opacity mb-5">
+                  Tudo em um só lugar para você agendar, acompanhar e gerenciar seus horários sem atrito.
+                </p>
+
+                <v-list bg-color="transparent"  class="pa-0">
+                  <v-list-item class="px-0" title="Sem conflitos" subtitle="Horários sincronizados em tempo real.">
+                    <template #prepend>
+                      <v-avatar color="white" variant="tonal" size="36" class="me-3">
+                        <v-icon icon="mdi-calendar-check-outline" size="18" />
+                      </v-avatar>
+                    </template>
+                  </v-list-item>
+
+                  <v-list-item class="px-0" title="Rápido e simples" subtitle="Agendamento em poucos cliques.">
+                    <template #prepend>
+                      <v-avatar color="white" variant="tonal" size="36" class="me-3">
+                        <v-icon icon="mdi-flash-outline" size="18" />
+                      </v-avatar>
+                    </template>
+                  </v-list-item>
+
+                  <v-list-item class="px-0" title="Organização diária"
+                    subtitle="Visualização clara de tudo que vem pela frente.">
+                    <template #prepend>
+                      <v-avatar color="white" variant="tonal" size="36" class="me-3">
+                        <v-icon icon="mdi-view-dashboard-outline" size="18" />
+                      </v-avatar>
+                    </template>
+                  </v-list-item>
+                </v-list>
+              </v-sheet>
+            </v-col>
+          </v-row>
         </v-card>
       </v-col>
     </v-row>
@@ -103,6 +158,7 @@
 <script setup>
 import { computed, ref, watch, watchEffect } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
 import { useAlertStore } from '@/stores/alerts'
 import { formatPhone, normalizePhone, buildE164 } from '@/lib/phone'
@@ -112,11 +168,18 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const alerts = useAlertStore()
+const { smAndDown } = useDisplay()
 
 const tab = ref('login')
 const loading = ref(false)
 const loginErrors = ref({})
 const registerErrors = ref({})
+const showLoginPassword = ref(false)
+const showRegisterPassword = ref(false)
+const showRegisterConfirm = ref(false)
+
+const formPaddingClass = computed(() => (smAndDown.value ? 'pa-5' : 'pa-8'))
+const asidePaddingClass = computed(() => (smAndDown.value ? 'pa-5 pt-4' : 'pa-8'))
 
 const countryOptions = [
   { code: '55', label: 'Brasil (+55)' },
@@ -242,63 +305,26 @@ const mapErrors = (error) => {
 
 <style scoped>
 .login-shell {
-  display: flex;
-  align-items: center;
-  overflow: hidden;
-}
-
-.login-card {
-  padding: 32px;
-}
-
-.login-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 24px;
-}
-
-.phone-row {
-  display: grid;
-  grid-template-columns: 190px 1fr;
-  gap: 12px;
-}
-
-.phone-country :deep(.v-field__input) {
-  font-size: 0.9rem;
-}
-
-.phone-input {
-  min-width: 0;
+  min-height: 75vh;
 }
 
 .login-aside {
-  background: linear-gradient(160deg, rgba(11, 31, 36, 0.95), rgba(32, 92, 106, 0.9));
-  color: #f6f1e8;
-  border-radius: 18px;
-  padding: 24px;
-  display: grid;
-  gap: 16px;
+  background: linear-gradient(165deg, rgba(33, 58, 74, 0.96), rgba(77, 110, 131, 0.92));
+  color: #f3f7fa;
 }
 
-.aside-title {
-  font-family: var(--display-font);
-  font-size: 1.4rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.text-white-opacity {
+  color: rgba(243, 247, 250, 0.82);
 }
 
-.aside-item {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
+.login-aside :deep(.v-list-item-subtitle) {
+  white-space: normal;
+  color: rgba(243, 247, 250, 0.76);
 }
 
-.aside-name {
-  font-weight: 600;
-}
-
-.aside-desc {
-  font-size: 0.85rem;
-  color: rgba(246, 241, 232, 0.75);
+@media (max-width: 959px) {
+  .login-shell {
+    min-height: calc(100vh - 48px);
+  }
 }
 </style>

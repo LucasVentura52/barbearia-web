@@ -26,7 +26,7 @@
           <v-chip v-else-if="auth.user" color="secondary" variant="tonal">
             {{ auth.user.name }}
           </v-chip>
-          <v-btn color="secondary" variant="tonal" :loading="loading" @click="refetchEvents">
+          <v-btn color="secondary" variant="tonal" :loading="loading" :block="smAndDown" @click="refetchEvents">
             Atualizar
           </v-btn>
         </div>
@@ -163,6 +163,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useDisplay } from 'vuetify'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -189,6 +190,7 @@ const selectedAppointment = ref(null)
 const serviceOptions = ref([])
 const alerts = useAlertStore()
 const auth = useAuthStore()
+const { smAndDown } = useDisplay()
 
 const isAdmin = computed(() => auth.user?.role === 'admin')
 
@@ -222,10 +224,10 @@ const statusColor = (status) => {
 }
 
 const statusPalette = {
-  scheduled: { background: '#205C6A', text: '#F6F1E8' },
-  done: { background: '#2D6A4F', text: '#F6F1E8' },
-  no_show: { background: '#C77D44', text: '#0B1F24' },
-  canceled: { background: '#B13E3E', text: '#F6F1E8' },
+  scheduled: { background: '#5E7A90', text: '#F3F7FA' },
+  done: { background: '#688573', text: '#F3F7FA' },
+  no_show: { background: '#9B8062', text: '#1F2B35' },
+  canceled: { background: '#93696D', text: '#F3F7FA' },
 }
 
 const statusCount = (status) =>
@@ -323,15 +325,21 @@ const fetchAppointments = async (info, successCallback, failureCallback) => {
 
 const calendarOptions = computed(() => ({
   plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
-  initialView: 'dayGridMonth',
+  initialView: smAndDown.value ? 'listWeek' : 'dayGridMonth',
   height: 'auto',
   locale: ptBrLocale,
   nowIndicator: true,
-  headerToolbar: {
-    left: 'prev,next today',
-    center: 'title',
-    right: 'timeGridDay,timeGridWeek,dayGridMonth,listWeek',
-  },
+  headerToolbar: smAndDown.value
+    ? {
+        left: 'prev,next',
+        center: 'title',
+        right: 'timeGridDay,listWeek',
+      }
+    : {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'timeGridDay,timeGridWeek,dayGridMonth,listWeek',
+      },
   events: fetchAppointments,
   eventClick: (info) => {
     selectedAppointment.value = info.event.extendedProps.appointment
@@ -522,24 +530,24 @@ watch(
 
 .status-chip {
   font-weight: 600;
-  border: 1px solid rgba(11, 31, 36, 0.15);
-  color: #0b1f24;
+  border: 1px solid rgba(35, 58, 74, 0.15);
+  color: #203241;
 }
 
 .status-chip--scheduled {
-  background: #e2eef2;
+  background: #e5edf3;
 }
 
 .status-chip--done {
-  background: #dff1e7;
+  background: #e5efe9;
 }
 
 .status-chip--no-show {
-  background: #f7e6d1;
+  background: #f0e8de;
 }
 
 .status-chip--canceled {
-  background: #f3d7d9;
+  background: #efe2e3;
 }
 
 .toolbar-actions {
@@ -558,10 +566,10 @@ watch(
 
 .calendar-card :deep(.fc) {
   --fc-page-bg-color: rgba(255, 255, 255, 0.95);
-  --fc-border-color: rgba(11, 31, 36, 0.12);
-  --fc-today-bg-color: rgba(200, 163, 90, 0.18);
-  --fc-neutral-bg-color: rgba(11, 31, 36, 0.04);
-  color: #0b1f24;
+  --fc-border-color: rgba(35, 58, 74, 0.12);
+  --fc-today-bg-color: rgba(126, 151, 170, 0.14);
+  --fc-neutral-bg-color: rgba(35, 58, 74, 0.04);
+  color: #203241;
 }
 
 .calendar-card :deep(.fc-toolbar-title) {
@@ -571,14 +579,14 @@ watch(
 }
 
 .calendar-card :deep(.fc-button) {
-  background: rgba(11, 31, 36, 0.08);
+  background: rgba(35, 58, 74, 0.08);
   border: none;
-  color: #0b1f24;
+  color: #203241;
 }
 
 .calendar-card :deep(.fc-button-primary:not(:disabled).fc-button-active),
 .calendar-card :deep(.fc-button-primary:not(:disabled):active) {
-  background: rgba(11, 31, 36, 0.18);
+  background: rgba(35, 58, 74, 0.14);
 }
 
 .calendar-card :deep(.fc-list-event) {
@@ -646,12 +654,29 @@ watch(
   grid-template-columns: auto 1fr;
   gap: 6px 12px;
   align-items: center;
-  background: rgba(11, 31, 36, 0.04);
+  background: rgba(35, 58, 74, 0.04);
   padding: 12px 14px;
   border-radius: 12px;
 }
 
 .dialog-actions {
   padding: 0 24px 20px;
+}
+
+@media (max-width: 960px) {
+  .calendar-card :deep(.fc-toolbar) {
+    gap: 8px;
+  }
+
+  .calendar-card :deep(.fc-toolbar-chunk) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .calendar-card :deep(.fc-button) {
+    padding: 0.2rem 0.45rem;
+    font-size: 0.72rem;
+  }
 }
 </style>
