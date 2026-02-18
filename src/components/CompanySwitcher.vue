@@ -3,6 +3,7 @@
     :model-value="company.currentSlug"
     :items="company.options"
     :loading="company.loading"
+    :disabled="isLockedForAuthenticatedUser"
     label="Empresa"
     variant="outlined"
     density="compact"
@@ -13,7 +14,7 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCompanyStore } from '@/stores/company'
 
@@ -26,6 +27,7 @@ const props = defineProps({
 
 const auth = useAuthStore()
 const company = useCompanyStore()
+const isLockedForAuthenticatedUser = computed(() => auth.isAuthenticated && !auth.isSuperAdmin)
 
 const loadCompanies = async () => {
   if (auth.isAuthenticated) {
@@ -37,6 +39,10 @@ const loadCompanies = async () => {
 }
 
 const onSelect = async (value) => {
+  if (auth.isAuthenticated && !auth.isSuperAdmin) {
+    return
+  }
+
   const nextSlug = String(value || '').trim()
   if (!nextSlug || nextSlug === company.currentSlug) {
     return
@@ -59,5 +65,12 @@ onMounted(loadCompanies)
 <style scoped>
 .company-switcher {
   min-width: 220px;
+}
+
+@media (max-width: 960px) {
+  .company-switcher {
+    min-width: 0;
+    width: 100%;
+  }
 }
 </style>

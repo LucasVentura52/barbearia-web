@@ -102,7 +102,17 @@ router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
   if (auth.token && !auth.user) {
-    await auth.loadMe()
+    try {
+      const restored = await auth.restoreSession()
+      if (!restored) {
+        if (to.name === 'login') return true
+        return { name: 'login', query: { redirect: to.fullPath } }
+      }
+    } catch {
+      auth.clearSession()
+      if (to.name === 'login') return true
+      return { name: 'login', query: { redirect: to.fullPath } }
+    }
   }
 
   if (to.name === 'login' && auth.isAuthenticated) {

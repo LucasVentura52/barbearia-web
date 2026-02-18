@@ -20,6 +20,11 @@ export const useAuthStore = defineStore('auth', {
     isSuperAdmin: (state) => state.user?.role === 'super_admin',
   },
   actions: {
+    clearSession() {
+      this.token = ''
+      this.user = null
+      localStorage.removeItem('token')
+    },
     async registerClient({ name, phone, email, password }) {
       const { data } = await api.post('/api/auth/register', { name, phone, email, password })
       this.token = data.token
@@ -36,6 +41,21 @@ export const useAuthStore = defineStore('auth', {
       localStorage.setItem('token', data.token)
       return data
     },
+    async restoreSession() {
+      if (!this.token) return true
+      if (this.user) return true
+
+      try {
+        await this.loadMe()
+        return true
+      } catch (error) {
+        if (error?.response?.status === 401) {
+          this.clearSession()
+          return false
+        }
+        throw error
+      }
+    },
     async loadMe() {
       if (!this.token) return null
       const { data } = await api.get('/api/me')
@@ -49,9 +69,7 @@ export const useAuthStore = defineStore('auth', {
       } catch (err) {
         // ignore
       }
-      this.token = ''
-      this.user = null
-      localStorage.removeItem('token')
+      this.clearSession()
     },
   },
 })
