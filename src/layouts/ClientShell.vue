@@ -221,6 +221,10 @@ watch(mdAndUp, (desktop) => {
   animation: fadeUp 0.6s ease both;
 }
 
+.page-shell :deep(.v-container) {
+  max-width: 100%;
+}
+
 @media (max-width: 960px) {
   .page-shell {
     padding: 22px 14px 42px;

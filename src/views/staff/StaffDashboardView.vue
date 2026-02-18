@@ -189,8 +189,19 @@ const formatDateLabel = (value) => {
   })
 }
 
-const today = toLocalDateString(new Date())
-const dateRange = ref([today, today])
+const getCurrentMonthRange = () => {
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+
+  return {
+    from: toLocalDateString(monthStart),
+    to: toLocalDateString(monthEnd),
+  }
+}
+
+const currentMonthRange = getCurrentMonthRange()
+const dateRange = ref([currentMonthRange.from, currentMonthRange.to])
 const loading = ref(false)
 const { smAndDown } = useDisplay()
 
@@ -215,7 +226,7 @@ const normalizedPeriod = computed(() => {
     .sort()
 
   if (!normalized.length) {
-    return { from: today, to: today }
+    return { from: currentMonthRange.from, to: currentMonthRange.to }
   }
 
   if (normalized.length === 1) {

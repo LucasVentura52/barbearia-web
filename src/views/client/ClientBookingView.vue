@@ -20,7 +20,7 @@
           </v-card-text>
         </v-card>
 
-        <v-card class="glass-card mt-6" elevation="0">
+        <v-card v-if="!smAndDown" class="glass-card mt-6" elevation="0">
           <v-card-text class="summary-card">
             <div class="section-label">Resumo</div>
             <div class="summary-row">
@@ -94,6 +94,38 @@
         </v-card>
       </v-col>
     </v-row>
+
+    <v-card v-if="smAndDown" class="glass-card mt-6" elevation="0">
+      <v-card-text class="summary-card">
+        <div class="section-label">Resumo</div>
+        <div class="summary-row">
+          <div class="text-muted">Serviços</div>
+          <div>{{ selectedServices.length }}</div>
+        </div>
+        <div class="summary-row">
+          <div class="text-muted">Tempo total</div>
+          <div>{{ totalDuration }} min</div>
+        </div>
+        <div class="summary-row">
+          <div class="text-muted">Total</div>
+          <div class="summary-price">{{ formatCurrencyBRL(totalPrice) }}</div>
+        </div>
+        <v-divider class="my-4" />
+        <div class="summary-staff">
+          <div class="summary-avatar">
+            <v-img v-if="staffAvatarSrc" :src="staffAvatarSrc" cover class="summary-avatar__img" />
+            <div v-else>{{ selectedStaffData?.name?.slice(0, 1) || '?' }}</div>
+          </div>
+          <div>
+            <div class="summary-name">{{ selectedStaffData?.name || 'Barbeiro' }}</div>
+            <div class="text-muted">{{ selectedStaffData?.profile?.bio || 'Equipe premium' }}</div>
+            <div class="summary-phone">
+              {{ staffPhoneText || 'Telefone não informado' }}
+            </div>
+          </div>
+        </div>
+      </v-card-text>
+    </v-card>
   </v-container>
 </template>
 
