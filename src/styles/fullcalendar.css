@@ -1,31 +1,31 @@
 :root {
     --fc-small-font-size: .85em;
     --fc-page-bg-color: #fff;
-    --fc-neutral-bg-color: hsla(0, 0%, 82%, .3);
-    --fc-neutral-text-color: grey;
-    --fc-border-color: #ddd;
+    --fc-neutral-bg-color: rgba(91, 140, 143, .12);
+    --fc-neutral-text-color: #607883;
+    --fc-border-color: rgba(87, 120, 132, .22);
     --fc-button-text-color: #fff;
-    --fc-button-bg-color: #2c3e50;
-    --fc-button-border-color: #2c3e50;
-    --fc-button-hover-bg-color: #1e2b37;
-    --fc-button-hover-border-color: #1a252f;
-    --fc-button-active-bg-color: #1a252f;
-    --fc-button-active-border-color: #151e27;
-    --fc-event-bg-color: #3788d8;
-    --fc-event-border-color: #3788d8;
+    --fc-button-bg-color: #5b8c8f;
+    --fc-button-border-color: #5b8c8f;
+    --fc-button-hover-bg-color: #4f7d80;
+    --fc-button-hover-border-color: #4f7d80;
+    --fc-button-active-bg-color: #456f72;
+    --fc-button-active-border-color: #456f72;
+    --fc-event-bg-color: #5b8c8f;
+    --fc-event-border-color: #5b8c8f;
     --fc-event-text-color: #fff;
     --fc-event-selected-overlay-color: rgba(0, 0, 0, .25);
-    --fc-more-link-bg-color: #d0d0d0;
+    --fc-more-link-bg-color: rgba(184, 136, 94, .25);
     --fc-more-link-text-color: inherit;
     --fc-event-resizer-thickness: 8px;
     --fc-event-resizer-dot-total-width: 8px;
     --fc-event-resizer-dot-border-width: 1px;
     --fc-non-business-color: hsla(0, 0%, 84%, .3);
-    --fc-bg-event-color: #8fdf82;
+    --fc-bg-event-color: #b8885e;
     --fc-bg-event-opacity: 0.3;
-    --fc-highlight-color: rgba(188, 232, 241, .3);
-    --fc-today-bg-color: rgba(255, 220, 40, .15);
-    --fc-now-indicator-color: red
+    --fc-highlight-color: rgba(91, 140, 143, .2);
+    --fc-today-bg-color: rgba(184, 136, 94, .18);
+    --fc-now-indicator-color: #b37a7a
 }
 
 .fc-not-allowed,
@@ -1377,4 +1377,111 @@ a.fc-event:hover {
 
 .fc .fc-list-event.fc-event-forced-url:hover a {
     text-decoration: underline
+}
+
+/* Calendar toolbar polish */
+.fc .fc-header-toolbar {
+    margin-bottom: 1.1rem;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(87, 120, 132, 0.16);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 251, 251, 0.84));
+    box-shadow: 0 8px 18px rgba(43, 68, 74, 0.08);
+}
+
+.fc .fc-toolbar-title {
+    font-family: var(--display-font);
+    font-size: 1.18rem;
+    font-weight: 700;
+    color: var(--ink-900);
+    letter-spacing: 0.01em;
+}
+
+.fc .fc-toolbar-chunk {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fc .fc-button {
+    border-radius: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    padding: 0.42rem 0.82rem;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.fc .fc-button .fc-icon {
+    font-size: 1.18em;
+}
+
+.fc .fc-button-primary {
+    border-color: rgba(81, 125, 128, 0.9);
+    background: linear-gradient(145deg, #6e9b9d 0%, #5b8c8f 100%);
+    box-shadow: 0 6px 14px rgba(72, 108, 112, 0.24);
+}
+
+.fc .fc-button-primary:hover {
+    transform: translateY(-1px);
+    filter: saturate(1.05);
+    box-shadow: 0 10px 16px rgba(72, 108, 112, 0.28);
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+    background: linear-gradient(145deg, #4c777a 0%, #3f676b 100%);
+    border-color: #3f676b;
+    box-shadow: 0 8px 16px rgba(52, 82, 86, 0.3);
+}
+
+.fc .fc-today-button.fc-button-primary {
+    color: #2f4756;
+    border-color: rgba(184, 136, 94, 0.45);
+    background: linear-gradient(145deg, rgba(248, 238, 226, 0.95) 0%, rgba(240, 225, 205, 0.95) 100%);
+    box-shadow: 0 6px 14px rgba(184, 136, 94, 0.18);
+}
+
+.fc .fc-today-button.fc-button-primary:hover {
+    box-shadow: 0 10px 16px rgba(184, 136, 94, 0.24);
+}
+
+.fc .fc-button-primary:disabled {
+    opacity: 0.55;
+    box-shadow: none;
+}
+
+.fc-direction-ltr .fc-button-group>.fc-button:not(:first-child) {
+    margin-left: 6px;
+}
+
+.fc-direction-ltr .fc-button-group>.fc-button:not(:first-child),
+.fc-direction-ltr .fc-button-group>.fc-button:not(:last-child),
+.fc-direction-rtl .fc-button-group>.fc-button:not(:first-child),
+.fc-direction-rtl .fc-button-group>.fc-button:not(:last-child) {
+    border-radius: 11px;
+}
+
+@media (max-width: 960px) {
+    .fc .fc-header-toolbar {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 10px;
+    }
+
+    .fc .fc-toolbar-chunk {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .fc .fc-toolbar-title {
+        text-align: center;
+        font-size: 1.06rem;
+    }
+
+    .fc .fc-button {
+        padding: 0.38rem 0.68rem;
+        font-size: 0.86rem;
+    }
 }

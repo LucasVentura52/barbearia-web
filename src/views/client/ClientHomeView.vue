@@ -232,8 +232,8 @@ onMounted(async () => {
 }
 
 .hero-panel-card {
-  background: linear-gradient(165deg, #283f4e 0%, #36586d 100%);
-  color: #edf3f7;
+  background: linear-gradient(160deg, #4a767b 0%, #5d8d92 60%, #709ea2 100%);
+  color: #f2f9fa;
   padding: 24px;
   border-radius: 22px;
 }
@@ -259,7 +259,7 @@ onMounted(async () => {
 
 .panel-subtitle {
   font-size: 0.85rem;
-  color: rgba(237, 243, 247, 0.74);
+  color: rgba(242, 249, 250, 0.78);
 }
 
 .panel-body {
@@ -292,7 +292,7 @@ onMounted(async () => {
 
 .slot-subtitle {
   font-size: 0.8rem;
-  color: rgba(237, 243, 247, 0.74);
+  color: rgba(242, 249, 250, 0.76);
 }
 
 .hero-panel-card--light .slot-subtitle {
@@ -351,8 +351,8 @@ onMounted(async () => {
   border-radius: 24px;
   overflow: hidden;
   min-height: 280px;
-  background: linear-gradient(140deg, #263b4a 0%, #46677d 58%, #9f8665 100%);
-  color: #edf3f7;
+  background: linear-gradient(140deg, #49757a 0%, #5f9095 58%, #bc8f66 100%);
+  color: #f2f9fa;
 }
 
 .experience-overlay {
@@ -388,7 +388,7 @@ onMounted(async () => {
 
 .experience-label {
   font-size: 0.85rem;
-  color: rgba(237, 243, 247, 0.78);
+  color: rgba(242, 249, 250, 0.8);
 }
 
 .staff-card {

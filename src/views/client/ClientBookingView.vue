@@ -33,7 +33,7 @@
             </div>
             <div class="summary-row">
               <div class="text-muted">Total</div>
-              <div class="summary-price">R$ {{ totalPrice.toFixed(2) }}</div>
+              <div class="summary-price">{{ formatCurrencyBRL(totalPrice) }}</div>
             </div>
             <v-divider class="my-4" />
             <div class="summary-staff">
@@ -83,7 +83,7 @@
 
             <div class="confirm-row">
               <div class="text-muted">
-                Total: <strong>R$ {{ totalPrice.toFixed(2) }}</strong>
+                Total: <strong>{{ formatCurrencyBRL(totalPrice) }}</strong>
               </div>
               <v-btn color="primary" size="large" :block="smAndDown" :disabled="!selectedSlot" :loading="saving"
                 @click="confirmBooking">
@@ -103,6 +103,7 @@ import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
 import { formatPhoneFromE164 } from '@/lib/phone'
+import { formatCurrencyBRL } from '@/lib/currency'
 import { useAlertStore } from '@/stores/alerts'
 
 const toLocalDateString = (date) => {

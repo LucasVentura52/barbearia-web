@@ -42,7 +42,7 @@
               </v-chip>
             </div>
             <div class="appointment-footer">
-              <div class="appointment-price">R$ {{ Number(appointment.total_price).toFixed(2) }}</div>
+              <div class="appointment-price">{{ formatCurrencyBRL(appointment.total_price) }}</div>
               <v-btn v-if="appointment.status === 'scheduled'" variant="outlined" color="primary" size="small"
                 @click="cancelAppointment(appointment.id)">
                 Cancelar
@@ -62,6 +62,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import api from '@/lib/api'
+import { formatCurrencyBRL } from '@/lib/currency'
 
 const appointments = ref([])
 const statusFilter = ref('all')

@@ -46,7 +46,7 @@
                   </div>
                 </td>
                 <td>{{ service.duration_minutes }} min</td>
-                <td>R$ {{ Number(service.price).toFixed(2) }}</td>
+                <td>{{ formatCurrencyBRL(service.price) }}</td>
                 <td>
                   <v-chip size="small" :color="service.active ? 'success' : 'warning'" variant="tonal">
                     {{ service.active ? 'Ativo' : 'Inativo' }}
@@ -82,7 +82,7 @@
                 <v-card-text class="pt-0">
                   <div class="mobile-meta">
                     <v-chip size="small" color="secondary" variant="tonal">{{ service.duration_minutes }} min</v-chip>
-                    <v-chip size="small" color="primary" variant="tonal">R$ {{ Number(service.price).toFixed(2) }}</v-chip>
+                    <v-chip size="small" color="primary" variant="tonal">{{ formatCurrencyBRL(service.price) }}</v-chip>
                     <v-chip size="small" :color="service.active ? 'success' : 'warning'" variant="tonal">
                       {{ service.active ? 'Ativo' : 'Inativo' }}
                     </v-chip>
@@ -123,16 +123,24 @@
           <div class="form-row">
             <v-text-field v-model.number="form.duration_minutes" type="number" min="1" label="Duração (min)"
               variant="outlined" />
-            <v-text-field v-model.number="form.price" type="number" min="0" step="0.01" label="Preço" prefix="R$"
-              variant="outlined" />
+            <v-text-field
+              v-model="priceInput"
+              label="Preço"
+              variant="outlined"
+              placeholder="0,00"
+              prefix="R$"
+              inputmode="numeric"
+            />
           </div>
-          <v-switch v-model="form.active" color="secondary" label="Ativo" inset />
           <v-file-input v-model="photoFile" label="Foto do serviço" accept="image/*" prepend-icon="mdi-image-outline"
             variant="outlined" />
+          <div class="modal-switch-row">
+            <v-switch v-model="form.active" color="secondary" label="Ativo" />
+          </div>
         </v-card-text>
         <v-card-actions class="dialog-actions">
           <v-btn variant="text" @click="dialog = false">Cancelar</v-btn>
-          <v-btn color="secondary" :loading="saving" @click="saveService">
+          <v-btn color="secondary" variant="flat" :loading="saving" @click="saveService">
             Salvar
           </v-btn>
         </v-card-actions>
@@ -162,6 +170,7 @@ import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
 import { useAlertStore } from '@/stores/alerts'
+import { formatCurrencyBRL, formatCurrencyInput, parseCurrencyInputToNumber } from '@/lib/currency'
 
 const services = ref([])
 const search = ref('')
@@ -181,6 +190,13 @@ const form = ref({
   duration_minutes: 30,
   price: 0,
   active: true,
+})
+
+const priceInput = computed({
+  get: () => formatCurrencyInput(form.value.price),
+  set: (value) => {
+    form.value.price = parseCurrencyInputToNumber(value)
+  },
 })
 
 const filteredServices = computed(() => {

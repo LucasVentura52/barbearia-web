@@ -16,7 +16,6 @@
           density="compact"
           class="company-select"
           hide-details="auto"
-          @update:model-value="loadMemberships"
         />
         <v-btn color="secondary" :block="smAndDown" @click="openCreateCompany">Nova empresa</v-btn>
         <v-btn color="primary" variant="outlined" :block="smAndDown" :disabled="!selectedCompanyId"
@@ -53,7 +52,7 @@
                 <tbody>
                   <tr v-for="membership in memberships" :key="membership.id">
                     <td>{{ membership.user?.name || '-' }}</td>
-                    <td>{{ formatPhoneFromE164(membership.user?.phone) || membership.user?.phone || '-' }}</td>
+                    <td>{{ formatPhoneFromE164(membership.user?.phone) || '-' }}</td>
                     <td>
                       <v-chip size="small" variant="tonal" color="primary">
                         {{ membership.role }}
@@ -81,7 +80,7 @@
                   <v-card variant="outlined" class="membership-mobile-card">
                     <v-card-item>
                       <v-card-title class="text-body-1">{{ membership.user?.name || '-' }}</v-card-title>
-                      <v-card-subtitle>{{ formatPhoneFromE164(membership.user?.phone) || membership.user?.phone || '-' }}</v-card-subtitle>
+                      <v-card-subtitle>{{ formatPhoneFromE164(membership.user?.phone) || '-' }}</v-card-subtitle>
                     </v-card-item>
                     <v-card-text class="pt-0">
                       <div class="row-actions mb-2">
@@ -127,10 +126,9 @@
               density="compact"
               prepend-inner-icon="mdi-magnify"
               hide-details="auto"
-              @update:model-value="loadUsers"
             />
             <v-list density="compact" class="user-list">
-              <v-list-item v-for="user in users" :key="user.id" :title="user.name" :subtitle="user.phone">
+              <v-list-item v-for="user in users" :key="user.id" :title="user.name" :subtitle="formatPhoneFromE164(user.phone) || '-'">
                 <template #append>
                   <v-chip size="x-small" variant="tonal">{{ user.role }}</v-chip>
                 </template>
@@ -147,11 +145,13 @@
         <v-card-text class="form-grid">
           <v-text-field v-model="companyForm.name" label="Nome" variant="outlined" />
           <v-text-field v-model="companyForm.slug" label="Slug" variant="outlined" hint="Ex.: matriz-sp" persistent-hint />
-          <v-switch v-model="companyForm.active" label="Ativa" color="secondary" inset />
+          <div class="modal-switch-row">
+            <v-switch v-model="companyForm.active" label="Ativa" color="secondary" />
+          </div>
         </v-card-text>
         <v-card-actions class="dialog-actions">
           <v-btn variant="text" @click="companyDialog = false">Cancelar</v-btn>
-          <v-btn color="secondary" :loading="saving" @click="saveCompany">Salvar</v-btn>
+          <v-btn color="secondary" variant="flat" :loading="saving" @click="saveCompany">Salvar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -170,11 +170,13 @@
             :disabled="Boolean(editingMembership)"
           />
           <v-select v-model="membershipForm.role" :items="membershipRoleOptions" label="Papel na empresa" variant="outlined" />
-          <v-switch v-model="membershipForm.active" label="Ativo" color="secondary" inset />
+          <div class="modal-switch-row">
+            <v-switch v-model="membershipForm.active" label="Ativo" color="secondary" />
+          </div>
         </v-card-text>
         <v-card-actions class="dialog-actions">
           <v-btn variant="text" @click="membershipDialog = false">Cancelar</v-btn>
-          <v-btn color="secondary" :loading="saving" @click="saveMembership">Salvar</v-btn>
+          <v-btn color="secondary" variant="flat" :loading="saving" @click="saveMembership">Salvar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -186,7 +188,14 @@
           <v-text-field v-model="userForm.name" label="Nome" variant="outlined" />
           <div class="phone-row">
             <v-select v-model="userForm.country" :items="countryOptions" item-title="label" item-value="code" label="País" variant="outlined" />
-            <v-text-field v-model="userPhone" label="Telefone" variant="outlined" />
+            <v-text-field
+              v-model="userPhone"
+              label="Telefone"
+              placeholder="(11) 99999-9999"
+              variant="outlined"
+              type="tel"
+              maxlength="15"
+            />
           </div>
           <v-text-field v-model="userForm.email" label="E-mail" variant="outlined" />
           <v-text-field v-model="userForm.password" label="Senha" type="password" variant="outlined" />
@@ -202,7 +211,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { useAlertStore } from '@/stores/alerts'
@@ -221,6 +230,11 @@ const { smAndDown } = useDisplay()
 const companyDialog = ref(false)
 const membershipDialog = ref(false)
 const userDialog = ref(false)
+let userSearchTimer = null
+let usersRequestController = null
+let usersRequestCounter = 0
+let membershipsRequestController = null
+let membershipsRequestCounter = 0
 
 const editingCompany = ref(null)
 const editingMembership = ref(null)
@@ -263,14 +277,23 @@ const userPhone = computed({
   },
 })
 
+watch(
+  () => userForm.value.country,
+  (newCountry) => {
+    userForm.value.phone = normalizePhone(userForm.value.phone, newCountry)
+  }
+)
+
 const companyOptions = computed(() => companies.value)
 
 const userOptions = computed(() => {
   return users.value.map((user) => ({
     value: user.id,
-    title: `${user.name} (${user.phone})`,
+    title: `${user.name} (${formatPhoneFromE164(user.phone) || '-'})`,
   }))
 })
+
+const isRequestCanceled = (error) => error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError'
 
 const loadCompanies = async () => {
   const { data } = await api.get('/api/super-admin/companies')
@@ -285,29 +308,54 @@ const loadCompanies = async () => {
   if (!selectedCompanyId.value || !companies.value.some((company) => company.id === selectedCompanyId.value)) {
     selectedCompanyId.value = companies.value[0].id
   }
-
-  await loadMemberships()
 }
 
 const loadMemberships = async () => {
-  if (!selectedCompanyId.value) {
+  const companyId = selectedCompanyId.value
+  if (!companyId) {
     memberships.value = []
     return
   }
 
-  const { data } = await api.get(`/api/super-admin/companies/${selectedCompanyId.value}/memberships`)
-  memberships.value = data
+  const requestId = ++membershipsRequestCounter
+  membershipsRequestController?.abort()
+  const controller = new AbortController()
+  membershipsRequestController = controller
+
+  try {
+    const { data } = await api.get(`/api/super-admin/companies/${companyId}/memberships`, {
+      signal: controller.signal,
+    })
+    if (requestId !== membershipsRequestCounter) return
+    memberships.value = data
+  } catch (error) {
+    if (isRequestCanceled(error)) return
+    throw error
+  }
 }
 
 const loadUsers = async () => {
+  const requestId = ++usersRequestCounter
+  usersRequestController?.abort()
+  const controller = new AbortController()
+  usersRequestController = controller
+
   const params = new URLSearchParams()
   params.append('limit', '200')
   if (userSearch.value.trim()) {
     params.append('search', userSearch.value.trim())
   }
 
-  const { data } = await api.get(`/api/super-admin/users?${params.toString()}`)
-  users.value = data
+  try {
+    const { data } = await api.get(`/api/super-admin/users?${params.toString()}`, {
+      signal: controller.signal,
+    })
+    if (requestId !== usersRequestCounter) return
+    users.value = data
+  } catch (error) {
+    if (isRequestCanceled(error)) return
+    throw error
+  }
 }
 
 const openCreateCompany = () => {
@@ -459,8 +507,28 @@ const saveUser = async () => {
   }
 }
 
+watch(
+  () => selectedCompanyId.value,
+  () => {
+    loadMemberships()
+  }
+)
+
+watch(userSearch, () => {
+  if (userSearchTimer) clearTimeout(userSearchTimer)
+  userSearchTimer = setTimeout(() => {
+    loadUsers()
+  }, 260)
+})
+
 onMounted(async () => {
   await Promise.all([loadUsers(), loadCompanies()])
+})
+
+onBeforeUnmount(() => {
+  if (userSearchTimer) clearTimeout(userSearchTimer)
+  usersRequestController?.abort()
+  membershipsRequestController?.abort()
 })
 </script>
 

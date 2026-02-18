@@ -35,7 +35,7 @@
                   {{ service.duration_minutes }} min
                 </v-chip>
                 <v-chip size="small" color="primary" variant="tonal">
-                  R$ {{ Number(service.price).toFixed(2) }}
+                  {{ formatCurrencyBRL(service.price) }}
                 </v-chip>
               </div>
             </div>
@@ -51,6 +51,7 @@ import { onMounted, ref } from 'vue'
 import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
+import { formatCurrencyBRL } from '@/lib/currency'
 
 const services = ref([])
 const { smAndDown } = useDisplay()

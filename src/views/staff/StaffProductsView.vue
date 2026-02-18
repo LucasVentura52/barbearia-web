@@ -45,7 +45,7 @@
                     {{ product.description || 'Sem descrição' }}
                   </div>
                 </td>
-                <td>R$ {{ Number(product.price).toFixed(2) }}</td>
+                <td>{{ formatCurrencyBRL(product.price) }}</td>
                 <td>{{ product.stock ?? '—' }}</td>
                 <td>
                   <v-chip size="small" :color="product.active ? 'success' : 'warning'" variant="tonal">
@@ -81,7 +81,7 @@
                 </v-card-item>
                 <v-card-text class="pt-0">
                   <div class="mobile-meta">
-                    <v-chip size="small" color="primary" variant="tonal">R$ {{ Number(product.price).toFixed(2) }}</v-chip>
+                    <v-chip size="small" color="primary" variant="tonal">{{ formatCurrencyBRL(product.price) }}</v-chip>
                     <v-chip size="small" color="secondary" variant="tonal">Estoque: {{ product.stock ?? '—' }}</v-chip>
                     <v-chip size="small" :color="product.active ? 'success' : 'warning'" variant="tonal">
                       {{ product.active ? 'Ativo' : 'Inativo' }}
@@ -121,17 +121,25 @@
           <v-text-field v-model="form.name" label="Nome" variant="outlined" />
           <v-textarea v-model="form.description" label="Descrição" variant="outlined" rows="3" />
           <div class="form-row">
-            <v-text-field v-model.number="form.price" type="number" min="0" step="0.01" label="Preço" prefix="R$"
-              variant="outlined" />
+            <v-text-field
+              v-model="priceInput"
+              label="Preço"
+              variant="outlined"
+              placeholder="0,00"
+              prefix="R$"
+              inputmode="numeric"
+            />
             <v-text-field v-model.number="form.stock" type="number" min="0" label="Estoque" variant="outlined" />
           </div>
-          <v-switch v-model="form.active" color="secondary" label="Ativo" inset />
           <v-file-input v-model="photoFile" label="Foto do produto" accept="image/*" prepend-icon="mdi-image-outline"
             variant="outlined" />
+          <div class="modal-switch-row">
+            <v-switch v-model="form.active" color="secondary" label="Ativo" />
+          </div>
         </v-card-text>
         <v-card-actions class="dialog-actions">
           <v-btn variant="text" @click="dialog = false">Cancelar</v-btn>
-          <v-btn color="secondary" :loading="saving" @click="saveProduct">
+          <v-btn color="secondary" variant="flat" :loading="saving" @click="saveProduct">
             Salvar
           </v-btn>
         </v-card-actions>
@@ -161,6 +169,7 @@ import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
 import { useAlertStore } from '@/stores/alerts'
+import { formatCurrencyBRL, formatCurrencyInput, parseCurrencyInputToNumber } from '@/lib/currency'
 
 const products = ref([])
 const search = ref('')
@@ -180,6 +189,13 @@ const form = ref({
   price: 0,
   stock: null,
   active: true,
+})
+
+const priceInput = computed({
+  get: () => formatCurrencyInput(form.value.price),
+  set: (value) => {
+    form.value.price = parseCurrencyInputToNumber(value)
+  },
 })
 
 const filteredProducts = computed(() => {

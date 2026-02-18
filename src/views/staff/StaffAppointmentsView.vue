@@ -55,7 +55,7 @@
             <div class="detail-label">Cliente</div>
             <div class="detail-value">{{ selectedAppointment.client?.name || 'Cliente' }}</div>
             <div class="detail-meta">
-              {{ selectedAppointment.client?.phone || 'Telefone não informado' }}
+              {{ formatPhoneFromE164(selectedAppointment.client?.phone) || 'Telefone não informado' }}
             </div>
           </div>
           <div>
@@ -75,7 +75,7 @@
           </div>
           <div>
             <div class="detail-label">Total</div>
-            <div class="detail-value">R$ {{ Number(selectedAppointment.total_price).toFixed(2) }}</div>
+            <div class="detail-value">{{ formatCurrencyBRL(selectedAppointment.total_price) }}</div>
           </div>
         </v-card-text>
         <v-card-actions class="dialog-actions">
@@ -120,12 +120,12 @@
             <div class="text-muted">Duração</div>
             <div>{{ editTotals.duration }} min</div>
             <div class="text-muted">Total</div>
-            <div>R$ {{ editTotals.total.toFixed(2) }}</div>
+            <div>{{ formatCurrencyBRL(editTotals.total) }}</div>
           </div>
         </v-card-text>
         <v-card-actions class="dialog-actions">
           <v-btn variant="text" @click="editDialog = false">Cancelar</v-btn>
-          <v-btn color="secondary" :loading="saving" @click="saveEdit">Salvar</v-btn>
+          <v-btn color="secondary" variant="flat" :loading="saving" @click="saveEdit">Salvar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -174,6 +174,8 @@ import '@/styles/fullcalendar.css'
 import api from '@/lib/api'
 import { useAlertStore } from '@/stores/alerts'
 import { useAuthStore } from '@/stores/auth'
+import { formatPhoneFromE164 } from '@/lib/phone'
+import { formatCurrencyBRL } from '@/lib/currency'
 
 const calendarRef = ref(null)
 const loading = ref(false)
@@ -188,6 +190,7 @@ const deleteDialog = ref(false)
 const cancelReason = ref('')
 const selectedAppointment = ref(null)
 const serviceOptions = ref([])
+const hasInitializedStaffSelection = ref(false)
 const alerts = useAlertStore()
 const auth = useAuthStore()
 const { smAndDown } = useDisplay()
@@ -479,24 +482,24 @@ onMounted(async () => {
   if (!selectedStaffId.value) {
     selectedStaffId.value = isAdmin.value ? 'all' : 'mine'
   }
-  const defaultStaffId = selectedStaffId.value === 'mine' ? auth.user?.id : selectedStaffId.value
-  if (typeof defaultStaffId === 'number') {
-    await loadServiceOptions(defaultStaffId)
-  } else {
-    await loadServiceOptions(auth.user?.id)
-  }
 })
 
 watch(
   () => selectedStaffId.value,
-  () => {
+  async () => {
     if (selectedStaffId.value === 'all') {
-      loadServiceOptions(auth.user?.id)
+      await loadServiceOptions(auth.user?.id)
     } else if (selectedStaffId.value === 'mine') {
-      loadServiceOptions(auth.user?.id)
+      await loadServiceOptions(auth.user?.id)
     } else {
-      loadServiceOptions(selectedStaffId.value)
+      await loadServiceOptions(selectedStaffId.value)
     }
+
+    if (!hasInitializedStaffSelection.value) {
+      hasInitializedStaffSelection.value = true
+      return
+    }
+
     refetchEvents()
   }
 )

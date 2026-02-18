@@ -42,7 +42,7 @@
                     </div>
                   </div>
                 </td>
-                <td>{{ formatPhoneFromE164(member.phone) || member.phone }}</td>
+                <td>{{ formatPhoneFromE164(member.phone) || 'Telefone não informado' }}</td>
                 <td>
                   <v-chip size="small" :color="member.role === 'admin' ? 'primary' : 'secondary'" variant="tonal">
                     {{ member.role === 'admin' ? 'Admin' : 'Staff' }}
@@ -85,7 +85,7 @@
                     </div>
                   </template>
                   <v-card-title class="text-body-1">{{ member.name }}</v-card-title>
-                  <v-card-subtitle>{{ member.email || formatPhoneFromE164(member.phone) || member.phone }}</v-card-subtitle>
+                  <v-card-subtitle>{{ member.email || formatPhoneFromE164(member.phone) || 'Telefone não informado' }}</v-card-subtitle>
                 </v-card-item>
                 <v-card-text class="pt-0">
                   <div class="mobile-meta">
@@ -151,16 +151,18 @@
           <div class="form-row">
             <v-select v-model="form.role" :items="roleOptions" item-title="label" item-value="value" label="Permissao"
               variant="outlined" />
-            <v-switch v-model="form.active" color="secondary" label="Ativo" inset />
           </div>
           <v-textarea v-model="form.bio" label="Bio" variant="outlined" rows="2" />
           <v-text-field v-model="form.instagram" label="Instagram" variant="outlined" />
           <v-select v-model="form.service_ids" :items="serviceOptions" item-title="name" item-value="id"
             label="Servicos" multiple chips variant="outlined" />
+          <div class="modal-switch-row">
+            <v-switch v-model="form.active" color="secondary" label="Ativo" />
+          </div>
         </v-card-text>
         <v-card-actions class="dialog-actions">
           <v-btn variant="text" @click="dialog = false">Cancelar</v-btn>
-          <v-btn color="secondary" :loading="saving" @click="saveMember">Salvar</v-btn>
+          <v-btn color="secondary" variant="flat" :loading="saving" @click="saveMember">Salvar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -181,7 +183,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
@@ -239,6 +241,13 @@ const phoneInput = computed({
   },
 })
 
+watch(
+  () => form.value.country,
+  (newCountry) => {
+    form.value.phone = normalizePhone(form.value.phone, newCountry)
+  }
+)
+
 const serviceOptions = computed(() => services.value.filter((service) => service.active))
 
 const filteredStaff = computed(() => {
@@ -286,10 +295,20 @@ const resetForm = () => {
 
 const splitPhone = (value = '') => {
   const digits = String(value).replace(/\D/g, '')
-  if (digits.startsWith('55') && digits.length > 2) {
-    return { country: '55', phone: digits.slice(2) }
+  if (!digits) {
+    return { country: '55', phone: '' }
   }
-  return { country: '55', phone: digits }
+
+  const supportedCodes = countryOptions
+    .map((country) => country.code)
+    .sort((a, b) => b.length - a.length)
+
+  const country = supportedCodes.find((code) => digits.startsWith(code) && digits.length > code.length)
+  if (country) {
+    return { country, phone: normalizePhone(digits.slice(country.length), country) }
+  }
+
+  return { country: '55', phone: normalizePhone(digits, '55') }
 }
 
 const openCreate = () => {

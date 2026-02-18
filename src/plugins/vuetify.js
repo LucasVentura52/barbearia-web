@@ -5,40 +5,29 @@ import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import { VDateInput } from 'vuetify/labs/VDateInput'
 import { pt } from 'vuetify/locale'
 
+const brandColors = {
+  background: '#F3F7F6',
+  surface: '#FFFFFF',
+  'surface-variant': '#E7EFEC',
+  primary: '#5B8C8F',
+  secondary: '#B8885E',
+  accent: '#D7B38A',
+  info: '#6A8BA3',
+  success: '#6F917B',
+  warning: '#B99363',
+  error: '#B37A7A',
+  'on-surface': '#213139',
+  'on-surface-variant': '#607883',
+}
+
 const barberLight = {
   dark: false,
-  colors: {
-    background: '#F2F5F8',
-    surface: '#FFFFFF',
-    'surface-variant': '#EAF0F4',
-    primary: '#5B778D',
-    secondary: '#859BAA',
-    accent: '#B3A086',
-    info: '#7292A7',
-    success: '#6D8E79',
-    warning: '#A88C6A',
-    error: '#B08080',
-    'on-surface': '#243443',
-    'on-surface-variant': '#6B8191',
-  },
+  colors: brandColors,
 }
 
 const barberStaff = {
   dark: false,
-  colors: {
-    background: '#F2F5F8',
-    surface: '#FFFFFF',
-    'surface-variant': '#EAF0F4',
-    primary: '#5B778D',
-    secondary: '#859BAA',
-    accent: '#B3A086',
-    info: '#7292A7',
-    success: '#6D8E79',
-    warning: '#A88C6A',
-    error: '#B08080',
-    'on-surface': '#243443',
-    'on-surface-variant': '#6B8191',
-  },
+  colors: brandColors,
 }
 
 export default createVuetify({
@@ -55,6 +44,11 @@ export default createVuetify({
   },
   theme: {
     defaultTheme: 'barberLight',
+    variations: {
+      colors: ['primary', 'secondary'],
+      lighten: 2,
+      darken: 2,
+    },
     themes: {
       barberLight,
       barberStaff,
@@ -73,6 +67,7 @@ export default createVuetify({
     VCard: {
       rounded: 'xl',
       elevation: 0,
+      border: 'thin',
     },
     VSheet: {
       rounded: 'xl',
@@ -103,13 +98,24 @@ export default createVuetify({
       color: 'primary',
     },
     VBtn: {
-      class: 'text-none font-weight-medium',
+      class: 'text-none font-weight-semibold',
       rounded: 'lg',
       height: 40,
     },
     VChip: {
       rounded: 'lg',
       size: 'small',
+    },
+    VListItem: {
+      rounded: 'lg',
+      minHeight: 42,
+    },
+    VTabs: {
+      density: 'compact',
+    },
+    VAlert: {
+      rounded: 'lg',
+      border: 'start',
     },
     VDateInput: {
       density: 'compact',

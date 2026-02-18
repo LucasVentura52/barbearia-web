@@ -3,10 +3,13 @@
     <div class="app-bg"></div>
     <v-navigation-drawer v-model="drawer" :permanent="mdAndUp" :temporary="!mdAndUp" class="app-drawer">
       <div class="drawer-header">
-        <div class="brand-mark"></div>
+        <v-avatar size="42" class="user-avatar">
+          <v-img v-if="userAvatarSrc" :src="userAvatarSrc" cover />
+          <span v-else class="user-initials">{{ userInitials }}</span>
+        </v-avatar>
         <div>
-          <div class="brand-title">Barbearia</div>
-          <div class="brand-subtitle">Cliente</div>
+          <div class="brand-title">{{ drawerName }}</div>
+          <div class="brand-subtitle">{{ drawerSubtitle }}</div>
         </div>
       </div>
       <v-list nav density="comfortable">
@@ -33,9 +36,6 @@
       <div class="app-bar-title ml-2">Painel do cliente</div>
       <v-spacer />
       <CompanySwitcher v-if="auth.isSuperAdmin && !smAndDown" class="me-3 app-company-switcher" />
-      <v-chip v-if="auth.user && !smAndDown" color="secondary" variant="flat" class="me-3">
-        {{ auth.user.name }}
-      </v-chip>
 
       <v-menu v-if="smAndDown" location="bottom end">
         <template #activator="{ props }">
@@ -81,6 +81,7 @@ import { useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
 import CompanySwitcher from '@/components/CompanySwitcher.vue'
+import { resolveMediaUrl } from '@/lib/media'
 
 const { mdAndUp, smAndDown } = useDisplay()
 const drawer = ref(mdAndUp.value)
@@ -96,6 +97,26 @@ const navItems = [
 ]
 
 const visibleNav = computed(() => navItems.filter((item) => !item.auth || auth.isAuthenticated))
+const userAvatarSrc = computed(() => resolveMediaUrl(auth.user?.avatar_url))
+const drawerName = computed(() => auth.user?.name || 'Visitante')
+const drawerSubtitle = computed(() => {
+  if (!auth.user) return 'Acesso público'
+  if (auth.isSuperAdmin) return 'Super Admin'
+  if (auth.isStaff) return 'Colaborador'
+  return 'Cliente'
+})
+const userInitials = computed(() => {
+  const source = String(drawerName.value || '').trim()
+  if (!source) return '?'
+  const value = source
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+  return value || '?'
+})
 
 const handleLogout = async () => {
   await auth.logout()
@@ -118,18 +139,18 @@ watch(mdAndUp, (desktop) => {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(circle at -8% -6%, rgba(179, 160, 134, 0.2), transparent 34%),
-    radial-gradient(circle at 108% -4%, rgba(111, 143, 166, 0.2), transparent 38%),
-    radial-gradient(circle at 50% 118%, rgba(154, 175, 189, 0.12), transparent 34%),
-    linear-gradient(180deg, #f2f5f8 0%, #ebf1f6 100%);
+    radial-gradient(circle at -8% -6%, rgba(184, 136, 94, 0.22), transparent 34%),
+    radial-gradient(circle at 108% -4%, rgba(91, 140, 143, 0.22), transparent 40%),
+    radial-gradient(circle at 50% 118%, rgba(143, 176, 178, 0.18), transparent 36%),
+    linear-gradient(180deg, #f3f7f6 0%, #ebf3f1 100%);
   z-index: 0;
 }
 
 .app-bar {
-  background: rgba(252, 253, 255, 0.82) !important;
+  background: rgba(252, 255, 255, 0.78) !important;
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(74, 97, 114, 0.14);
-  color: #2a3f4f;
+  border-bottom: 1px solid rgba(87, 120, 132, 0.16);
+  color: var(--ink-900);
 }
 
 .app-bar-title {
@@ -137,13 +158,13 @@ watch(mdAndUp, (desktop) => {
   font-size: 1.05rem;
   letter-spacing: 0.01em;
   font-weight: 700;
-  color: #2a4354;
+  color: var(--ink-900);
 }
 
 .app-drawer {
-  background: rgba(252, 254, 255, 0.86);
+  background: rgba(252, 255, 255, 0.8);
   backdrop-filter: blur(8px);
-  border-right: 1px solid rgba(74, 97, 114, 0.12);
+  border-right: 1px solid rgba(87, 120, 132, 0.14);
 }
 
 .drawer-header {
@@ -153,12 +174,18 @@ watch(mdAndUp, (desktop) => {
   align-items: center;
 }
 
-.brand-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(145deg, #5f7f96 0%, #95adbc 100%);
-  box-shadow: 0 8px 20px rgba(66, 90, 108, 0.2);
+.user-avatar {
+  background: var(--brand-gradient-strong);
+  box-shadow: 0 10px 24px rgba(75, 114, 117, 0.26);
+  color: #f6fbfc;
+  flex-shrink: 0;
+}
+
+.user-initials {
+  font-family: var(--display-font);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
 .brand-title {
@@ -166,12 +193,12 @@ watch(mdAndUp, (desktop) => {
   letter-spacing: 0.01em;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #2b4352;
+  color: var(--ink-900);
 }
 
 .brand-subtitle {
   font-size: 0.8rem;
-  color: rgba(57, 79, 95, 0.64);
+  color: rgba(66, 87, 99, 0.7);
 }
 
 .drawer-footer {

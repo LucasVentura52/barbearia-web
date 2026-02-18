@@ -10,6 +10,7 @@ import ClientProfileView from '@/views/client/ClientProfileView.vue'
 
 import StaffDashboardView from '@/views/staff/StaffDashboardView.vue'
 import StaffAppointmentsView from '@/views/staff/StaffAppointmentsView.vue'
+import StaffClientsView from '@/views/staff/StaffClientsView.vue'
 import StaffProfileView from '@/views/staff/StaffProfileView.vue'
 import StaffScheduleView from '@/views/staff/StaffScheduleView.vue'
 import StaffServicesView from '@/views/staff/StaffServicesView.vue'
@@ -54,6 +55,12 @@ const router = createRouter({
       path: '/staff/appointments',
       name: 'staff-appointments',
       component: StaffAppointmentsView,
+      meta: { layout: 'staff', requiresAuth: true, role: 'staff' },
+    },
+    {
+      path: '/staff/clients',
+      name: 'staff-clients',
+      component: StaffClientsView,
       meta: { layout: 'staff', requiresAuth: true, role: 'staff' },
     },
     {

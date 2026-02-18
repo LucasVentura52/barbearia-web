@@ -14,7 +14,7 @@
             </div>
             <div>
               <div class="profile-name">{{ user?.name || 'Cliente' }}</div>
-              <div class="text-muted">{{ user?.phone }}</div>
+              <div class="text-muted">{{ userPhoneText || 'Telefone não informado' }}</div>
               <v-chip color="secondary" variant="tonal" class="mt-2">
                 {{ user?.role || 'client' }}
               </v-chip>
@@ -42,10 +42,12 @@
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { resolveMediaUrl } from '@/lib/media'
+import { formatPhoneFromE164 } from '@/lib/phone'
 
 const auth = useAuthStore()
 const user = computed(() => auth.user)
 const avatarSrc = computed(() => resolveMediaUrl(user.value?.avatar_url))
+const userPhoneText = computed(() => formatPhoneFromE164(user.value?.phone))
 
 const initials = computed(() =>
   (user.value?.name || 'Cliente')

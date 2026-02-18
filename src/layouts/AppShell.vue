@@ -3,10 +3,13 @@
     <div class="app-bg"></div>
     <v-navigation-drawer v-model="drawer" :permanent="mdAndUp" :temporary="!mdAndUp" class="app-drawer">
       <div class="drawer-header">
-        <div class="brand-mark"></div>
+        <v-avatar size="42" class="user-avatar">
+          <v-img v-if="userAvatarSrc" :src="userAvatarSrc" cover />
+          <span v-else class="user-initials">{{ userInitials }}</span>
+        </v-avatar>
         <div>
-          <div class="brand-title">Barbearia</div>
-          <div class="brand-subtitle">Agenda inteligente</div>
+          <div class="brand-title">{{ drawerName }}</div>
+          <div class="brand-subtitle">{{ drawerSubtitle }}</div>
         </div>
       </div>
       <v-list nav density="comfortable">
@@ -29,9 +32,6 @@
       </v-btn>
       <div class="app-bar-title">Barbearia</div>
       <v-spacer />
-      <v-chip v-if="auth.user && !smAndDown" color="secondary" variant="flat" class="me-3">
-        {{ auth.user.name }}
-      </v-chip>
       <v-menu v-if="smAndDown" location="bottom end">
         <template #activator="{ props }">
           <v-btn v-bind="props" icon>
@@ -67,6 +67,7 @@
 import { computed, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
+import { resolveMediaUrl } from '@/lib/media'
 
 const { mdAndUp, smAndDown } = useDisplay()
 const drawer = ref(mdAndUp.value)
@@ -83,6 +84,21 @@ const navItems = [
 const visibleNav = computed(() =>
   navItems.filter((item) => !item.auth || auth.isAuthenticated)
 )
+const userAvatarSrc = computed(() => resolveMediaUrl(auth.user?.avatar_url))
+const drawerName = computed(() => auth.user?.name || 'Visitante')
+const drawerSubtitle = computed(() => (auth.isAuthenticated ? 'Agenda inteligente' : 'Acesso público'))
+const userInitials = computed(() => {
+  const source = String(drawerName.value || '').trim()
+  if (!source) return '?'
+  const value = source
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
+  return value || '?'
+})
 
 const handleLogout = async () => {
   await auth.logout()
@@ -136,12 +152,18 @@ watch(mdAndUp, (desktop) => {
   align-items: center;
 }
 
-.brand-mark {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #203241 0%, #205c6a 100%);
-  box-shadow: 0 10px 24px rgba(35, 58, 74, 0.25);
+.user-avatar {
+  background: var(--brand-gradient-strong);
+  box-shadow: 0 10px 24px rgba(75, 114, 117, 0.26);
+  color: #f6fbfc;
+  flex-shrink: 0;
+}
+
+.user-initials {
+  font-family: var(--display-font);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
 .brand-title {

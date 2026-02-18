@@ -32,7 +32,7 @@
                   <div class="list-title">{{ weekdayLabel(hour.weekday) }}</div>
                   <div class="text-muted">{{ hour.start_time }} - {{ hour.end_time }}</div>
                 </div>
-                <v-btn icon size="small" variant="text" color="error" @click="deleteWorkingHour(hour.id)">
+                <v-btn icon size="small" variant="text" color="error" class="list-action-btn" @click="deleteWorkingHour(hour.id)">
                   <v-icon icon="mdi-delete" />
                 </v-btn>
               </div>
@@ -61,7 +61,7 @@
                   <div class="list-title">{{ formatDateTime(off.start_at) }} - {{ formatDateTime(off.end_at) }}</div>
                   <div class="text-muted">{{ off.reason || 'Sem motivo' }}</div>
                 </div>
-                <v-btn icon size="small" variant="text" color="error" @click="deleteTimeOff(off.id)">
+                <v-btn icon size="small" variant="text" color="error" class="list-action-btn" @click="deleteTimeOff(off.id)">
                   <v-icon icon="mdi-delete" />
                 </v-btn>
               </div>
@@ -102,6 +102,7 @@ const { smAndDown } = useDisplay()
 const staffOptions = ref([])
 const selectedStaffId = ref(null)
 const isAdmin = computed(() => auth.user?.role === 'admin')
+const isBootstrapping = ref(true)
 
 const workingForm = ref({
   weekday: 1,
@@ -208,11 +209,13 @@ onMounted(async () => {
     selectedStaffId.value = auth.user?.id || null
   }
   await Promise.all([loadWorkingHours(), loadTimeOff()])
+  isBootstrapping.value = false
 })
 
 watch(
   () => selectedStaffId.value,
   () => {
+    if (isBootstrapping.value) return
     loadWorkingHours()
     loadTimeOff()
   }

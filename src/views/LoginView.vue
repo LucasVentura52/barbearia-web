@@ -308,18 +308,33 @@ const mapErrors = (error) => {
   min-height: 75vh;
 }
 
+.login-shell :deep(.v-card) {
+  border: 1px solid rgba(87, 120, 132, 0.18);
+}
+
+.login-shell :deep(.v-card-title) {
+  font-family: var(--display-font);
+  letter-spacing: 0.01em;
+}
+
+.login-shell :deep(.v-window-item) {
+  animation: rise 0.35s ease;
+}
+
 .login-aside {
-  background: linear-gradient(165deg, rgba(33, 58, 74, 0.96), rgba(77, 110, 131, 0.92));
-  color: #f3f7fa;
+  background:
+    radial-gradient(circle at 12% 12%, rgba(255, 255, 255, 0.18), transparent 40%),
+    linear-gradient(150deg, #4d7b80 0%, #5f8f93 58%, #b8875d 100%);
+  color: #f6fbfc;
 }
 
 .text-white-opacity {
-  color: rgba(243, 247, 250, 0.82);
+  color: rgba(246, 251, 252, 0.84);
 }
 
 .login-aside :deep(.v-list-item-subtitle) {
   white-space: normal;
-  color: rgba(243, 247, 250, 0.76);
+  color: rgba(246, 251, 252, 0.78);
 }
 
 @media (max-width: 959px) {
