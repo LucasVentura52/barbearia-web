@@ -1,29 +1,56 @@
 # Barbearia Web (Vue + Vite)
 
-## Env Vars
+Frontend da plataforma de barbearia.
 
-- `VITE_API_URL` (example: `https://barbearia-api-uhux.onrender.com`)
-- `VITE_COMPANY_SLUG` (example: `default`)
+## Arquivos de ambiente
 
-Local development example: `.env.example`
+- `.env.development`: configuração usada no `npm run dev`
+- `.env.production`: configuração usada no `npm run build`
+- `.env.example`: referência de desenvolvimento
+- `.env.development.example`: referência de desenvolvimento
+- `.env.production.example`: referência de produção
 
-Production defaults: `.env.production`
+Variáveis usadas:
 
-## Run Local
+- `VITE_API_URL`: URL base da API
+- `VITE_COMPANY_SLUG`: slug padrão da empresa
+
+## Desenvolvimento
+
+1. Instale dependências:
 
 ```bash
 npm install
+```
+
+2. Verifique se `.env.development` aponta para a API local:
+
+```env
+VITE_API_URL=http://127.0.0.1:8000
+VITE_COMPANY_SLUG=default
+```
+
+3. Rode o projeto:
+
+```bash
 npm run dev
 ```
 
-## Deploy (Render)
+## Produção
 
-Create a **Static Site** on Render:
+1. Ajuste `.env.production` (ou variáveis no provedor) com a URL real da API.
+2. Gere o build:
 
-- Build Command: `npm ci && npm run build`
-- Publish Directory: `dist`
+```bash
+npm run build
+```
 
-Set env vars (at least):
+3. Publique a pasta `dist`.
 
-- `VITE_API_URL=https://barbearia-api-uhux.onrender.com`
-- `VITE_COMPANY_SLUG=default`
+## Deploy no Render (Static Site)
+
+- Build command: `npm ci && npm run build`
+- Publish directory: `dist`
+- Env vars mínimas:
+  - `VITE_API_URL=https://barbearia-api-uhux.onrender.com`
+  - `VITE_COMPANY_SLUG=default`
