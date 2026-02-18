@@ -171,7 +171,7 @@ import listPlugin from '@fullcalendar/list'
 import interactionPlugin from '@fullcalendar/interaction'
 import ptBrLocale from '@fullcalendar/core/locales/pt-br'
 import '@/styles/fullcalendar.css'
-import api from '@/lib/api'
+import api, { cachedGet } from '@/lib/api'
 import { useAlertStore } from '@/stores/alerts'
 import { useAuthStore } from '@/stores/auth'
 import { formatPhoneFromE164 } from '@/lib/phone'
@@ -459,7 +459,7 @@ const setServiceOptionsForStaff = (staffId) => {
 }
 
 const loadStaffOptions = async () => {
-  const { data } = await api.get('/api/staff')
+  const { data } = await cachedGet('/api/staff', {}, { ttl: 20_000 })
   staffOptions.value = data
 }
 
@@ -470,7 +470,7 @@ const loadServiceOptions = async (staffId) => {
   if (staffId && setServiceOptionsForStaff(staffId)) {
     return
   }
-  const { data } = await api.get('/api/services')
+  const { data } = await cachedGet('/api/services', {}, { ttl: 20_000 })
   serviceOptions.value = data
 }
 

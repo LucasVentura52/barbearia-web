@@ -1,22 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
-import LoginView from '@/views/LoginView.vue'
-import ClientHomeView from '@/views/client/ClientHomeView.vue'
-import ClientServicesView from '@/views/client/ClientServicesView.vue'
-import ClientBookingView from '@/views/client/ClientBookingView.vue'
-import ClientAppointmentsView from '@/views/client/ClientAppointmentsView.vue'
-import ClientProfileView from '@/views/client/ClientProfileView.vue'
-
-import StaffDashboardView from '@/views/staff/StaffDashboardView.vue'
-import StaffAppointmentsView from '@/views/staff/StaffAppointmentsView.vue'
-import StaffClientsView from '@/views/staff/StaffClientsView.vue'
-import StaffProfileView from '@/views/staff/StaffProfileView.vue'
-import StaffScheduleView from '@/views/staff/StaffScheduleView.vue'
-import StaffServicesView from '@/views/staff/StaffServicesView.vue'
-import StaffProductsView from '@/views/staff/StaffProductsView.vue'
-import StaffTeamView from '@/views/staff/StaffTeamView.vue'
-import SuperAdminCompaniesView from '@/views/super/SuperAdminCompaniesView.vue'
+const LoginView = () => import('@/views/LoginView.vue')
+const ClientHomeView = () => import('@/views/client/ClientHomeView.vue')
+const ClientServicesView = () => import('@/views/client/ClientServicesView.vue')
+const ClientBookingView = () => import('@/views/client/ClientBookingView.vue')
+const ClientAppointmentsView = () => import('@/views/client/ClientAppointmentsView.vue')
+const ClientProfileView = () => import('@/views/client/ClientProfileView.vue')
+const StaffDashboardView = () => import('@/views/staff/StaffDashboardView.vue')
+const StaffAppointmentsView = () => import('@/views/staff/StaffAppointmentsView.vue')
+const StaffClientsView = () => import('@/views/staff/StaffClientsView.vue')
+const StaffProfileView = () => import('@/views/staff/StaffProfileView.vue')
+const StaffScheduleView = () => import('@/views/staff/StaffScheduleView.vue')
+const StaffServicesView = () => import('@/views/staff/StaffServicesView.vue')
+const StaffProductsView = () => import('@/views/staff/StaffProductsView.vue')
+const StaffTeamView = () => import('@/views/staff/StaffTeamView.vue')
+const SuperAdminCompaniesView = () => import('@/views/super/SuperAdminCompaniesView.vue')
 
 const router = createRouter({
   history: createWebHistory(),

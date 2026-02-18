@@ -49,7 +49,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useDisplay } from 'vuetify'
-import api from '@/lib/api'
+import { cachedGet } from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
 import { formatCurrencyBRL } from '@/lib/currency'
 
@@ -57,7 +57,7 @@ const services = ref([])
 const { smAndDown } = useDisplay()
 
 onMounted(async () => {
-  const { data } = await api.get('/api/services')
+  const { data } = await cachedGet('/api/services', {}, { ttl: 30_000 })
   services.value = data
 })
 </script>

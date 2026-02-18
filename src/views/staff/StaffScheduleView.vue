@@ -77,7 +77,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
-import api from '@/lib/api'
+import api, { cachedGet } from '@/lib/api'
 import { useAlertStore } from '@/stores/alerts'
 import { useAuthStore } from '@/stores/auth'
 
@@ -192,7 +192,7 @@ const deleteTimeOff = async (id) => {
 }
 
 const loadStaffOptions = async () => {
-  const { data } = await api.get('/api/staff')
+  const { data } = await cachedGet('/api/staff', {}, { ttl: 20_000 })
   staffOptions.value = data
   if (!selectedStaffId.value && data.length) {
     selectedStaffId.value = data[0].id

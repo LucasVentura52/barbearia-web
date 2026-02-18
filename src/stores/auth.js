@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import api from '@/lib/api'
+import api, { cachedGet, clearGetCache } from '@/lib/api'
 
 const applyCompanyFromUser = (user) => {
   const slug = user?.company?.slug
@@ -12,6 +12,7 @@ export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: localStorage.getItem('token') || '',
     user: null,
+    meRequest: null,
   }),
   getters: {
     isAuthenticated: (state) => Boolean(state.token),
@@ -23,22 +24,28 @@ export const useAuthStore = defineStore('auth', {
     clearSession() {
       this.token = ''
       this.user = null
+      this.meRequest = null
       localStorage.removeItem('token')
+      clearGetCache()
     },
     async registerClient({ name, phone, email, password }) {
       const { data } = await api.post('/api/auth/register', { name, phone, email, password })
       this.token = data.token
       this.user = data.user
+      this.meRequest = null
       applyCompanyFromUser(data.user)
       localStorage.setItem('token', data.token)
+      clearGetCache()
       return data
     },
     async login({ phone, password }) {
       const { data } = await api.post('/api/auth/login', { phone, password })
       this.token = data.token
       this.user = data.user
+      this.meRequest = null
       applyCompanyFromUser(data.user)
       localStorage.setItem('token', data.token)
+      clearGetCache()
       return data
     },
     async restoreSession() {
@@ -56,12 +63,22 @@ export const useAuthStore = defineStore('auth', {
         throw error
       }
     },
-    async loadMe() {
+    async loadMe(force = false) {
       if (!this.token) return null
-      const { data } = await api.get('/api/me')
-      this.user = data
-      applyCompanyFromUser(data)
-      return data
+      if (!force && this.user) return this.user
+      if (!force && this.meRequest) return this.meRequest
+
+      this.meRequest = cachedGet('/api/me', {}, { ttl: 20_000, force })
+        .then(({ data }) => {
+          this.user = data
+          applyCompanyFromUser(data)
+          return data
+        })
+        .finally(() => {
+          this.meRequest = null
+        })
+
+      return this.meRequest
     },
     async logout() {
       try {

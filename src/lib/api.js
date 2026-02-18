@@ -8,6 +8,148 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || defaultApiUrl,
 })
 
+const getCache = new Map()
+const pendingGetRequests = new Map()
+const DEFAULT_GET_TTL_MS = 15_000
+
+const cloneData = (value) => {
+  if (typeof structuredClone === 'function') {
+    try {
+      return structuredClone(value)
+    } catch {
+      // fallback below
+    }
+  }
+
+  try {
+    return JSON.parse(JSON.stringify(value))
+  } catch {
+    return value
+  }
+}
+
+const serializeParams = (params) => {
+  if (!params) return ''
+  if (typeof params === 'string') return params
+  if (params instanceof URLSearchParams) return params.toString()
+
+  const searchParams = new URLSearchParams()
+  const sortedKeys = Object.keys(params).sort()
+
+  sortedKeys.forEach((key) => {
+    const value = params[key]
+    if (value === undefined || value === null) return
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item !== undefined && item !== null) {
+          searchParams.append(key, String(item))
+        }
+      })
+      return
+    }
+
+    if (value instanceof Date) {
+      searchParams.append(key, value.toISOString())
+      return
+    }
+
+    if (typeof value === 'object') {
+      searchParams.append(key, JSON.stringify(value))
+      return
+    }
+
+    searchParams.append(key, String(value))
+  })
+
+  return searchParams.toString()
+}
+
+const buildGetCacheKey = (url, config = {}) => {
+  const params = serializeParams(config.params)
+  const companySlug = localStorage.getItem('company_slug') || import.meta.env.VITE_COMPANY_SLUG || ''
+  const token = localStorage.getItem('token') || 'guest'
+  return `${url}?${params}|company:${companySlug}|token:${token}`
+}
+
+const pruneExpiredGetCache = () => {
+  const now = Date.now()
+  getCache.forEach((entry, key) => {
+    if (entry.expiresAt <= now) {
+      getCache.delete(key)
+    }
+  })
+}
+
+export const clearGetCache = (predicate = null) => {
+  if (typeof predicate !== 'function') {
+    getCache.clear()
+    pendingGetRequests.clear()
+    return
+  }
+
+  getCache.forEach((_, key) => {
+    if (predicate(key)) {
+      getCache.delete(key)
+    }
+  })
+}
+
+export const cachedGet = async (url, config = {}, options = {}) => {
+  const ttl = Number(options.ttl ?? DEFAULT_GET_TTL_MS)
+  const force = Boolean(options.force)
+
+  pruneExpiredGetCache()
+
+  const cacheKey = buildGetCacheKey(url, config)
+  const canReusePending = !config?.signal
+
+  if (!force && ttl > 0) {
+    const cached = getCache.get(cacheKey)
+    if (cached && cached.expiresAt > Date.now()) {
+      return {
+        data: cloneData(cached.data),
+        status: cached.status,
+        statusText: cached.statusText,
+        headers: cached.headers,
+        config,
+        request: null,
+      }
+    }
+  }
+
+  if (!force && canReusePending && pendingGetRequests.has(cacheKey)) {
+    const pendingResponse = await pendingGetRequests.get(cacheKey)
+    return {
+      ...pendingResponse,
+      data: cloneData(pendingResponse.data),
+    }
+  }
+
+  const requestPromise = api.get(url, config).then((response) => {
+    if (ttl > 0) {
+      getCache.set(cacheKey, {
+        data: cloneData(response.data),
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        expiresAt: Date.now() + ttl,
+      })
+    }
+    return response
+  })
+
+  if (canReusePending) {
+    pendingGetRequests.set(cacheKey, requestPromise)
+  }
+
+  try {
+    return await requestPromise
+  } finally {
+    pendingGetRequests.delete(cacheKey)
+  }
+}
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) {
@@ -44,9 +186,14 @@ export const setupInterceptors = (auth, router, alerts) => {
     (error) => {
       const status = error?.response?.status
       if (status === 401) {
-        auth.token = ''
-        auth.user = null
-        localStorage.removeItem('token')
+        clearGetCache()
+        if (typeof auth?.clearSession === 'function') {
+          auth.clearSession()
+        } else {
+          auth.token = ''
+          auth.user = null
+          localStorage.removeItem('token')
+        }
         alerts?.error('Sessão expirada. Faça login novamente.')
         if (router.currentRoute.value.name !== 'login') {
           router.replace({ name: 'login' })

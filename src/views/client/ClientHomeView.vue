@@ -154,7 +154,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import api from '@/lib/api'
+import { cachedGet } from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
 
 const staff = ref([])
@@ -182,8 +182,8 @@ const initials = (name) =>
 
 onMounted(async () => {
   const [staffResponse, servicesResponse] = await Promise.all([
-    api.get('/api/staff'),
-    api.get('/api/services'),
+    cachedGet('/api/staff', {}, { ttl: 30_000 }),
+    cachedGet('/api/services', {}, { ttl: 30_000 }),
   ])
   staff.value = staffResponse.data
   services.value = servicesResponse.data

@@ -51,7 +51,7 @@ const onSelect = async (value) => {
   company.setCurrentSlug(nextSlug)
 
   if (auth.isAuthenticated) {
-    await auth.loadMe()
+    await auth.loadMe(true)
   }
 
   if (props.reloadOnChange) {

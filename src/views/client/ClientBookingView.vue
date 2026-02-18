@@ -100,7 +100,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
-import api from '@/lib/api'
+import api, { cachedGet } from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
 import { formatPhoneFromE164 } from '@/lib/phone'
 import { formatCurrencyBRL } from '@/lib/currency'
@@ -210,7 +210,7 @@ const confirmBooking = async () => {
 }
 
 onMounted(async () => {
-  const { data } = await api.get('/api/staff')
+  const { data } = await cachedGet('/api/staff', {}, { ttl: 30_000 })
   staffOptions.value = data
   if (staffOptions.value.length) {
     selectedStaff.value = staffOptions.value[0].id
