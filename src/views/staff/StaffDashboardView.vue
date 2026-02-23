@@ -23,7 +23,7 @@
     </v-card>
 
     <v-row class="mb-2">
-      <v-col cols="12" md="4">
+      <v-col cols="12" md="3">
         <v-card class="glass-card dashboard-card" elevation="0">
           <v-card-text>
             <div class="card-label">Agendamentos</div>
@@ -32,12 +32,51 @@
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="12" md="4">
+      <v-col cols="12" md="3">
+        <v-card class="glass-card dashboard-card" elevation="0">
+          <v-card-text>
+            <div class="card-label">Receita realizada</div>
+            <div class="card-value">{{ formatCurrencyBRL(totals.revenue_realized) }}</div>
+            <div class="card-meta">Somente finalizados</div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+      <v-col cols="12" md="3">
         <v-card class="glass-card dashboard-card" elevation="0">
           <v-card-text>
             <div class="card-label">Receita prevista</div>
-            <div class="card-value">{{ formatCurrencyBRL(totals.revenue_total) }}</div>
-            <div class="card-meta">Agendamentos + finalizados</div>
+            <div class="card-value">{{ formatCurrencyBRL(totals.revenue_expected) }}</div>
+            <div class="card-meta">Agendados + finalizados</div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+      <v-col cols="12" md="3">
+        <v-card class="glass-card dashboard-card" elevation="0">
+          <v-card-text>
+            <div class="card-label">Ticket médio real</div>
+            <div class="card-value">{{ formatCurrencyBRL(totals.average_ticket_done) }}</div>
+            <div class="card-meta">Receita realizada por atendimento finalizado</div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <v-row class="mb-2">
+      <v-col cols="12" md="4">
+        <v-card class="glass-card dashboard-card" elevation="0">
+          <v-card-text>
+            <div class="card-label">Taxa de comparecimento</div>
+            <div class="card-value">{{ formatPercent(totals.attendance_rate) }}</div>
+            <div class="card-meta">Finalizados / (finalizados + não compareceu)</div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+      <v-col cols="12" md="4">
+        <v-card class="glass-card dashboard-card" elevation="0">
+          <v-card-text>
+            <div class="card-label">Taxa de cancelamento</div>
+            <div class="card-value">{{ formatPercent(totals.cancel_rate) }}</div>
+            <div class="card-meta">Cancelados / total de agendamentos</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -49,6 +88,21 @@
               <v-chip size="small" color="primary" variant="tonal">Agendados {{ statusCount('scheduled') }}</v-chip>
               <v-chip size="small" color="success" variant="tonal">Finalizados {{ statusCount('done') }}</v-chip>
               <v-chip size="small" color="error" variant="tonal">Cancelados {{ statusCount('canceled') }}</v-chip>
+              <v-chip size="small" color="warning" variant="tonal">Não compareceu {{ statusCount('no_show') }}</v-chip>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <v-row class="mb-2">
+      <v-col cols="12">
+        <v-card class="glass-card chart-card" elevation="0">
+          <v-card-text>
+            <div class="section-label">Evolução diária</div>
+            <div class="chart-shell">
+              <canvas v-if="hasDailyData" ref="dailyChartCanvas"></canvas>
+              <div v-else class="chart-empty text-muted">Sem dados diários no período.</div>
             </div>
           </v-card-text>
         </v-card>
@@ -134,7 +188,10 @@ import {
   Chart,
   DoughnutController,
   Legend,
+  LineController,
+  LineElement,
   LinearScale,
+  PointElement,
   Tooltip,
 } from 'chart.js'
 import api from '@/lib/api'
@@ -147,6 +204,9 @@ Chart.register(
   Legend,
   BarController,
   BarElement,
+  LineController,
+  LineElement,
+  PointElement,
   CategoryScale,
   LinearScale
 )
@@ -209,12 +269,20 @@ const totals = ref({
   appointments_total: 0,
   appointments_by_status: {},
   revenue_total: 0,
+  revenue_expected: 0,
+  revenue_realized: 0,
+  average_ticket_done: 0,
+  attendance_rate: 0,
+  cancel_rate: 0,
 })
+const daily = ref([])
 const nextAppointments = ref([])
 const topServices = ref([])
 
+const dailyChartCanvas = ref(null)
 const statusChartCanvas = ref(null)
 const topServicesChartCanvas = ref(null)
+let dailyChartInstance = null
 let statusChartInstance = null
 let topServicesChartInstance = null
 
@@ -258,9 +326,17 @@ const statusEntries = computed(() => {
 })
 
 const hasStatusData = computed(() => statusEntries.value.length > 0)
+const hasDailyData = computed(() =>
+  daily.value.some((item) => Number(item.appointments_total || 0) > 0 || Number(item.revenue_expected || 0) > 0)
+)
 const hasTopServicesData = computed(() => topServices.value.length > 0)
 
 const destroyCharts = () => {
+  if (dailyChartInstance) {
+    dailyChartInstance.destroy()
+    dailyChartInstance = null
+  }
+
   if (statusChartInstance) {
     statusChartInstance.destroy()
     statusChartInstance = null
@@ -385,8 +461,121 @@ const renderTopServicesChart = () => {
   })
 }
 
+const renderDailyChart = () => {
+  if (!dailyChartCanvas.value || !hasDailyData.value) {
+    if (dailyChartInstance) {
+      dailyChartInstance.destroy()
+      dailyChartInstance = null
+    }
+    return
+  }
+
+  if (dailyChartInstance) {
+    dailyChartInstance.destroy()
+  }
+
+  const labels = daily.value.map((entry) =>
+    new Date(`${entry.date}T00:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+  )
+  const appointmentsData = daily.value.map((entry) => Number(entry.appointments_total || 0))
+  const revenueExpectedData = daily.value.map((entry) => Number(entry.revenue_expected || 0))
+  const revenueRealizedData = daily.value.map((entry) => Number(entry.revenue_realized || 0))
+
+  dailyChartInstance = new Chart(dailyChartCanvas.value, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Agendamentos',
+          data: appointmentsData,
+          yAxisID: 'y',
+          borderColor: '#5B8C8F',
+          backgroundColor: 'rgba(91, 140, 143, 0.2)',
+          borderWidth: 2,
+          pointRadius: 3,
+          tension: 0.3,
+        },
+        {
+          label: 'Receita prevista',
+          data: revenueExpectedData,
+          yAxisID: 'y1',
+          borderColor: '#8AAE88',
+          backgroundColor: 'rgba(138, 174, 136, 0.18)',
+          borderWidth: 2,
+          pointRadius: 2,
+          tension: 0.3,
+        },
+        {
+          label: 'Receita realizada',
+          data: revenueRealizedData,
+          yAxisID: 'y1',
+          borderColor: '#2F7A4B',
+          backgroundColor: 'rgba(47, 122, 75, 0.14)',
+          borderWidth: 2,
+          pointRadius: 2,
+          tension: 0.3,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: '#425763',
+            usePointStyle: true,
+            pointStyle: 'circle',
+            boxWidth: 10,
+            padding: 16,
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: '#637b87',
+          },
+          grid: {
+            color: 'rgba(87, 120, 132, 0.12)',
+          },
+        },
+        y: {
+          position: 'left',
+          beginAtZero: true,
+          ticks: {
+            precision: 0,
+            color: '#637b87',
+          },
+          grid: {
+            color: 'rgba(87, 120, 132, 0.14)',
+          },
+        },
+        y1: {
+          position: 'right',
+          beginAtZero: true,
+          grid: {
+            drawOnChartArea: false,
+          },
+          ticks: {
+            color: '#637b87',
+            callback: (value) => formatCurrencyBRL(value),
+          },
+        },
+      },
+    },
+  })
+}
+
 const syncCharts = async () => {
   await nextTick()
+  renderDailyChart()
   renderStatusChart()
   renderTopServicesChart()
 }
@@ -400,6 +589,7 @@ const loadDashboard = async () => {
     })
 
     totals.value = data.totals
+    daily.value = Array.isArray(data.daily) ? data.daily : []
     nextAppointments.value = data.next_appointments
     topServices.value = data.top_services
 
@@ -410,6 +600,10 @@ const loadDashboard = async () => {
 }
 
 const statusCount = (status) => totals.value.appointments_by_status?.[status] || 0
+const formatPercent = (value) => `${Number(value || 0).toLocaleString('pt-BR', {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+})}%`
 
 const formatDateTime = (value) =>
   new Date(value).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })

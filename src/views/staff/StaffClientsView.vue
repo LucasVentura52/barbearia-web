@@ -6,15 +6,8 @@
 
     <v-card class="staff-toolbar-card mb-4" elevation="0">
       <v-card-text class="clients-toolbar">
-        <v-text-field
-          v-model="search"
-          label="Buscar cliente"
-          variant="outlined"
-          density="compact"
-          prepend-inner-icon="mdi-magnify"
-          hide-details="auto"
-          class="clients-search"
-        />
+        <v-text-field v-model="search" label="Buscar cliente" variant="outlined" density="compact"
+          prepend-inner-icon="mdi-magnify" hide-details="auto" class="clients-search" />
         <v-chip color="primary" variant="tonal">
           {{ clients.length }} clientes
         </v-chip>
@@ -77,18 +70,8 @@
                 <td>
                   <div class="row-actions">
                     <v-btn icon="mdi-pencil-outline" variant="text" @click="openEdit(client)" />
-                    <v-btn
-                      icon="mdi-power"
-                      variant="text"
-                      color="warning"
-                      @click="toggleActive(client)"
-                    />
-                    <v-btn
-                      icon="mdi-delete-outline"
-                      variant="text"
-                      color="error"
-                      @click="askDelete(client)"
-                    />
+                    <v-btn icon="mdi-power" variant="text" color="warning" @click="toggleActive(client)" />
+                    <v-btn icon="mdi-delete-outline" variant="text" color="error" @click="askDelete(client)" />
                   </div>
                 </td>
               </tr>
@@ -115,8 +98,10 @@
                     <v-chip size="small" variant="tonal" :color="client.active ? 'success' : 'warning'">
                       {{ client.active ? 'Ativo' : 'Inativo' }}
                     </v-chip>
-                    <v-chip size="small" variant="tonal" color="primary">{{ client.appointments_total }} atendimentos</v-chip>
-                    <v-chip size="small" variant="tonal" color="secondary">{{ formatCurrencyBRL(client.total_spent) }}</v-chip>
+                    <v-chip size="small" variant="tonal" color="primary">{{ client.appointments_total }}
+                      atendimentos</v-chip>
+                    <v-chip size="small" variant="tonal" color="secondary">{{ formatCurrencyBRL(client.total_spent)
+                      }}</v-chip>
                   </div>
                   <div class="text-muted mt-2">{{ formatDateTime(client.last_appointment_at) }}</div>
                   <div class="status-chips mt-2">
@@ -129,10 +114,12 @@
                     <v-btn size="small" variant="tonal" prepend-icon="mdi-pencil-outline" @click="openEdit(client)">
                       Editar
                     </v-btn>
-                    <v-btn size="small" variant="text" color="warning" prepend-icon="mdi-power" @click="toggleActive(client)">
+                    <v-btn size="small" variant="text" color="warning" prepend-icon="mdi-power"
+                      @click="toggleActive(client)">
                       {{ client.active ? 'Inativar' : 'Ativar' }}
                     </v-btn>
-                    <v-btn size="small" variant="text" color="error" prepend-icon="mdi-delete-outline" @click="askDelete(client)">
+                    <v-btn size="small" variant="text" color="error" prepend-icon="mdi-delete-outline"
+                      @click="askDelete(client)">
                       Excluir
                     </v-btn>
                   </div>
@@ -160,49 +147,18 @@
         <v-card-text class="form-grid">
           <v-text-field v-model="form.name" label="Nome" variant="outlined" />
           <div class="phone-row">
-            <v-select
-              v-model="form.country"
-              :items="countryOptions"
-              item-title="label"
-              item-value="code"
-              label="País"
-              variant="outlined"
-              class="phone-country"
-            />
-            <v-text-field
-              v-model="phoneInput"
-              label="Telefone"
-              placeholder="(11) 99999-9999"
-              variant="outlined"
-              type="tel"
-              class="phone-input"
-              maxlength="15"
-            />
+            <v-select v-model="form.country" :items="countryOptions" item-title="label" item-value="code" label="País"
+              variant="outlined" class="phone-country" />
+            <v-text-field v-model="phoneInput" label="Telefone" placeholder="(11) 99999-9999" variant="outlined"
+              type="tel" class="phone-input" maxlength="15" />
           </div>
           <v-text-field v-model="form.email" label="E-mail" variant="outlined" />
-          <v-file-input
-            v-model="form.photo"
-            label="Foto do cliente"
-            accept="image/*"
-            prepend-icon="mdi-camera"
-            show-size
-            chips
-            variant="outlined"
-          />
-          <v-text-field
-            v-model="form.password"
-            label="Nova senha"
-            type="password"
-            variant="outlined"
-            hint="Deixe vazio para manter a senha atual."
-            persistent-hint
-          />
-          <v-text-field
-            v-model="form.password_confirmation"
-            label="Confirmar nova senha"
-            type="password"
-            variant="outlined"
-          />
+          <v-file-input v-model="form.photo" label="Foto do cliente" accept="image/*" prepend-icon="mdi-camera"
+            show-size chips variant="outlined" />
+          <v-text-field v-model="form.password" label="Nova senha" type="password" variant="outlined"
+            hint="Deixe vazio para manter a senha atual." persistent-hint />
+          <v-text-field v-model="form.password_confirmation" label="Confirmar nova senha" type="password"
+            variant="outlined" />
           <div class="modal-switch-row">
             <v-switch v-model="form.active" color="secondary" label="Ativo" />
           </div>
