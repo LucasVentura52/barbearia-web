@@ -3,7 +3,7 @@
     <div class="client-shell-bg"></div>
 
     <v-app-bar elevation="0" class="client-shell-bar" density="comfortable">
-      <div class="bar-brand">
+      <div class="bar-brand ml-4">
         <div class="bar-brand-dot"></div>
         <div>
           <div class="bar-brand-title">Chat do cliente</div>

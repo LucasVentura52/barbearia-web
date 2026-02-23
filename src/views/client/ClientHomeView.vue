@@ -20,381 +20,362 @@
       </header>
 
       <div ref="chatBodyRef" class="chat-body">
-        <transition-group name="bubble">
-          <div
-            v-for="message in messages"
-            :key="message.id"
-            class="message-row"
-            :class="`message-row--${message.role}`"
-          >
-            <div class="message-bubble" :class="`message-bubble--${message.role}`">
-              {{ message.text }}
+        <div ref="chatContentRef" class="chat-content">
+          <transition-group name="bubble">
+            <div v-for="message in messages" :key="message.id" class="message-row"
+              :class="`message-row--${message.role}`">
+              <div class="message-bubble" :class="`message-bubble--${message.role}`">
+                {{ message.text }}
+              </div>
+              <div class="message-time">{{ formatMessageTime(message.sentAt) }}</div>
             </div>
-            <div class="message-time">{{ formatMessageTime(message.sentAt) }}</div>
+          </transition-group>
+
+          <div v-if="assistantTyping" class="typing-row">
+            <div class="typing-bubble">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
           </div>
-        </transition-group>
 
-        <div v-if="assistantTyping" class="typing-row">
-          <div class="typing-bubble">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        </div>
+          <div class="message-row message-row--bot inline-options-row">
+            <div class="inline-options-card">
+              <div class="inline-options-title">{{ panelTitle }}</div>
 
-        <div class="message-row message-row--bot inline-options-row">
-          <div class="inline-options-card">
-            <div class="inline-options-title">{{ panelTitle }}</div>
+              <template v-if="state === 'menu'">
+                <div class="action-grid">
+                  <v-btn color="primary" size="large" prepend-icon="mdi-calendar-check-outline" @click="startBooking">
+                    Novo agendamento
+                  </v-btn>
+                  <v-btn color="secondary" variant="tonal" size="large" prepend-icon="mdi-content-cut"
+                    @click="openServices">
+                    Ver serviços
+                  </v-btn>
+                  <v-btn variant="outlined" color="primary" size="large" prepend-icon="mdi-calendar-clock-outline"
+                    @click="openAppointments">
+                    Meus horários
+                  </v-btn>
+                  <v-btn variant="outlined" color="primary" size="large" prepend-icon="mdi-account-outline"
+                    @click="openProfile">
+                    Meu perfil
+                  </v-btn>
+                </div>
+              </template>
 
-            <template v-if="state === 'menu'">
-              <div class="action-grid">
-                <v-btn color="primary" size="large" prepend-icon="mdi-calendar-check-outline" @click="startBooking">
-                  Novo agendamento
-                </v-btn>
-                <v-btn color="secondary" variant="tonal" size="large" prepend-icon="mdi-content-cut" @click="openServices">
-                  Ver serviços
-                </v-btn>
-                <v-btn
-                  variant="outlined"
-                  color="primary"
-                  size="large"
-                  prepend-icon="mdi-calendar-clock-outline"
-                  @click="openAppointments"
-                >
-                  Meus horários
-                </v-btn>
-                <v-btn
-                  variant="outlined"
-                  color="primary"
-                  size="large"
-                  prepend-icon="mdi-account-outline"
-                  @click="openProfile"
-                >
-                  Meu perfil
-                </v-btn>
-              </div>
-            </template>
+              <template v-else-if="state === 'auth-required'">
+                <v-alert type="info" variant="tonal" class="mb-4">
+                  Faça login para continuar com essa ação.
+                </v-alert>
+                <div class="panel-actions">
+                  <v-btn color="primary" size="large" prepend-icon="mdi-login" @click="goToLogin">
+                    Ir para login
+                  </v-btn>
+                  <v-btn variant="outlined" color="primary" size="large" prepend-icon="mdi-arrow-left"
+                    @click="goToMenu">
+                    Voltar ao menu
+                  </v-btn>
+                </div>
+              </template>
 
-            <template v-else-if="state === 'auth-required'">
-              <v-alert type="info" variant="tonal" class="mb-4">
-                Faça login para continuar com essa ação.
-              </v-alert>
-              <div class="panel-actions">
-                <v-btn color="primary" size="large" prepend-icon="mdi-login" @click="goToLogin">
-                  Ir para login
-                </v-btn>
-                <v-btn variant="outlined" color="primary" size="large" prepend-icon="mdi-arrow-left" @click="goToMenu">
-                  Voltar ao menu
-                </v-btn>
-              </div>
-            </template>
+              <template v-else-if="state === 'booking-staff'">
+                <div v-if="loadingCatalog" class="loading-box">
+                  <v-progress-circular indeterminate color="primary" />
+                </div>
 
-            <template v-else-if="state === 'booking-staff'">
-              <div v-if="loadingCatalog" class="loading-box">
-                <v-progress-circular indeterminate color="primary" />
-              </div>
+                <template v-else>
+                  <div class="choice-grid">
+                    <button v-for="staff in staffOptions" :key="staff.id" type="button" class="choice-card"
+                      @click="chooseStaff(staff)">
+                      <v-avatar size="44" class="choice-avatar">
+                        <v-img v-if="staff.avatar_url" :src="resolveMediaUrl(staff.avatar_url)" cover />
+                        <span v-else>{{ initials(staff.name) }}</span>
+                      </v-avatar>
+                      <div class="choice-title">{{ staff.name }}</div>
+                      <div class="choice-subtitle">{{ staff.services?.length || 0 }} serviço(s)</div>
+                    </button>
+                  </div>
+                  <div class="panel-actions">
+                    <v-btn variant="outlined" color="primary" prepend-icon="mdi-arrow-left" @click="goToMenu">
+                      Voltar
+                    </v-btn>
+                  </div>
+                </template>
+              </template>
 
-              <template v-else>
-                <div class="choice-grid">
-                  <button
-                    v-for="staff in staffOptions"
-                    :key="staff.id"
-                    type="button"
-                    class="choice-card"
-                    @click="chooseStaff(staff)"
-                  >
-                    <v-avatar size="44" class="choice-avatar">
-                      <v-img v-if="staff.avatar_url" :src="resolveMediaUrl(staff.avatar_url)" cover />
-                      <span v-else>{{ initials(staff.name) }}</span>
-                    </v-avatar>
-                    <div class="choice-title">{{ staff.name }}</div>
-                    <div class="choice-subtitle">{{ staff.services?.length || 0 }} serviço(s)</div>
+              <template v-else-if="state === 'booking-services'">
+                <div v-if="!availableServices.length" class="empty-note">
+                  Esse profissional não tem serviços disponíveis no momento.
+                </div>
+
+                <div v-else class="choice-grid choice-grid--services">
+                  <button v-for="service in availableServices" :key="service.id" type="button"
+                    class="choice-card choice-card--service"
+                    :class="{ 'choice-card--selected': booking.serviceIds.includes(service.id) }"
+                    @click="toggleService(service.id)">
+                    <div class="service-media">
+                      <v-img v-if="service.photo_url" :src="resolveMediaUrl(service.photo_url)" cover
+                        class="service-media__img" />
+                      <v-icon v-else icon="mdi-content-cut" size="26" />
+                    </div>
+                    <div class="choice-title">{{ service.name }}</div>
+                    <div class="choice-subtitle">{{ service.duration_minutes }} min</div>
+                    <div class="choice-price">{{ formatCurrencyBRL(service.price) }}</div>
                   </button>
                 </div>
-                <div class="panel-actions">
-                  <v-btn variant="outlined" color="primary" prepend-icon="mdi-arrow-left" @click="goToMenu">
+
+                <div class="panel-summary">
+                  <div>
+                    <strong>{{ booking.serviceIds.length }}</strong> serviço(s)
+                  </div>
+                  <div>{{ totalDuration }} min</div>
+                  <div>{{ formatCurrencyBRL(totalPrice) }}</div>
+                </div>
+
+                <div class="panel-actions panel-actions--split">
+                  <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="state = 'booking-staff'">
+                    Trocar profissional
+                  </v-btn>
+                  <v-btn color="primary" :disabled="!booking.serviceIds.length" @click="continueToDateStep">
+                    Continuar
+                  </v-btn>
+                </div>
+              </template>
+
+              <template v-else-if="state === 'booking-date'">
+                <div class="date-tools">
+                  <v-text-field v-model="booking.date" label="Data" type="date" variant="outlined" density="comfortable"
+                    hide-details :min="todayDate" />
+                  <v-btn color="primary" size="large" :loading="booking.loadingSlots" @click="fetchAvailability">
+                    Buscar horários
+                  </v-btn>
+                </div>
+
+                <div class="panel-summary">
+                  <div>{{ selectedStaff?.name || 'Profissional' }}</div>
+                  <div>{{ selectedServicesLabel || 'Serviços não selecionados' }}</div>
+                  <div>{{ formatCurrencyBRL(totalPrice) }}</div>
+                </div>
+
+                <div class="panel-actions panel-actions--split">
+                  <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="state = 'booking-services'">
                     Voltar
                   </v-btn>
                 </div>
               </template>
-            </template>
 
-            <template v-else-if="state === 'booking-services'">
-              <div v-if="!availableServices.length" class="empty-note">
-                Esse profissional não tem serviços disponíveis no momento.
-              </div>
-
-              <div v-else class="choice-grid choice-grid--services">
-                <button
-                  v-for="service in availableServices"
-                  :key="service.id"
-                  type="button"
-                  class="choice-card choice-card--service"
-                  :class="{ 'choice-card--selected': booking.serviceIds.includes(service.id) }"
-                  @click="toggleService(service.id)"
-                >
-                  <div class="service-media">
-                    <v-img
-                      v-if="service.photo_url"
-                      :src="resolveMediaUrl(service.photo_url)"
-                      cover
-                      class="service-media__img"
-                    />
-                    <v-icon v-else icon="mdi-content-cut" size="26" />
-                  </div>
-                  <div class="choice-title">{{ service.name }}</div>
-                  <div class="choice-subtitle">{{ service.duration_minutes }} min</div>
-                  <div class="choice-price">{{ formatCurrencyBRL(service.price) }}</div>
-                </button>
-              </div>
-
-              <div class="panel-summary">
-                <div>
-                  <strong>{{ booking.serviceIds.length }}</strong> serviço(s)
+              <template v-else-if="state === 'booking-slot'">
+                <div v-if="!booking.slots.length" class="empty-note">
+                  Nenhum horário disponível para essa data.
                 </div>
-                <div>{{ totalDuration }} min</div>
-                <div>{{ formatCurrencyBRL(totalPrice) }}</div>
-              </div>
 
-              <div class="panel-actions panel-actions--split">
-                <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="state = 'booking-staff'">
-                  Trocar profissional
-                </v-btn>
-                <v-btn color="primary" :disabled="!booking.serviceIds.length" @click="continueToDateStep">
-                  Continuar
-                </v-btn>
-              </div>
-            </template>
+                <div v-else class="slots-grid">
+                  <v-btn v-for="slot in booking.slots" :key="slot" variant="outlined" color="primary" class="slot-btn"
+                    @click="selectSlot(slot)">
+                    {{ formatTime(slot) }}
+                  </v-btn>
+                </div>
 
-            <template v-else-if="state === 'booking-date'">
-              <div class="date-tools">
-                <v-text-field
-                  v-model="booking.date"
-                  label="Data"
-                  type="date"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details
-                  :min="todayDate"
-                />
-                <v-btn color="primary" size="large" :loading="booking.loadingSlots" @click="fetchAvailability">
-                  Buscar horários
-                </v-btn>
-              </div>
+                <div class="panel-actions panel-actions--split">
+                  <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="state = 'booking-date'">
+                    Trocar data
+                  </v-btn>
+                </div>
+              </template>
 
-              <div class="panel-summary">
-                <div>{{ selectedStaff?.name || 'Profissional' }}</div>
-                <div>{{ selectedServicesLabel || 'Serviços não selecionados' }}</div>
-                <div>{{ formatCurrencyBRL(totalPrice) }}</div>
-              </div>
-
-              <div class="panel-actions panel-actions--split">
-                <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="state = 'booking-services'">
-                  Voltar
-                </v-btn>
-              </div>
-            </template>
-
-            <template v-else-if="state === 'booking-slot'">
-              <div v-if="!booking.slots.length" class="empty-note">
-                Nenhum horário disponível para essa data.
-              </div>
-
-              <div v-else class="slots-grid">
-                <v-btn
-                  v-for="slot in booking.slots"
-                  :key="slot"
-                  variant="outlined"
-                  color="primary"
-                  class="slot-btn"
-                  @click="selectSlot(slot)"
-                >
-                  {{ formatTime(slot) }}
-                </v-btn>
-              </div>
-
-              <div class="panel-actions panel-actions--split">
-                <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="state = 'booking-date'">
-                  Trocar data
-                </v-btn>
-              </div>
-            </template>
-
-            <template v-else-if="state === 'booking-confirm'">
-              <v-card class="confirm-card" elevation="0">
-                <v-card-text>
-                  <div class="confirm-row">
-                    <span>Profissional</span>
-                    <strong>{{ selectedStaff?.name || '-' }}</strong>
-                  </div>
-                  <div class="confirm-row">
-                    <span>Serviços</span>
-                    <strong>{{ selectedServicesLabel }}</strong>
-                  </div>
-                  <div class="confirm-row">
-                    <span>Data</span>
-                    <strong>{{ formatDate(booking.selectedSlot) }}</strong>
-                  </div>
-                  <div class="confirm-row">
-                    <span>Horário</span>
-                    <strong>{{ formatTime(booking.selectedSlot) }}</strong>
-                  </div>
-                  <div class="confirm-row">
-                    <span>Total</span>
-                    <strong>{{ formatCurrencyBRL(totalPrice) }}</strong>
-                  </div>
-                </v-card-text>
-              </v-card>
-
-              <div class="panel-actions panel-actions--split">
-                <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="state = 'booking-slot'">
-                  Trocar horário
-                </v-btn>
-                <v-btn color="primary" :loading="booking.saving" @click="confirmBooking">
-                  Confirmar agendamento
-                </v-btn>
-              </div>
-            </template>
-
-            <template v-else-if="state === 'appointments'">
-              <div v-if="loadingAppointments" class="loading-box">
-                <v-progress-circular indeterminate color="primary" />
-              </div>
-
-              <div v-else-if="!appointments.length" class="empty-note">
-                Você ainda não possui agendamentos.
-              </div>
-
-              <div v-else class="appointment-list">
-                <v-card v-for="appointment in appointments" :key="appointment.id" class="appointment-card" elevation="0">
+              <template v-else-if="state === 'booking-confirm'">
+                <v-card class="confirm-card" elevation="0">
                   <v-card-text>
-                    <div class="appointment-head">
-                      <div>
-                        <div class="appointment-title">{{ formatDate(appointment.start_at) }}</div>
-                        <div class="appointment-time">
-                          {{ formatTime(appointment.start_at) }} - {{ formatTime(appointment.end_at) }}
-                        </div>
-                      </div>
-                      <v-chip size="small" :color="statusColor(appointment.status)" variant="tonal">
-                        {{ statusLabel(appointment.status) }}
-                      </v-chip>
+                    <div class="confirm-row">
+                      <span>Profissional</span>
+                      <strong>{{ selectedStaff?.name || '-' }}</strong>
                     </div>
-
-                    <div class="appointment-meta">{{ appointment.staff?.name || 'Equipe' }}</div>
-
-                    <div class="appointment-services">
-                      <v-chip
-                        v-for="service in appointment.services"
-                        :key="service.id"
-                        size="x-small"
-                        color="secondary"
-                        variant="tonal"
-                      >
-                        {{ service.name }}
-                      </v-chip>
+                    <div class="confirm-row">
+                      <span>Serviços</span>
+                      <strong>{{ selectedServicesLabel }}</strong>
                     </div>
-
-                    <div class="appointment-footer">
-                      <strong>{{ formatCurrencyBRL(appointment.total_price) }}</strong>
-                      <v-btn
-                        v-if="appointment.status === 'scheduled'"
-                        variant="outlined"
-                        color="primary"
-                        size="small"
-                        @click="cancelAppointment(appointment)"
-                      >
-                        Cancelar
-                      </v-btn>
+                    <div class="confirm-row">
+                      <span>Data</span>
+                      <strong>{{ formatDate(booking.selectedSlot) }}</strong>
+                    </div>
+                    <div class="confirm-row">
+                      <span>Horário</span>
+                      <strong>{{ formatTime(booking.selectedSlot) }}</strong>
+                    </div>
+                    <div class="confirm-row">
+                      <span>Total</span>
+                      <strong>{{ formatCurrencyBRL(totalPrice) }}</strong>
                     </div>
                   </v-card-text>
                 </v-card>
-              </div>
 
-              <div class="panel-actions">
-                <v-btn variant="outlined" color="primary" prepend-icon="mdi-arrow-left" @click="goToMenu">
-                  Voltar ao menu
-                </v-btn>
-              </div>
-            </template>
+                <div class="panel-actions panel-actions--split">
+                  <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="state = 'booking-slot'">
+                    Trocar horário
+                  </v-btn>
+                  <v-btn color="primary" :loading="booking.saving" @click="confirmBooking">
+                    Confirmar agendamento
+                  </v-btn>
+                </div>
+              </template>
 
-            <template v-else-if="state === 'services'">
-              <div v-if="loadingCatalog" class="loading-box">
-                <v-progress-circular indeterminate color="primary" />
-              </div>
+              <template v-else-if="state === 'appointments'">
+                <div v-if="loadingAppointments" class="loading-box">
+                  <v-progress-circular indeterminate color="primary" />
+                </div>
 
-              <div v-else-if="!servicesCatalog.length" class="empty-note">
-                Catálogo indisponível no momento.
-              </div>
+                <div v-else-if="!appointments.length" class="empty-note">
+                  Você ainda não possui agendamentos.
+                </div>
 
-              <div v-else class="service-list">
-                <div v-for="service in servicesCatalog" :key="service.id" class="service-item">
-                  <div class="service-item-main">
-                    <div class="service-media service-media--list">
-                      <v-img
-                        v-if="service.photo_url"
-                        :src="resolveMediaUrl(service.photo_url)"
-                        cover
-                        class="service-media__img"
-                      />
-                      <v-icon v-else icon="mdi-content-cut" size="22" />
+                <div v-else class="appointment-list">
+                  <v-card v-for="appointment in appointments" :key="appointment.id" class="appointment-card"
+                    elevation="0">
+                    <v-card-text>
+                      <div class="appointment-head">
+                        <div>
+                          <div class="appointment-title">{{ formatDate(appointment.start_at) }}</div>
+                          <div class="appointment-time">
+                            {{ formatTime(appointment.start_at) }} - {{ formatTime(appointment.end_at) }}
+                          </div>
+                        </div>
+                        <v-chip size="small" :color="statusColor(appointment.status)" variant="tonal">
+                          {{ statusLabel(appointment.status) }}
+                        </v-chip>
+                      </div>
+
+                      <div class="appointment-meta">{{ appointment.staff?.name || 'Equipe' }}</div>
+
+                      <div class="appointment-services">
+                        <v-chip v-for="service in appointment.services" :key="service.id" size="x-small"
+                          color="secondary" variant="tonal">
+                          {{ service.name }}
+                        </v-chip>
+                      </div>
+
+                      <div class="appointment-footer">
+                        <strong>{{ formatCurrencyBRL(appointment.total_price) }}</strong>
+                        <v-btn v-if="appointment.status === 'scheduled'" variant="outlined" color="primary" size="small"
+                          @click="cancelAppointment(appointment)">
+                          Cancelar
+                        </v-btn>
+                      </div>
+                    </v-card-text>
+                  </v-card>
+                </div>
+
+                <div class="panel-actions">
+                  <v-btn variant="outlined" color="primary" prepend-icon="mdi-arrow-left" @click="goToMenu">
+                    Voltar ao menu
+                  </v-btn>
+                </div>
+              </template>
+
+              <template v-else-if="state === 'services'">
+                <div v-if="loadingCatalog" class="loading-box">
+                  <v-progress-circular indeterminate color="primary" />
+                </div>
+
+                <div v-else-if="!servicesCatalog.length" class="empty-note">
+                  Catálogo indisponível no momento.
+                </div>
+
+                <div v-else class="choice-grid choice-grid--services">
+                  <div v-for="service in servicesCatalog" :key="service.id" class="choice-card choice-card--service">
+                    <div class="service-media">
+                      <v-img v-if="service.photo_url" :src="resolveMediaUrl(service.photo_url)" cover
+                        class="service-media__img" />
+                      <v-icon v-else icon="mdi-content-cut" size="26" />
+                    </div>
+                    <div class="choice-title">{{ service.name }}</div>
+                    <div class="choice-subtitle">{{ service.duration_minutes }} min</div>
+                    <div class="choice-price">{{ formatCurrencyBRL(service.price) }}</div>
+                  </div>
+                </div>
+
+                <div class="panel-actions panel-actions--split">
+                  <v-btn variant="outlined" color="primary" prepend-icon="mdi-arrow-left" @click="goToMenu">
+                    Voltar
+                  </v-btn>
+                  <v-btn color="primary" prepend-icon="mdi-calendar-check-outline" @click="startBooking">
+                    Agendar agora
+                  </v-btn>
+                </div>
+              </template>
+
+              <template v-else-if="state === 'profile'">
+                <div class="profile-card">
+                  <div class="profile-top">
+                    <v-avatar size="58" class="profile-avatar">
+                      <v-img v-if="auth.user?.avatar_url" :src="resolveMediaUrl(auth.user.avatar_url)" cover />
+                      <span v-else>{{ initials(auth.user?.name || 'Cliente') }}</span>
+                    </v-avatar>
+                    <div>
+                      <div class="choice-title">{{ auth.user?.name || 'Cliente' }}</div>
+                      <div class="choice-subtitle">{{ profileRoleLabel }}</div>
+                    </div>
+                  </div>
+                  <div class="profile-grid">
+                    <div>
+                      <div class="field-label">Telefone</div>
+                      <div>{{ formatPhoneFromE164(auth.user?.phone) || 'Não informado' }}</div>
                     </div>
                     <div>
-                      <div class="choice-title">{{ service.name }}</div>
-                      <div class="choice-subtitle">{{ service.duration_minutes }} min</div>
+                      <div class="field-label">Email atual</div>
+                      <div>{{ auth.user?.email || 'Não informado' }}</div>
+                    </div>
+                    <div>
+                      <div class="field-label">Empresa</div>
+                      <div>{{ auth.user?.company?.name || 'Não vinculada' }}</div>
                     </div>
                   </div>
-                  <div class="choice-price">{{ formatCurrencyBRL(service.price) }}</div>
-                </div>
-              </div>
 
-              <div class="panel-actions panel-actions--split">
-                <v-btn variant="outlined" color="primary" prepend-icon="mdi-arrow-left" @click="goToMenu">
-                  Voltar
-                </v-btn>
-                <v-btn color="primary" prepend-icon="mdi-calendar-check-outline" @click="startBooking">
-                  Agendar agora
-                </v-btn>
-              </div>
-            </template>
+                  <v-divider class="my-3" />
 
-            <template v-else-if="state === 'profile'">
-              <div class="profile-card">
-                <div class="profile-top">
-                  <v-avatar size="58" class="profile-avatar">
-                    <v-img v-if="auth.user?.avatar_url" :src="resolveMediaUrl(auth.user.avatar_url)" cover />
-                    <span v-else>{{ initials(auth.user?.name || 'Cliente') }}</span>
-                  </v-avatar>
-                  <div>
-                    <div class="choice-title">{{ auth.user?.name || 'Cliente' }}</div>
-                    <div class="choice-subtitle">{{ profileRoleLabel }}</div>
-                  </div>
-                </div>
-                <div class="profile-grid">
-                  <div>
-                    <div class="field-label">Telefone</div>
-                    <div>{{ formatPhoneFromE164(auth.user?.phone) || 'Não informado' }}</div>
-                  </div>
-                  <div>
-                    <div class="field-label">Email</div>
-                    <div>{{ auth.user?.email || 'Não informado' }}</div>
-                  </div>
-                  <div>
-                    <div class="field-label">Empresa</div>
-                    <div>{{ auth.user?.company?.name || 'Não vinculada' }}</div>
+                  <v-row dense class="profile-editor-grid">
+                    <v-col cols="12" md="6">
+                      <v-text-field v-model="profileForm.name" label="Nome" variant="outlined" density="comfortable"
+                        prepend-inner-icon="mdi-account-outline" :error-messages="profileErrors.name"
+                        hide-details="auto" />
+                    </v-col>
+                    <v-col cols="12" md="6">
+                      <v-text-field v-model="profileForm.email" label="Email" type="email" variant="outlined"
+                        density="comfortable" prepend-inner-icon="mdi-email-outline"
+                        :error-messages="profileErrors.email" hide-details="auto" />
+                    </v-col>
+
+                    <v-col cols="12">
+                      <v-file-input v-model="profilePhotoFile" class="profile-upload-field" label="Selecionar nova foto"
+                        accept="image/*" prepend-icon="mdi-camera" variant="outlined" density="comfortable" show-size
+                        chips hide-details="auto" />
+                    </v-col>
+                  </v-row>
+
+                  <div class="profile-action-row">
+                    <v-btn color="secondary" variant="tonal" prepend-icon="mdi-image-edit-outline"
+                      :loading="uploadingProfilePhoto" @click="uploadProfilePhoto">
+                      Atualizar foto
+                    </v-btn>
+                    <v-btn color="primary" prepend-icon="mdi-content-save-outline" :loading="savingProfile"
+                      @click="saveProfile">
+                      Salvar dados
+                    </v-btn>
                   </div>
                 </div>
-              </div>
 
-              <div class="panel-actions panel-actions--split">
-                <v-btn variant="outlined" color="primary" prepend-icon="mdi-arrow-left" @click="goToMenu">
-                  Voltar
-                </v-btn>
-                <v-btn color="primary" prepend-icon="mdi-calendar-check-outline" @click="startBooking">
-                  Novo agendamento
-                </v-btn>
-              </div>
-            </template>
+                <div class="panel-actions panel-actions--split">
+                  <v-btn variant="outlined" color="primary" prepend-icon="mdi-arrow-left" @click="goToMenu">
+                    Voltar
+                  </v-btn>
+                  <v-btn color="primary" prepend-icon="mdi-calendar-check-outline" @click="startBooking">
+                    Novo agendamento
+                  </v-btn>
+                </div>
+              </template>
+            </div>
           </div>
+
+          <div ref="chatBottomRef" class="chat-bottom-anchor" aria-hidden="true"></div>
         </div>
       </div>
     </div>
@@ -402,7 +383,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api, { cachedGet } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
@@ -417,9 +398,13 @@ const auth = useAuthStore()
 const alerts = useAlertStore()
 
 const chatBodyRef = ref(null)
+const chatContentRef = ref(null)
+const chatBottomRef = ref(null)
 const messages = ref([])
 const assistantTyping = ref(false)
 let nextMessageId = 1
+let pendingScrollFrame = null
+let contentResizeObserver = null
 
 const state = ref('menu')
 const loadingCatalog = ref(false)
@@ -427,6 +412,14 @@ const loadingAppointments = ref(false)
 const staffOptions = ref([])
 const servicesCatalog = ref([])
 const appointments = ref([])
+const profileForm = reactive({
+  name: '',
+  email: '',
+})
+const profileErrors = ref({})
+const profilePhotoFile = ref(null)
+const savingProfile = ref(false)
+const uploadingProfilePhoto = ref(false)
 
 const toLocalDateString = (date) => {
   const offset = date.getTimezoneOffset() * 60000
@@ -456,7 +449,7 @@ const panelTitle = computed(() => {
     'booking-confirm': 'Passo 5: confirmar',
     appointments: 'Seus agendamentos',
     services: 'Catálogo de serviços',
-    profile: 'Resumo do perfil',
+    profile: 'Seu perfil',
   }
   return map[state.value] || 'Atendimento'
 })
@@ -493,6 +486,12 @@ const totalDuration = computed(() =>
   selectedServices.value.reduce((sum, service) => sum + Number(service.duration_minutes || 0), 0)
 )
 
+const syncProfileForm = () => {
+  profileForm.name = auth.user?.name || ''
+  profileForm.email = auth.user?.email || ''
+  profileErrors.value = {}
+}
+
 const pushMessage = (role, text) => {
   messages.value.push({
     id: nextMessageId++,
@@ -506,11 +505,30 @@ const pushMessage = (role, text) => {
 const sendBotMessage = (text) => pushMessage('bot', text)
 const sendUserMessage = (text) => pushMessage('user', text)
 
+const scrollChatToBottomNow = () => {
+  const element = chatBodyRef.value
+  if (!element) return
+
+  if (chatBottomRef.value?.scrollIntoView) {
+    chatBottomRef.value.scrollIntoView({ behavior: 'auto', block: 'end', inline: 'nearest' })
+    return
+  }
+
+  element.scrollTop = element.scrollHeight
+}
+
 const scrollChatToBottom = () => {
   nextTick(() => {
-    const element = chatBodyRef.value
-    if (!element) return
-    element.scrollTop = element.scrollHeight
+    scrollChatToBottomNow()
+
+    if (pendingScrollFrame !== null) {
+      cancelAnimationFrame(pendingScrollFrame)
+    }
+
+    pendingScrollFrame = requestAnimationFrame(() => {
+      scrollChatToBottomNow()
+      pendingScrollFrame = null
+    })
   })
 }
 
@@ -865,8 +883,89 @@ const openProfile = () => {
     return
   }
 
+  syncProfileForm()
+  profilePhotoFile.value = null
   state.value = 'profile'
-  sendBotMessage('Este é o resumo da sua conta.')
+  sendBotMessage('Você pode atualizar seu nome, email e foto por aqui.')
+}
+
+const saveProfile = async () => {
+  if (!auth.isAuthenticated) {
+    state.value = 'auth-required'
+    sendBotMessage('Para editar seu perfil, faça login.')
+    return
+  }
+
+  const name = String(profileForm.name || '').trim()
+  const email = String(profileForm.email || '').trim()
+
+  if (!name) {
+    profileErrors.value = { name: ['Informe seu nome.'] }
+    alerts.warning('Informe seu nome para salvar o perfil.')
+    return
+  }
+
+  savingProfile.value = true
+  profileErrors.value = {}
+
+  try {
+    const { data } = await api.put('/api/me', {
+      name,
+      email: email || null,
+    })
+
+    if (data?.user) {
+      auth.user = data.user
+    }
+
+    await auth.loadMe(true)
+    syncProfileForm()
+    alerts.success('Perfil atualizado com sucesso.')
+  } catch (error) {
+    profileErrors.value = error?.response?.data?.errors || {}
+    if (!Object.keys(profileErrors.value).length) {
+      alerts.error(error?.response?.data?.message || 'Não foi possível atualizar seu perfil.')
+    } else if (error?.response?.data?.message) {
+      alerts.warning(error.response.data.message)
+    }
+  } finally {
+    savingProfile.value = false
+  }
+}
+
+const uploadProfilePhoto = async () => {
+  if (!auth.isAuthenticated) {
+    state.value = 'auth-required'
+    sendBotMessage('Para atualizar sua foto, faça login.')
+    return
+  }
+
+  const selectedFile = Array.isArray(profilePhotoFile.value) ? profilePhotoFile.value[0] : profilePhotoFile.value
+  if (!selectedFile) {
+    alerts.warning('Selecione uma foto antes de enviar.')
+    return
+  }
+
+  uploadingProfilePhoto.value = true
+
+  try {
+    const formData = new FormData()
+    formData.append('file', selectedFile)
+
+    const { data } = await api.post('/api/me/photo', formData)
+
+    if (data?.user) {
+      auth.user = data.user
+    }
+
+    await auth.loadMe(true)
+    profilePhotoFile.value = null
+    alerts.success('Foto atualizada com sucesso.')
+  } catch (error) {
+    alerts.error(error?.response?.data?.message || 'Não foi possível atualizar a foto.')
+  } finally {
+    uploadingProfilePhoto.value = false
+  }
 }
 
 watch(state, () => {
@@ -881,6 +980,8 @@ watch(
     loadingCatalog.value,
     loadingAppointments.value,
     appointments.value.length,
+    savingProfile.value,
+    uploadingProfilePhoto.value,
   ],
   () => {
     scrollChatToBottom()
@@ -897,11 +998,14 @@ watch(
     if (!messages.value.length) return
 
     if (current && !previous) {
+      syncProfileForm()
       sendBotMessage(`Login confirmado, ${auth.user?.name?.split(' ')[0] || 'cliente'}.`)
       state.value = 'menu'
     }
 
     if (!current && previous) {
+      syncProfileForm()
+      profilePhotoFile.value = null
       appointments.value = []
       state.value = 'menu'
       sendBotMessage('Sua sessão foi encerrada. Você pode continuar navegando como visitante.')
@@ -910,11 +1014,34 @@ watch(
 )
 
 onMounted(async () => {
+  if (typeof ResizeObserver !== 'undefined') {
+    contentResizeObserver = new ResizeObserver(() => {
+      scrollChatToBottom()
+    })
+
+    if (chatContentRef.value) {
+      contentResizeObserver.observe(chatContentRef.value)
+    }
+  }
+
   await loadCatalog()
   if (auth.isAuthenticated) {
     await loadAppointments({ silent: true })
   }
+  syncProfileForm()
   beginConversation()
+})
+
+onBeforeUnmount(() => {
+  if (pendingScrollFrame !== null) {
+    cancelAnimationFrame(pendingScrollFrame)
+    pendingScrollFrame = null
+  }
+
+  if (contentResizeObserver) {
+    contentResizeObserver.disconnect()
+    contentResizeObserver = null
+  }
 })
 </script>
 
@@ -996,6 +1123,17 @@ onMounted(async () => {
     radial-gradient(circle at 8% -8%, rgba(134, 93, 60, 0.24), transparent 36%),
     radial-gradient(circle at 104% 8%, rgba(90, 130, 142, 0.24), transparent 34%),
     linear-gradient(180deg, rgba(16, 21, 27, 0.9), rgba(24, 31, 39, 0.93));
+}
+
+.chat-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.chat-bottom-anchor {
+  width: 100%;
+  height: 1px;
 }
 
 .message-row {
@@ -1160,14 +1298,6 @@ onMounted(async () => {
   height: 100%;
 }
 
-.service-media--list {
-  width: 52px;
-  height: 52px;
-  margin-bottom: 0;
-  border-radius: 12px;
-  flex-shrink: 0;
-}
-
 .choice-card--selected {
   border-color: rgba(91, 140, 143, 0.68);
   background: linear-gradient(154deg, rgba(91, 140, 143, 0.15), rgba(184, 136, 94, 0.12));
@@ -1284,29 +1414,6 @@ onMounted(async () => {
   align-items: center;
 }
 
-.service-list {
-  display: grid;
-  gap: 8px;
-}
-
-.service-item {
-  border: 1px solid rgba(87, 120, 132, 0.2);
-  background: rgba(255, 255, 255, 0.78);
-  border-radius: 12px;
-  padding: 10px 12px;
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-}
-
-.service-item-main {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
 .profile-card {
   border: 1px solid rgba(87, 120, 132, 0.2);
   background: rgba(255, 255, 255, 0.78);
@@ -1330,6 +1437,26 @@ onMounted(async () => {
   display: grid;
   gap: 8px;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.profile-editor-grid {
+  margin-top: 2px;
+}
+
+.profile-upload-field {
+  margin-top: 2px;
+}
+
+.profile-action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.profile-action-row :deep(.v-btn) {
+  width: 100%;
+  min-width: 0;
 }
 
 .field-label {
@@ -1361,6 +1488,7 @@ onMounted(async () => {
 }
 
 @keyframes pulse {
+
   0%,
   100% {
     opacity: 0.4;
@@ -1534,15 +1662,6 @@ onMounted(async () => {
     gap: 8px;
   }
 
-  .service-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .service-item-main {
-    width: 100%;
-  }
 }
 
 @media (max-width: 420px) {
