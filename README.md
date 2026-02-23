@@ -54,3 +54,4 @@ npm run build
 - Env vars mínimas:
   - `VITE_API_URL=https://barbearia-api-uhux.onrender.com`
   - `VITE_COMPANY_SLUG=default`
+  - 
