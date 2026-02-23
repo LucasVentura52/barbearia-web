@@ -10,10 +10,10 @@
           <v-card-text class="booking-panel">
             <div class="section-label">Dados principais</div>
             <v-select v-model="selectedStaff" :items="staffOptions" item-title="name" item-value="id"
-              label="Escolha o barbeiro" variant="outlined" required />
+              label="Escolha o barbeiro" variant="outlined" density="compact" required />
             <v-select v-model="selectedServices" :items="availableServices" item-title="name" item-value="id"
-              label="Serviços" multiple chips variant="outlined" required :disabled="!availableServices.length" />
-            <v-date-input v-model="selectedDate" label="Data" variant="outlined" required />
+              label="Serviços" multiple chips variant="outlined" density="compact" required :disabled="!availableServices.length" />
+            <v-date-input v-model="selectedDate" label="Data" variant="outlined" density="compact" required />
             <v-btn color="primary" size="large" :loading="loading" :block="smAndDown" @click="loadAvailability">
               Buscar horários
             </v-btn>

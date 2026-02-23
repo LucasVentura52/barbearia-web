@@ -144,8 +144,8 @@
 
               <template v-else-if="state === 'booking-date'">
                 <div class="date-tools">
-                  <v-text-field v-model="booking.date" label="Data" type="date" variant="outlined" density="comfortable"
-                    hide-details :min="todayDate" />
+                  <v-date-input v-model="booking.date" label="Data" variant="outlined" density="compact" hide-details
+                    :min="todayDate" />
                   <v-btn color="primary" size="large" :loading="booking.loadingSlots" @click="fetchAvailability">
                     Buscar horários
                   </v-btn>
@@ -334,19 +334,19 @@
 
                   <v-row dense class="profile-editor-grid">
                     <v-col cols="12" md="6">
-                      <v-text-field v-model="profileForm.name" label="Nome" variant="outlined" density="comfortable"
+                      <v-text-field v-model="profileForm.name" label="Nome" variant="outlined" density="compact"
                         prepend-inner-icon="mdi-account-outline" :error-messages="profileErrors.name"
                         hide-details="auto" />
                     </v-col>
                     <v-col cols="12" md="6">
                       <v-text-field v-model="profileForm.email" label="Email" type="email" variant="outlined"
-                        density="comfortable" prepend-inner-icon="mdi-email-outline"
+                        density="compact" prepend-inner-icon="mdi-email-outline"
                         :error-messages="profileErrors.email" hide-details="auto" />
                     </v-col>
 
                     <v-col cols="12">
                       <v-file-input v-model="profilePhotoFile" class="profile-upload-field" label="Selecionar nova foto"
-                        accept="image/*" prepend-icon="mdi-camera" variant="outlined" density="comfortable" show-size
+                        accept="image/*" prepend-icon="mdi-camera" variant="outlined" density="compact" show-size
                         chips hide-details="auto" />
                     </v-col>
                   </v-row>
@@ -424,6 +424,16 @@ const uploadingProfilePhoto = ref(false)
 const toLocalDateString = (date) => {
   const offset = date.getTimezoneOffset() * 60000
   return new Date(date.getTime() - offset).toISOString().slice(0, 10)
+}
+
+const toDateString = (value) => {
+  if (!value) return ''
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value
+  }
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return toLocalDateString(date)
 }
 
 const todayDate = toLocalDateString(new Date())
@@ -733,7 +743,8 @@ const fetchAvailability = async () => {
     return
   }
 
-  if (!booking.date) {
+  const dateParam = toDateString(booking.date)
+  if (!dateParam) {
     alerts.warning('Selecione uma data válida.')
     return
   }
@@ -742,12 +753,12 @@ const fetchAvailability = async () => {
   booking.selectedSlot = null
   booking.slots = []
 
-  sendUserMessage(`Quero agendar para ${formatDate(booking.date)}.`)
+  sendUserMessage(`Quero agendar para ${formatDate(dateParam)}.`)
 
   try {
     const params = new URLSearchParams()
     params.append('staff_id', String(booking.staffId))
-    params.append('date', booking.date)
+    params.append('date', dateParam)
     params.append('step_minutes', '30')
     booking.serviceIds.forEach((serviceId) => params.append('service_ids[]', String(serviceId)))
 

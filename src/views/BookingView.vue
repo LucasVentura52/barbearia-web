@@ -10,7 +10,7 @@
           <v-card-text class="booking-panel">
             <div class="section-label">Dados principais</div>
             <v-select v-model="selectedStaff" :items="staffOptions" item-title="name" item-value="id"
-              label="Escolha o barbeiro" variant="outlined" required>
+              label="Escolha o barbeiro" variant="outlined" density="compact" required>
               <template #item="{ props, item }">
                 <v-list-item v-bind="props" :title="undefined" :subtitle="undefined" class="staff-option">
                   <template #prepend>
@@ -43,8 +43,8 @@
               </template>
             </v-select>
             <v-select v-model="selectedServices" :items="services" item-title="name" item-value="id" label="Serviços"
-              multiple chips variant="outlined" required />
-            <v-text-field v-model="selectedDate" type="date" label="Data" variant="outlined" required />
+              multiple chips variant="outlined" density="compact" required />
+            <v-date-input v-model="selectedDate" label="Data" variant="outlined" density="compact" required />
             <v-btn color="primary" size="large" :loading="loading" @click="loadAvailability">
               Buscar horários
             </v-btn>
@@ -144,6 +144,16 @@ const toLocalDateString = (date) => {
   return new Date(date.getTime() - offset).toISOString().split('T')[0]
 }
 
+const toDateString = (value) => {
+  if (!value) return ''
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value
+  }
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return toLocalDateString(date)
+}
+
 const selectedDate = ref(toLocalDateString(new Date()))
 const stepMinutes = 30
 
@@ -188,7 +198,12 @@ const loadAvailability = async () => {
   try {
     const params = new URLSearchParams()
     params.append('staff_id', selectedStaff.value)
-    params.append('date', selectedDate.value)
+    const dateParam = toDateString(selectedDate.value)
+    if (!dateParam) {
+      slots.value = []
+      return
+    }
+    params.append('date', dateParam)
     params.append('step_minutes', stepMinutes)
     selectedServices.value.forEach((id) => params.append('service_ids[]', id))
 
