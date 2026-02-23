@@ -3,10 +3,6 @@ import { useAuthStore } from '@/stores/auth'
 
 const LoginView = () => import('@/views/LoginView.vue')
 const ClientHomeView = () => import('@/views/client/ClientHomeView.vue')
-const ClientServicesView = () => import('@/views/client/ClientServicesView.vue')
-const ClientBookingView = () => import('@/views/client/ClientBookingView.vue')
-const ClientAppointmentsView = () => import('@/views/client/ClientAppointmentsView.vue')
-const ClientProfileView = () => import('@/views/client/ClientProfileView.vue')
 const StaffDashboardView = () => import('@/views/staff/StaffDashboardView.vue')
 const StaffAppointmentsView = () => import('@/views/staff/StaffAppointmentsView.vue')
 const StaffClientsView = () => import('@/views/staff/StaffClientsView.vue')
@@ -24,24 +20,29 @@ const router = createRouter({
     { path: '/login', name: 'login', component: LoginView, meta: { layout: 'auth' } },
 
     { path: '/client', name: 'client-home', component: ClientHomeView, meta: { layout: 'client' } },
-    { path: '/client/services', name: 'client-services', component: ClientServicesView, meta: { layout: 'client' } },
+    {
+      path: '/client/services',
+      name: 'client-services',
+      redirect: (to) => ({ name: 'client-home', query: to.query }),
+      meta: { layout: 'client' },
+    },
     {
       path: '/client/booking',
       name: 'client-booking',
-      component: ClientBookingView,
-      meta: { layout: 'client', requiresAuth: true, role: 'client' },
+      redirect: (to) => ({ name: 'client-home', query: to.query }),
+      meta: { layout: 'client' },
     },
     {
       path: '/client/appointments',
       name: 'client-appointments',
-      component: ClientAppointmentsView,
-      meta: { layout: 'client', requiresAuth: true, role: 'client' },
+      redirect: (to) => ({ name: 'client-home', query: to.query }),
+      meta: { layout: 'client' },
     },
     {
       path: '/client/profile',
       name: 'client-profile',
-      component: ClientProfileView,
-      meta: { layout: 'client', requiresAuth: true, role: 'client' },
+      redirect: (to) => ({ name: 'client-home', query: to.query }),
+      meta: { layout: 'client' },
     },
 
     {
