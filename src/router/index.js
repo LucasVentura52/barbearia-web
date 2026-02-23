@@ -108,6 +108,10 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
+  if (to.name !== 'login' && !auth.token) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
   if (auth.token && !auth.user) {
     try {
       const restored = await auth.restoreSession()
