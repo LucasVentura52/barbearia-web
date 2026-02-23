@@ -548,7 +548,7 @@ onBeforeUnmount(() => {
 .row-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
