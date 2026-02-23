@@ -38,7 +38,7 @@
                             item-value="code" label="País" variant="outlined" 
                             hide-details="auto" />
                         </v-col>
-                        <v-col cols="12" sm="8">
+                        <v-col cols="12" sm="8" class="mt-3 mt-sm-0">
                           <v-text-field v-model="loginPhone" label="Telefone" placeholder="(11) 99999-9999"
                             variant="outlined"  prepend-inner-icon="mdi-phone-outline" type="tel"
                             maxlength="15" :error-messages="loginErrors.phone" required />
@@ -75,7 +75,7 @@
                             item-value="code" label="País" variant="outlined" 
                             hide-details="auto" />
                         </v-col>
-                        <v-col cols="12" sm="8">
+                        <v-col cols="12" sm="8" class="mt-3 mt-sm-0">
                           <v-text-field v-model="registerPhone" label="Telefone" placeholder="(11) 99999-9999"
                             variant="outlined"  prepend-inner-icon="mdi-phone-outline" type="tel"
                             maxlength="15" :error-messages="registerErrors.phone" required />
