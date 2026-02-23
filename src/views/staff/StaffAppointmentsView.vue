@@ -50,54 +50,95 @@
             {{ statusLabel(selectedAppointment?.status) }}
           </v-chip>
         </div>
-        <v-card-text v-if="selectedAppointment" class="detail-grid">
-          <div>
-            <div class="detail-label">Cliente</div>
-            <div class="detail-value">{{ selectedAppointment.client?.name || 'Cliente' }}</div>
-            <div class="detail-meta">
-              {{ formatPhoneFromE164(selectedAppointment.client?.phone) || 'Telefone não informado' }}
+        <v-card-text v-if="selectedAppointment" class="detail-content">
+          <div class="detail-section detail-section--primary">
+            <div class="detail-grid">
+              <div class="detail-item">
+                <div class="detail-label">Cliente</div>
+                <div class="detail-value">{{ selectedAppointment.client?.name || 'Cliente' }}</div>
+                <div class="detail-meta">
+                  {{ formatPhoneFromE164(selectedAppointment.client?.phone) || 'Telefone não informado' }}
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Horário</div>
+                <div class="detail-value">{{ formatDateTime(selectedAppointment.start_at) }}</div>
+                <div class="detail-meta">
+                  {{ formatTimeRange(selectedAppointment.start_at, selectedAppointment.end_at) }}
+                </div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Total</div>
+                <div class="detail-value">{{ formatCurrencyBRL(selectedAppointment.total_price) }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Status</div>
+                <div class="detail-value">{{ statusLabel(selectedAppointment.status) }}</div>
+              </div>
             </div>
           </div>
-          <div>
-            <div class="detail-label">Horário</div>
-            <div class="detail-value">{{ formatDateTime(selectedAppointment.start_at) }}</div>
-            <div class="detail-meta">{{ formatTimeRange(selectedAppointment.start_at, selectedAppointment.end_at) }}
-            </div>
-          </div>
-          <div>
+
+          <div class="detail-section">
             <div class="detail-label">Serviços</div>
-            <div class="detail-chips">
-              <v-chip v-for="service in selectedAppointment.services" :key="service.id" size="small" color="secondary"
-                variant="tonal">
+            <div v-if="selectedAppointment.services?.length" class="detail-chips">
+              <v-chip
+                v-for="service in selectedAppointment.services"
+                :key="service.id"
+                size="small"
+                color="secondary"
+                variant="tonal"
+              >
                 {{ service.name }}
               </v-chip>
             </div>
-          </div>
-          <div>
-            <div class="detail-label">Total</div>
-            <div class="detail-value">{{ formatCurrencyBRL(selectedAppointment.total_price) }}</div>
+            <div v-else class="detail-meta">Nenhum serviço vinculado.</div>
           </div>
         </v-card-text>
-        <v-card-actions class="dialog-actions">
-          <v-btn variant="text" @click="detailDialog = false">Fechar</v-btn>
-          <v-spacer />
-          <v-btn v-if="canEdit" color="secondary" variant="tonal" @click="openEdit(selectedAppointment)">
-            Editar
-          </v-btn>
-          <v-btn v-if="canComplete" color="success" variant="tonal"
-            @click="updateStatus(selectedAppointment.id, 'done')">
-            Finalizar
-          </v-btn>
-          <v-btn v-if="canComplete" color="warning" variant="tonal"
-            @click="updateStatus(selectedAppointment.id, 'no_show')">
-            Não compareceu
-          </v-btn>
-          <v-btn v-if="canCancel" color="secondary" variant="outlined" @click="openCancel(selectedAppointment)">
-            Cancelar
-          </v-btn>
-          <v-btn color="error" variant="text" @click="openDelete(selectedAppointment)">
-            Deletar
-          </v-btn>
+        <v-card-actions class="dialog-actions detail-actions">
+          <div v-if="canEdit || canComplete" class="detail-actions-main">
+            <v-btn
+              v-if="canEdit"
+              color="secondary"
+              variant="tonal"
+              prepend-icon="mdi-pencil-outline"
+              @click="openEdit(selectedAppointment)"
+            >
+              Editar
+            </v-btn>
+            <v-btn
+              v-if="canComplete"
+              color="success"
+              variant="tonal"
+              prepend-icon="mdi-check-circle-outline"
+              @click="updateStatus(selectedAppointment.id, 'done')"
+            >
+              Finalizar
+            </v-btn>
+            <v-btn
+              v-if="canComplete"
+              color="warning"
+              variant="tonal"
+              prepend-icon="mdi-account-off-outline"
+              @click="updateStatus(selectedAppointment.id, 'no_show')"
+            >
+              Não compareceu
+            </v-btn>
+          </div>
+          <div class="detail-actions-danger">
+            <v-btn variant="text" prepend-icon="mdi-close" @click="detailDialog = false">Fechar</v-btn>
+            <v-btn
+              v-if="canCancel"
+              color="secondary"
+              variant="outlined"
+              prepend-icon="mdi-cancel"
+              @click="openCancel(selectedAppointment)"
+            >
+              Cancelar
+            </v-btn>
+            <v-btn color="error" variant="tonal" prepend-icon="mdi-delete-outline" @click="openDelete(selectedAppointment)">
+              Deletar
+            </v-btn>
+          </div>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -336,7 +377,7 @@ const calendarOptions = computed(() => ({
     ? {
         left: 'prev,next',
         center: 'title',
-        right: 'timeGridDay,listWeek',
+        right: '',
       }
     : {
         left: 'prev,next today',
@@ -514,6 +555,17 @@ watch(
   },
   { immediate: true }
 )
+
+watch(
+  () => smAndDown.value,
+  (isMobile) => {
+    const calendarApi = calendarRef.value?.getApi()
+    if (!calendarApi || !isMobile) return
+    if (!calendarApi.view?.type?.startsWith('list')) {
+      calendarApi.changeView('listWeek')
+    }
+  }
+)
 </script>
 
 <style scoped>
@@ -596,6 +648,23 @@ watch(
   background: transparent;
 }
 
+.calendar-card :deep(.fc-list-day-cushion) {
+  font-weight: 700;
+  color: #2a3b48;
+}
+
+.calendar-card :deep(.fc-list-event-time) {
+  color: rgba(32, 50, 65, 0.8);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.calendar-card :deep(.fc-list-event-title a) {
+  color: #1f3342;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
 .modal-card {
   border-radius: 20px;
 }
@@ -617,14 +686,36 @@ watch(
   font-size: 0.9rem;
 }
 
+.detail-content {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.detail-section {
+  border: 1px solid rgba(35, 58, 74, 0.14);
+  border-radius: 14px;
+  background: rgba(35, 58, 74, 0.03);
+  padding: 12px 14px;
+}
+
+.detail-section--primary {
+  background: linear-gradient(172deg, rgba(35, 58, 74, 0.06), rgba(35, 58, 74, 0.03));
+}
+
 .detail-grid {
   display: grid;
-  gap: 16px;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-item {
+  min-width: 0;
 }
 
 .detail-label {
   text-transform: uppercase;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.14em;
   font-size: 0.7rem;
   color: var(--ink-500);
 }
@@ -643,7 +734,7 @@ watch(
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .form-grid {
@@ -666,6 +757,29 @@ watch(
   padding: 0 24px 20px;
 }
 
+.detail-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.detail-actions-main {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+.detail-actions-danger {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px dashed rgba(35, 58, 74, 0.18);
+  padding-top: 10px;
+}
+
 @media (max-width: 960px) {
   .calendar-card :deep(.fc-toolbar) {
     gap: 8px;
@@ -680,6 +794,58 @@ watch(
   .calendar-card :deep(.fc-button) {
     padding: 0.2rem 0.45rem;
     font-size: 0.72rem;
+  }
+
+  .calendar-card :deep(.fc-list-day-cushion) {
+    padding: 10px 8px;
+  }
+
+  .calendar-card :deep(.fc-list-event td) {
+    padding: 10px 8px;
+  }
+
+  .calendar-card :deep(.fc-list-event-graphic) {
+    display: none;
+  }
+
+  .calendar-card :deep(.fc-list-event-time) {
+    min-width: 74px;
+    width: 74px;
+    font-size: 0.77rem;
+    white-space: nowrap;
+  }
+
+  .calendar-card :deep(.fc-list-event-title a) {
+    display: block;
+    white-space: normal;
+    word-break: break-word;
+    font-size: 0.84rem;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-actions-main,
+  .detail-actions-danger {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .calendar-card :deep(.fc-list-event td) {
+    padding: 9px 6px;
+  }
+
+  .calendar-card :deep(.fc-list-event-time) {
+    min-width: 66px;
+    width: 66px;
+    font-size: 0.74rem;
+  }
+
+  .calendar-card :deep(.fc-list-event-title a) {
+    font-size: 0.8rem;
+    line-height: 1.3;
   }
 }
 </style>
