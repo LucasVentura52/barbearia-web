@@ -21,11 +21,15 @@
           </v-chip>
         </div>
         <div class="toolbar-actions">
-          <v-select v-if="isAdmin" v-model="selectedStaffId" :items="staffSelectItems" item-title="name"
-            item-value="id" label="Agenda" variant="outlined" density="compact" hide-details class="staff-select" />
+          <v-select v-if="isAdmin" v-model="selectedStaffId" :items="staffSelectItems" item-title="name" item-value="id"
+            label="Agenda" variant="outlined" density="compact" hide-details class="staff-select" />
           <v-chip v-else-if="auth.user" color="secondary" variant="tonal">
             {{ auth.user.name }}
           </v-chip>
+          <v-btn color="primary" variant="flat" prepend-icon="mdi-calendar-plus" :block="smAndDown"
+            @click="openCreateDialog">
+            Novo agendamento
+          </v-btn>
           <v-btn color="secondary" variant="tonal" :loading="loading" :block="smAndDown" @click="refetchEvents">
             Atualizar
           </v-btn>
@@ -38,6 +42,54 @@
         <FullCalendar ref="calendarRef" :options="calendarOptions" />
       </v-card-text>
     </v-card>
+
+    <v-dialog v-model="createDialog" max-width="680">
+      <v-card class="modal-card">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">Novo agendamento</div>
+            <div class="modal-subtitle">Crie um horário em nome do cliente.</div>
+          </div>
+          <v-icon icon="mdi-calendar-plus" />
+        </div>
+        <v-card-text class="form-grid">
+          <v-select v-if="isAdmin" v-model="createForm.staff_id" :items="createStaffItems" item-title="name"
+            item-value="id" label="Profissional" variant="outlined" />
+          <v-text-field v-else :model-value="selectedCreateStaffLabel" label="Profissional" variant="outlined"
+            prepend-inner-icon="mdi-account-tie" readonly />
+
+          <v-autocomplete v-model="createForm.client_user_id" v-model:search="clientSearch" :items="clientOptions"
+            item-title="name" item-value="id" label="Cliente" clearable variant="outlined"
+            :loading="loadingClientOptions" no-data-text="Nenhum cliente encontrado">
+            <template #item="{ props, item }">
+              <v-list-item v-bind="props" :title="item.raw.name"
+                :subtitle="formatPhoneFromE164(item.raw.phone) || item.raw.email || 'Sem contato'" />
+            </template>
+            <template #selection="{ item }">
+              {{ item.raw.name }}
+            </template>
+          </v-autocomplete>
+
+          <v-select v-model="createForm.service_ids" :items="serviceOptions" item-title="name" item-value="id"
+            label="Serviços" multiple chips variant="outlined" />
+
+          <v-date-input v-model="createForm.date" label="Data" variant="outlined" />
+          <v-select v-model="createForm.slot" :items="createSlotItems" item-title="label" item-value="value"
+            label="Horário disponível" variant="outlined" :loading="loadingCreateSlots"
+            no-data-text="Sem horários disponíveis" />
+          <div class="edit-summary">
+            <div class="text-muted">Duração</div>
+            <div>{{ createTotals.duration }} min</div>
+            <div class="text-muted">Total</div>
+            <div>{{ formatCurrencyBRL(createTotals.total) }}</div>
+          </div>
+        </v-card-text>
+        <v-card-actions class="dialog-actions">
+          <v-btn variant="text" @click="createDialog = false">Cancelar</v-btn>
+          <v-btn color="primary" variant="flat" :loading="creating" @click="saveCreate">Criar agendamento</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-dialog v-model="detailDialog" max-width="720">
       <v-card class="modal-card">
@@ -81,13 +133,8 @@
           <div class="detail-section">
             <div class="detail-label">Serviços</div>
             <div v-if="selectedAppointment.services?.length" class="detail-chips">
-              <v-chip
-                v-for="service in selectedAppointment.services"
-                :key="service.id"
-                size="small"
-                color="secondary"
-                variant="tonal"
-              >
+              <v-chip v-for="service in selectedAppointment.services" :key="service.id" size="small" color="secondary"
+                variant="tonal">
                 {{ service.name }}
               </v-chip>
             </div>
@@ -96,46 +143,27 @@
         </v-card-text>
         <v-card-actions class="dialog-actions detail-actions">
           <div v-if="canEdit || canComplete" class="detail-actions-main">
-            <v-btn
-              v-if="canEdit"
-              color="secondary"
-              variant="tonal"
-              prepend-icon="mdi-pencil-outline"
-              @click="openEdit(selectedAppointment)"
-            >
+            <v-btn v-if="canEdit" color="secondary" variant="tonal" prepend-icon="mdi-pencil-outline"
+              @click="openEdit(selectedAppointment)">
               Editar
             </v-btn>
-            <v-btn
-              v-if="canComplete"
-              color="success"
-              variant="tonal"
-              prepend-icon="mdi-check-circle-outline"
-              @click="updateStatus(selectedAppointment.id, 'done')"
-            >
+            <v-btn v-if="canComplete" color="success" variant="tonal" prepend-icon="mdi-check-circle-outline"
+              @click="updateStatus(selectedAppointment.id, 'done')">
               Finalizar
             </v-btn>
-            <v-btn
-              v-if="canComplete"
-              color="warning"
-              variant="tonal"
-              prepend-icon="mdi-account-off-outline"
-              @click="updateStatus(selectedAppointment.id, 'no_show')"
-            >
+            <v-btn v-if="canComplete" color="warning" variant="tonal" prepend-icon="mdi-account-off-outline"
+              @click="updateStatus(selectedAppointment.id, 'no_show')">
               Não compareceu
             </v-btn>
           </div>
           <div class="detail-actions-danger">
             <v-btn variant="text" prepend-icon="mdi-close" @click="detailDialog = false">Fechar</v-btn>
-            <v-btn
-              v-if="canCancel"
-              color="secondary"
-              variant="outlined"
-              prepend-icon="mdi-cancel"
-              @click="openCancel(selectedAppointment)"
-            >
+            <v-btn v-if="canCancel" color="secondary" variant="outlined" prepend-icon="mdi-cancel"
+              @click="openCancel(selectedAppointment)">
               Cancelar
             </v-btn>
-            <v-btn color="error" variant="tonal" prepend-icon="mdi-delete-outline" @click="openDelete(selectedAppointment)">
+            <v-btn color="error" variant="tonal" prepend-icon="mdi-delete-outline"
+              @click="openDelete(selectedAppointment)">
               Deletar
             </v-btn>
           </div>
@@ -203,7 +231,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -221,20 +249,36 @@ import { formatCurrencyBRL } from '@/lib/currency'
 const calendarRef = ref(null)
 const loading = ref(false)
 const saving = ref(false)
+const creating = ref(false)
 const appointments = ref([])
 const staffOptions = ref([])
+const clientOptions = ref([])
 const selectedStaffId = ref(null)
+const createDialog = ref(false)
 const detailDialog = ref(false)
 const editDialog = ref(false)
 const cancelDialog = ref(false)
 const deleteDialog = ref(false)
 const cancelReason = ref('')
+const clientSearch = ref('')
+const loadingClientOptions = ref(false)
 const selectedAppointment = ref(null)
 const serviceOptions = ref([])
+const createSlots = ref([])
+const loadingCreateSlots = ref(false)
 const hasInitializedStaffSelection = ref(false)
+const createForm = ref({
+  client_user_id: null,
+  staff_id: null,
+  date: '',
+  slot: '',
+  service_ids: [],
+})
 const alerts = useAlertStore()
 const auth = useAuthStore()
 const { smAndDown } = useDisplay()
+let clientSearchTimer = null
+let clientRequestCounter = 0
 
 const isAdmin = computed(() => auth.user?.role === 'admin')
 
@@ -245,6 +289,11 @@ const staffSelectItems = computed(() => {
     { id: 'all', name: 'Todos os colaboradores' },
     ...staffOptions.value.map((staff) => ({ id: staff.id, name: staff.name })),
   ]
+})
+
+const createStaffItems = computed(() => {
+  if (!isAdmin.value) return []
+  return staffOptions.value.map((staff) => ({ id: staff.id, name: staff.name }))
 })
 
 const statusLabel = (status) => {
@@ -277,9 +326,32 @@ const statusPalette = {
 const statusCount = (status) =>
   appointments.value.filter((appointment) => appointment.status === status).length
 
+const resolveStaffIdForFilters = (value) => {
+  if (value === 'mine') return auth.user?.id || null
+  if (value === 'all') return null
+  return value || null
+}
+
+const selectedCreateStaffLabel = computed(() => {
+  const staffId = createForm.value.staff_id
+  if (!staffId) return auth.user?.name || 'Colaborador'
+  const staff = staffOptions.value.find((item) => item.id === staffId)
+  return staff?.name || auth.user?.name || 'Colaborador'
+})
+
 const toLocalDateString = (date) => {
   const offset = date.getTimezoneOffset() * 60000
   return new Date(date.getTime() - offset).toISOString().split('T')[0]
+}
+
+const toDateString = (value) => {
+  if (!value) return ''
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value
+  }
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return toLocalDateString(date)
 }
 
 const toTimeInput = (value) => {
@@ -291,9 +363,10 @@ const toTimeInput = (value) => {
 }
 
 const buildStartAt = (date, time) => {
-  if (!date || !time) return ''
+  const dateValue = toDateString(date)
+  if (!dateValue || !time) return ''
   const safeTime = time.length === 5 ? `${time}:00` : time
-  return `${date}T${safeTime}`
+  return `${dateValue}T${safeTime}`
 }
 
 const formatDateTime = (value) =>
@@ -303,6 +376,12 @@ const formatTimeRange = (start, end) => {
   const startTime = new Date(start).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
   const endTime = new Date(end).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
   return `${startTime} - ${endTime}`
+}
+
+const formatTime = (value) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 }
 
 const canEdit = computed(() => selectedAppointment.value?.status === 'scheduled')
@@ -322,6 +401,21 @@ const editTotals = computed(() => {
     total: selected.reduce((sum, service) => sum + Number(service.price || 0), 0),
   }
 })
+
+const createTotals = computed(() => {
+  const selected = serviceOptions.value.filter((service) => createForm.value.service_ids.includes(service.id))
+  return {
+    duration: selected.reduce((sum, service) => sum + Number(service.duration_minutes || 0), 0),
+    total: selected.reduce((sum, service) => sum + Number(service.price || 0), 0),
+  }
+})
+
+const createSlotItems = computed(() =>
+  createSlots.value.map((slot) => ({
+    value: slot,
+    label: formatTime(slot),
+  }))
+)
 
 const buildEvent = (appointment) => {
   const palette = statusPalette[appointment.status] || statusPalette.scheduled
@@ -346,13 +440,7 @@ const fetchAppointments = async (info, successCallback, failureCallback) => {
     const from = toLocalDateString(info.start)
     const endDate = new Date(info.end.getTime() - 86400000)
     const to = toLocalDateString(endDate)
-    let staffId = selectedStaffId.value
-    if (staffId === 'mine') {
-      staffId = auth.user?.id
-    }
-    if (staffId === 'all') {
-      staffId = null
-    }
+    let staffId = resolveStaffIdForFilters(selectedStaffId.value)
     if (!staffId && !isAdmin.value) {
       staffId = auth.user?.id
     }
@@ -375,15 +463,15 @@ const calendarOptions = computed(() => ({
   nowIndicator: true,
   headerToolbar: smAndDown.value
     ? {
-        left: 'prev,next',
-        center: 'title',
-        right: '',
-      }
+      left: 'prev,next',
+      center: 'title',
+      right: '',
+    }
     : {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'timeGridDay,timeGridWeek,dayGridMonth,listWeek',
-      },
+      left: 'prev,next today',
+      center: 'title',
+      right: 'timeGridDay,timeGridWeek,dayGridMonth,listWeek',
+    },
   events: fetchAppointments,
   eventClick: (info) => {
     selectedAppointment.value = info.event.extendedProps.appointment
@@ -396,6 +484,145 @@ const refetchEvents = () => {
   const calendarApi = calendarRef.value?.getApi()
   if (calendarApi) {
     calendarApi.refetchEvents()
+  }
+}
+
+const resetCreateForm = () => {
+  createForm.value = {
+    client_user_id: null,
+    staff_id: null,
+    date: '',
+    slot: '',
+    service_ids: [],
+  }
+  createSlots.value = []
+}
+
+const getDefaultCreateStaffId = () => {
+  if (!isAdmin.value) return auth.user?.id || null
+  const selected = resolveStaffIdForFilters(selectedStaffId.value)
+  if (selected && staffOptions.value.some((staff) => staff.id === selected)) {
+    return selected
+  }
+  return staffOptions.value[0]?.id || null
+}
+
+const loadClientOptions = async (search = '') => {
+  const requestId = ++clientRequestCounter
+  loadingClientOptions.value = true
+  try {
+    const params = { limit: 150 }
+    if (search.trim()) {
+      params.search = search.trim()
+    }
+
+    const { data } = await api.get('/api/staff/clients/options', { params })
+    if (requestId !== clientRequestCounter) return
+    clientOptions.value = Array.isArray(data) ? data : []
+  } finally {
+    if (requestId === clientRequestCounter) {
+      loadingClientOptions.value = false
+    }
+  }
+}
+
+const loadCreateSlots = async () => {
+  const staffId = isAdmin.value ? createForm.value.staff_id : auth.user?.id
+  const date = toDateString(createForm.value.date)
+  if (!staffId || !date || !createForm.value.service_ids.length) {
+    createSlots.value = []
+    createForm.value.slot = ''
+    return
+  }
+
+  loadingCreateSlots.value = true
+  try {
+    const params = new URLSearchParams()
+    params.append('staff_id', String(staffId))
+    params.append('date', date)
+    params.append('step_minutes', '30')
+    createForm.value.service_ids.forEach((serviceId) => params.append('service_ids[]', String(serviceId)))
+
+    const { data } = await api.get(`/api/availability?${params.toString()}`)
+    createSlots.value = Array.isArray(data?.slots) ? data.slots : []
+    if (!createSlots.value.includes(createForm.value.slot)) {
+      createForm.value.slot = ''
+    }
+  } finally {
+    loadingCreateSlots.value = false
+  }
+}
+
+const openCreateDialog = async () => {
+  if (auth.token && !auth.user) {
+    await auth.loadMe()
+  }
+
+  resetCreateForm()
+  createForm.value.staff_id = getDefaultCreateStaffId()
+
+  if (!createForm.value.staff_id) {
+    alerts.warning('Nenhum profissional disponível para agendamento.')
+    return
+  }
+
+  clientSearch.value = ''
+  await Promise.all([
+    loadClientOptions(),
+    loadServiceOptions(createForm.value.staff_id),
+  ])
+
+  await loadCreateSlots()
+
+  createDialog.value = true
+}
+
+const saveCreate = async () => {
+  const staffId = isAdmin.value ? createForm.value.staff_id : auth.user?.id
+  const clientUserId = createForm.value.client_user_id
+  const startAt = createForm.value.slot
+
+  if (!staffId) {
+    alerts.warning('Selecione um profissional para criar o agendamento.')
+    return
+  }
+
+  if (!clientUserId) {
+    alerts.warning('Selecione um cliente para criar o agendamento.')
+    return
+  }
+
+  if (!startAt) {
+    alerts.warning('Selecione um horário disponível.')
+    return
+  }
+
+  if (!createForm.value.service_ids.length) {
+    alerts.warning('Selecione ao menos um serviço.')
+    return
+  }
+
+  creating.value = true
+  try {
+    await api.post('/api/staff/appointments', {
+      client_user_id: clientUserId,
+      staff_id: staffId,
+      start_at: startAt,
+      service_ids: createForm.value.service_ids,
+    })
+
+    createDialog.value = false
+    refetchEvents()
+    alerts.success('Agendamento criado com sucesso.')
+  } catch (error) {
+    const status = error?.response?.status
+    if (status === 409) {
+      alerts.warning('Horário já reservado para esse profissional.')
+    } else {
+      alerts.error(error?.response?.data?.message || 'Não foi possível criar o agendamento.')
+    }
+  } finally {
+    creating.value = false
   }
 }
 
@@ -492,8 +719,8 @@ const confirmDelete = async () => {
 
 const setServiceOptionsForStaff = (staffId) => {
   const staff = staffOptions.value.find((item) => item.id === staffId)
-  if (staff?.services?.length) {
-    serviceOptions.value = staff.services
+  if (staff) {
+    serviceOptions.value = Array.isArray(staff.services) ? staff.services : []
     return true
   }
   return false
@@ -525,15 +752,18 @@ onMounted(async () => {
   }
 })
 
+onBeforeUnmount(() => {
+  if (clientSearchTimer) {
+    clearTimeout(clientSearchTimer)
+  }
+})
+
 watch(
   () => selectedStaffId.value,
   async () => {
-    if (selectedStaffId.value === 'all') {
-      await loadServiceOptions(auth.user?.id)
-    } else if (selectedStaffId.value === 'mine') {
-      await loadServiceOptions(auth.user?.id)
-    } else {
-      await loadServiceOptions(selectedStaffId.value)
+    const staffId = resolveStaffIdForFilters(selectedStaffId.value) || auth.user?.id
+    if (staffId) {
+      await loadServiceOptions(staffId)
     }
 
     if (!hasInitializedStaffSelection.value) {
@@ -554,6 +784,60 @@ watch(
     }
   },
   { immediate: true }
+)
+
+watch(
+  () => createDialog.value,
+  (isOpen) => {
+    if (isOpen) return
+    resetCreateForm()
+    clientSearch.value = ''
+  }
+)
+
+watch(
+  () => createForm.value.staff_id,
+  async (staffId, previous) => {
+    if (!createDialog.value || staffId === previous) return
+    createForm.value.service_ids = []
+    createForm.value.slot = ''
+    if (!staffId) {
+      serviceOptions.value = []
+      createSlots.value = []
+      return
+    }
+    await loadServiceOptions(staffId)
+    await loadCreateSlots()
+  }
+)
+
+watch(clientSearch, (value) => {
+  if (!createDialog.value) return
+  if (clientSearchTimer) {
+    clearTimeout(clientSearchTimer)
+  }
+  clientSearchTimer = setTimeout(() => {
+    loadClientOptions(value)
+  }, 280)
+})
+
+watch(
+  () => createForm.value.date,
+  async () => {
+    if (!createDialog.value) return
+    createForm.value.slot = ''
+    await loadCreateSlots()
+  }
+)
+
+watch(
+  () => createForm.value.service_ids,
+  async () => {
+    if (!createDialog.value) return
+    createForm.value.slot = ''
+    await loadCreateSlots()
+  },
+  { deep: true }
 )
 
 watch(
