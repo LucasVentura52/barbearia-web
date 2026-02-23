@@ -465,7 +465,7 @@ const calendarOptions = computed(() => ({
     ? {
       left: 'prev,next',
       center: 'title',
-      right: '',
+      right: 'today',
     }
     : {
       left: 'prev,next today',
@@ -1089,7 +1089,14 @@ watch(
   }
 
   .calendar-card :deep(.fc-list-event-graphic) {
-    display: none;
+    width: 18px;
+    min-width: 18px;
+    display: table-cell;
+    padding-right: 2px;
+  }
+
+  .calendar-card :deep(.fc-list-event-dot) {
+    border-width: 4px;
   }
 
   .calendar-card :deep(.fc-list-event-time) {
