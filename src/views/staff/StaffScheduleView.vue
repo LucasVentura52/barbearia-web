@@ -101,7 +101,7 @@ const { smAndDown } = useDisplay()
 
 const staffOptions = ref([])
 const selectedStaffId = ref(null)
-const isAdmin = computed(() => auth.user?.role === 'admin')
+const isAdmin = computed(() => ['admin', 'super_admin'].includes(auth.user?.role))
 const isBootstrapping = ref(true)
 
 const workingForm = ref({

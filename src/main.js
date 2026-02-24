@@ -25,7 +25,7 @@ appState.startBoot()
 
 const bootstrap = async () => {
   try {
-    if (auth.token && !auth.user) {
+    if (auth.token && (!auth.user || !auth.hasValidatedSession)) {
       try {
         await auth.restoreSession()
       } catch {

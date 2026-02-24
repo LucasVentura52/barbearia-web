@@ -16,7 +16,7 @@
         <v-list-item v-for="item in visibleNav" :key="item.to" :to="item.to" :prepend-icon="item.icon"
           :title="item.title" @click="handleNavClick" />
       </v-list>
-      <div v-if="auth.isSuperAdmin && smAndDown" class="drawer-company px-4 pb-2">
+      <div v-if="auth.isAuthenticated && auth.user?.role === 'super_admin' && smAndDown" class="drawer-company px-4 pb-2">
         <CompanySwitcher />
       </div>
       <div class="drawer-footer">
@@ -32,7 +32,10 @@
       </v-btn>
       <div class="app-bar-title ml-2">{{ appBarTitle }}</div>
       <v-spacer />
-      <CompanySwitcher v-if="auth.isSuperAdmin && !smAndDown" class="me-3 app-company-switcher" />
+      <CompanySwitcher
+        v-if="auth.isAuthenticated && auth.user?.role === 'super_admin' && !smAndDown"
+        class="me-3 app-company-switcher"
+      />
       <v-menu v-if="smAndDown" location="bottom end">
         <template #activator="{ props }">
           <v-btn v-bind="props" icon>
@@ -42,13 +45,24 @@
         <v-list density="compact" min-width="220">
           <v-list-item v-if="auth.user" :title="auth.user.name" :subtitle="subtitle" />
           <v-divider v-if="auth.user" />
+          <v-list-item
+            v-if="canManageSettings"
+            prepend-icon="mdi-cog-outline"
+            title="Configurações"
+            @click="openSettingsDialog"
+          />
           <v-list-item :to="{ name: 'client-home' }" prepend-icon="mdi-account-outline" title="Área do cliente" />
           <v-list-item prepend-icon="mdi-logout" title="Sair" @click="handleLogout" />
         </v-list>
       </v-menu>
-      <v-btn v-else color="primary" variant="outlined" :to="{ name: 'client-home' }">
-        Ver área do cliente
-      </v-btn>
+      <div v-else class="app-bar-actions">
+        <v-btn v-if="canManageSettings" icon variant="outlined" color="primary" @click="openSettingsDialog">
+          <v-icon icon="mdi-cog-outline" />
+        </v-btn>
+        <v-btn color="primary" variant="outlined" :to="{ name: 'client-home' }">
+          Ver área do cliente
+        </v-btn>
+      </div>
     </v-app-bar>
 
     <v-main>
@@ -56,6 +70,145 @@
         <slot />
       </div>
     </v-main>
+
+    <v-dialog v-model="settingsDialog" max-width="760">
+      <v-card>
+        <v-card-item>
+          <template #append>
+            <v-btn
+              icon
+              variant="text"
+              color="primary"
+              size="small"
+              title="Ajuda de configuração"
+              @click="settingsHelpDialog = true"
+            >
+              <v-icon icon="mdi-help-circle-outline" />
+            </v-btn>
+          </template>
+          <v-card-title>Configurações do sistema</v-card-title>
+          <v-card-subtitle>Email da empresa (Gmail)</v-card-subtitle>
+        </v-card-item>
+        <v-divider />
+        <v-card-text>
+          <v-alert type="info" variant="tonal" class="mb-4">
+            Use senha de app do Gmail (2FA ativo). Host/porta/criptografia já são configurados automaticamente.
+          </v-alert>
+
+          <v-row>
+            <v-col cols="12" md="4">
+              <v-switch v-model="settingsForm.active" color="primary" label="Ativar envio" inset hide-details />
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-text-field
+                v-model="settingsForm.from_name"
+                label="Nome remetente"
+                variant="outlined"
+                density="compact"
+                prepend-inner-icon="mdi-account-outline"
+              />
+            </v-col>
+            <v-col cols="12" md="4">
+              <v-text-field
+                v-model="settingsForm.gmail_email"
+                label="Email Gmail"
+                variant="outlined"
+                density="compact"
+                prepend-inner-icon="mdi-email-outline"
+              />
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="settingsForm.smtp_password"
+                :label="settingsForm.has_password ? 'Nova senha de app (opcional)' : 'Senha de app Gmail'"
+                :type="showSmtpPassword ? 'text' : 'password'"
+                prepend-inner-icon="mdi-lock-outline"
+                :append-inner-icon="showSmtpPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                variant="outlined"
+                density="compact"
+                @click:append-inner="showSmtpPassword = !showSmtpPassword"
+              />
+            </v-col>
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="settingsTestTo"
+                label="Email para teste (opcional)"
+                variant="outlined"
+                density="compact"
+                prepend-inner-icon="mdi-send-outline"
+              />
+            </v-col>
+          </v-row>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" :disabled="savingSettings || testingSettings" @click="settingsDialog = false">
+            Fechar
+          </v-btn>
+          <v-btn
+            variant="outlined"
+            color="primary"
+            :loading="testingSettings"
+            :disabled="savingSettings"
+            @click="sendSettingsTest"
+          >
+            Enviar teste
+          </v-btn>
+          <v-btn color="primary" :loading="savingSettings" :disabled="testingSettings" @click="saveSettings">
+            Salvar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="settingsHelpDialog" max-width="760">
+      <v-card>
+        <v-card-item>
+          <v-card-title>Como configurar o email da empresa</v-card-title>
+          <v-card-subtitle>Guia rápido para Gmail SMTP</v-card-subtitle>
+        </v-card-item>
+        <v-divider />
+        <v-card-text>
+          <div class="help-block">
+            <div class="help-title">1. Ative a verificação em 2 etapas no Gmail</div>
+            <div class="help-text">
+              A conta Gmail precisa estar com 2FA ativo para liberar senha de app.
+            </div>
+          </div>
+          <div class="help-block">
+            <div class="help-title">2. Gere a senha de app</div>
+            <div class="help-text">
+              No Google Account, acesse Segurança &gt; Senhas de app e gere uma nova senha.
+              Use essa senha no campo "Senha de app Gmail".
+            </div>
+          </div>
+          <div class="help-block">
+            <div class="help-title">3. Preencha os campos obrigatórios</div>
+            <div class="help-text">
+              Informe Nome remetente, Email Gmail e Senha de app. O sistema já usa host, porta e
+              criptografia corretos automaticamente.
+            </div>
+          </div>
+          <div class="help-block">
+            <div class="help-title">4. Salve e teste</div>
+            <div class="help-text">
+              Clique em "Salvar" e depois em "Enviar teste". Se receber o email, a configuração está pronta.
+            </div>
+          </div>
+          <div class="help-block">
+            <div class="help-title">Dicas importantes</div>
+            <div class="help-text">
+              Não use a senha principal da conta Gmail. Se o teste falhar, revise a senha de app e o
+              email informado.
+            </div>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn color="primary" @click="settingsHelpDialog = false">Entendi</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-app>
 </template>
 
@@ -66,11 +219,27 @@ import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
 import CompanySwitcher from '@/components/CompanySwitcher.vue'
 import { resolveMediaUrl } from '@/lib/media'
+import api from '@/lib/api'
+import { useAlertStore } from '@/stores/alerts'
 
 const { mdAndUp, smAndDown } = useDisplay()
 const drawer = ref(mdAndUp.value)
 const auth = useAuthStore()
 const router = useRouter()
+const alerts = useAlertStore()
+const settingsDialog = ref(false)
+const settingsHelpDialog = ref(false)
+const savingSettings = ref(false)
+const testingSettings = ref(false)
+const showSmtpPassword = ref(false)
+const settingsTestTo = ref('')
+const settingsForm = ref({
+  active: false,
+  from_name: '',
+  gmail_email: '',
+  smtp_password: '',
+  has_password: false,
+})
 
 const navItems = [
   { title: 'Dashboard', to: { name: 'staff-dashboard' }, icon: 'mdi-view-dashboard-outline' },
@@ -116,6 +285,7 @@ const appBarTitle = computed(() => {
   if (auth.user?.role === 'super_admin') return 'Painel Super Admin'
   return 'Painel do colaborador'
 })
+const canManageSettings = computed(() => ['admin', 'super_admin'].includes(auth.user?.role))
 
 const handleLogout = async () => {
   await auth.logout()
@@ -125,6 +295,68 @@ const handleLogout = async () => {
 const handleNavClick = () => {
   if (!mdAndUp.value) {
     drawer.value = false
+  }
+}
+
+const loadSettings = async () => {
+  if (!canManageSettings.value) return
+  const { data } = await api.get('/api/company/mail-settings')
+  const setting = data?.setting || {}
+  settingsForm.value = {
+    active: Boolean(setting.active),
+    from_name: setting.from_name || '',
+    gmail_email: setting.smtp_username || setting.from_email || '',
+    smtp_password: '',
+    has_password: Boolean(setting.has_password),
+  }
+}
+
+const openSettingsDialog = async () => {
+  if (!canManageSettings.value) return
+  try {
+    await loadSettings()
+    settingsDialog.value = true
+  } catch (error) {
+    alerts.error(error?.response?.data?.message || 'Não foi possível carregar as configurações.')
+  }
+}
+
+const saveSettings = async () => {
+  savingSettings.value = true
+  try {
+    const payload = {
+      active: Boolean(settingsForm.value.active),
+      provider: 'gmail_smtp',
+      from_name: String(settingsForm.value.from_name || '').trim(),
+      from_email: String(settingsForm.value.gmail_email || '').trim(),
+      smtp_username: String(settingsForm.value.gmail_email || '').trim(),
+    }
+    const password = String(settingsForm.value.smtp_password || '').trim()
+    if (password) payload.smtp_password = password
+
+    const { data } = await api.put('/api/company/mail-settings', payload)
+    settingsForm.value.smtp_password = ''
+    settingsForm.value.has_password = Boolean(data?.setting?.has_password)
+    alerts.success(data?.message || 'Configuração salva com sucesso.')
+  } catch (error) {
+    alerts.error(error?.response?.data?.message || 'Não foi possível salvar as configurações.')
+  } finally {
+    savingSettings.value = false
+  }
+}
+
+const sendSettingsTest = async () => {
+  testingSettings.value = true
+  try {
+    const payload = {}
+    const to = String(settingsTestTo.value || '').trim()
+    if (to) payload.to_email = to
+    const { data } = await api.post('/api/company/mail-settings/test', payload)
+    alerts.success(data?.message || 'Email de teste enviado.')
+  } catch (error) {
+    alerts.error(error?.response?.data?.message || 'Não foi possível enviar email de teste.')
+  } finally {
+    testingSettings.value = false
   }
 }
 
@@ -214,6 +446,26 @@ watch(mdAndUp, (desktop) => {
 
 .app-company-switcher :deep(.company-switcher) {
   min-width: 200px;
+}
+
+.app-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.help-block + .help-block {
+  margin-top: 12px;
+}
+
+.help-title {
+  font-weight: 700;
+  color: var(--ink-900);
+}
+
+.help-text {
+  color: var(--ink-700);
+  margin-top: 2px;
 }
 
 .page-shell {

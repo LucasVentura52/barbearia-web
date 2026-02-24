@@ -13,6 +13,7 @@ export const useAuthStore = defineStore('auth', {
     token: localStorage.getItem('token') || '',
     user: null,
     meRequest: null,
+    hasValidatedSession: false,
   }),
   getters: {
     isAuthenticated: (state) => Boolean(state.token),
@@ -25,24 +26,34 @@ export const useAuthStore = defineStore('auth', {
       this.token = ''
       this.user = null
       this.meRequest = null
+      this.hasValidatedSession = false
       localStorage.removeItem('token')
       clearGetCache()
     },
-    async registerClient({ name, phone, email, password }) {
-      const { data } = await api.post('/api/auth/register', { name, phone, email, password })
+    async registerClient({ name, phone, email, password, companySlug }) {
+      const { data } = await api.post(
+        '/api/auth/register',
+        { name, phone, email, password },
+        {
+          params: { company_slug: companySlug },
+          skipCompanyHeader: true,
+        }
+      )
       this.token = data.token
       this.user = data.user
       this.meRequest = null
+      this.hasValidatedSession = false
       applyCompanyFromUser(data.user)
       localStorage.setItem('token', data.token)
       clearGetCache()
       return data
     },
     async login({ phone, password }) {
-      const { data } = await api.post('/api/auth/login', { phone, password })
+      const { data } = await api.post('/api/auth/login', { phone, password }, { skipCompanyHeader: true })
       this.token = data.token
       this.user = data.user
       this.meRequest = null
+      this.hasValidatedSession = false
       applyCompanyFromUser(data.user)
       localStorage.setItem('token', data.token)
       clearGetCache()
@@ -50,7 +61,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async restoreSession() {
       if (!this.token) return true
-      if (this.user) return true
+      if (this.hasValidatedSession) return true
 
       try {
         await this.loadMe()
@@ -65,12 +76,13 @@ export const useAuthStore = defineStore('auth', {
     },
     async loadMe(force = false) {
       if (!this.token) return null
-      if (!force && this.user) return this.user
+      if (!force && this.user && this.hasValidatedSession) return this.user
       if (!force && this.meRequest) return this.meRequest
 
       this.meRequest = cachedGet('/api/me', {}, { ttl: 20_000, force })
         .then(({ data }) => {
           this.user = data
+          this.hasValidatedSession = true
           applyCompanyFromUser(data)
           return data
         })

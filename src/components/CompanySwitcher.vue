@@ -27,7 +27,17 @@ const props = defineProps({
 
 const auth = useAuthStore()
 const company = useCompanyStore()
-const isLockedForAuthenticatedUser = computed(() => auth.isAuthenticated && !auth.isSuperAdmin)
+const isLockedForAuthenticatedUser = computed(() => {
+  if (!auth.isAuthenticated) {
+    return false
+  }
+
+  if (auth.isSuperAdmin) {
+    return false
+  }
+
+  return company.companies.length <= 1
+})
 
 const loadCompanies = async () => {
   if (auth.isAuthenticated) {
@@ -39,7 +49,7 @@ const loadCompanies = async () => {
 }
 
 const onSelect = async (value) => {
-  if (auth.isAuthenticated && !auth.isSuperAdmin) {
+  if (isLockedForAuthenticatedUser.value) {
     return
   }
 
@@ -48,10 +58,16 @@ const onSelect = async (value) => {
     return
   }
 
+  const previousSlug = company.currentSlug
   company.setCurrentSlug(nextSlug)
 
   if (auth.isAuthenticated) {
-    await auth.loadMe(true)
+    try {
+      await auth.loadMe(true)
+    } catch {
+      company.setCurrentSlug(previousSlug)
+      return
+    }
   }
 
   if (props.reloadOnChange) {

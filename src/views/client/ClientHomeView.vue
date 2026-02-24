@@ -13,9 +13,17 @@
           <v-chip size="small" color="success" variant="tonal" class="agent-chip">
             Online agora
           </v-chip>
-          <v-btn variant="outlined" color="primary" size="small" prepend-icon="mdi-refresh" @click="beginConversation">
-            Reiniciar
-          </v-btn>
+          <v-menu location="bottom end">
+            <template #activator="{ props }">
+              <v-btn v-bind="props" variant="outlined" color="primary" size="small" class="options-btn">
+                <v-icon icon="mdi-dots-vertical" />
+              </v-btn>
+            </template>
+            <v-list density="compact" min-width="180">
+              <v-list-item prepend-icon="mdi-refresh" title="Reiniciar" @click="beginConversation" />
+              <v-list-item prepend-icon="mdi-logout" title="Sair" @click="leaveChat" />
+            </v-list>
+          </v-menu>
         </div>
       </header>
 
@@ -61,6 +69,44 @@
                     Meu perfil
                   </v-btn>
                 </div>
+
+                <v-alert
+                  v-if="profileNeedsAttention"
+                  type="warning"
+                  variant="tonal"
+                  class="mt-3"
+                >
+                  Seu perfil está incompleto. Adicione um email para receber confirmações e lembretes.
+                  <template #append>
+                    <v-btn size="small" variant="text" color="warning" @click="openProfile">Completar</v-btn>
+                  </template>
+                </v-alert>
+
+                <div v-if="favoriteSummary.hasAny" class="favorites-box">
+                  <div class="field-label mb-1">Seus atalhos</div>
+                  <div class="favorites-actions">
+                    <v-btn
+                      v-if="favoriteSummary.staff"
+                      size="small"
+                      variant="tonal"
+                      color="secondary"
+                      prepend-icon="mdi-star-outline"
+                      @click="startBookingFromFavoriteStaff"
+                    >
+                      {{ favoriteSummary.staff.name }}
+                    </v-btn>
+                    <v-chip
+                      v-for="service in favoriteSummary.services"
+                      :key="service.id"
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      class="favorite-chip"
+                    >
+                      {{ service.name }}
+                    </v-chip>
+                  </div>
+                </div>
               </template>
 
               <template v-else-if="state === 'auth-required'">
@@ -81,6 +127,14 @@
               <template v-else-if="state === 'booking-staff'">
                 <div v-if="loadingCatalog" class="loading-box">
                   <v-progress-circular indeterminate color="primary" />
+                </div>
+                <div v-else-if="catalogLoadError" class="empty-note">
+                  Não consegui carregar os profissionais agora.
+                  <div class="mt-2">
+                    <v-btn size="small" color="primary" variant="outlined" @click="loadCatalog({ force: true })">
+                      Tentar novamente
+                    </v-btn>
+                  </div>
                 </div>
 
                 <template v-else>
@@ -151,6 +205,10 @@
                   </v-btn>
                 </div>
 
+                <v-alert v-if="booking.availabilityError" type="warning" variant="tonal" class="mt-3">
+                  {{ booking.availabilityError }}
+                </v-alert>
+
                 <div class="panel-summary">
                   <div>{{ selectedStaff?.name || 'Profissional' }}</div>
                   <div>{{ selectedServicesLabel || 'Serviços não selecionados' }}</div>
@@ -209,6 +267,10 @@
                   </v-card-text>
                 </v-card>
 
+                <v-alert type="info" variant="tonal" class="mt-3">
+                  Cancelamentos: até 2h antes sem custo. Menor antecedência pode impactar prioridade de novos encaixes.
+                </v-alert>
+
                 <div class="panel-actions panel-actions--split">
                   <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="state = 'booking-slot'">
                     Trocar horário
@@ -221,7 +283,10 @@
 
               <template v-else-if="state === 'appointments'">
                 <div v-if="loadingAppointments" class="loading-box">
-                  <v-progress-circular indeterminate color="primary" />
+                  <v-skeleton-loader
+                    type="article, article, article"
+                    class="appointments-skeleton"
+                  />
                 </div>
 
                 <div v-else-if="!appointments.length" class="empty-note">
@@ -229,7 +294,65 @@
                 </div>
 
                 <div v-else class="appointment-list">
-                  <v-card v-for="appointment in appointments" :key="appointment.id" class="appointment-card"
+                  <div v-if="upcomingReminders.length" class="reminders-box">
+                    <div class="field-label mb-1">Lembretes automáticos</div>
+                    <v-alert
+                      v-for="reminder in upcomingReminders"
+                      :key="reminder.id"
+                      density="compact"
+                      type="info"
+                      variant="tonal"
+                      class="mb-2"
+                    >
+                      {{ reminder.text }}
+                    </v-alert>
+                  </div>
+
+                  <div class="appointments-filters">
+                    <v-text-field
+                      v-model="appointmentFilters.search"
+                      label="Buscar serviço/profissional"
+                      prepend-inner-icon="mdi-magnify"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                    <v-select
+                      v-model="appointmentFilters.status"
+                      :items="statusFilterOptions"
+                      item-title="label"
+                      item-value="value"
+                      label="Status"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                    <v-select
+                      v-model="appointmentFilters.period"
+                      :items="periodFilterOptions"
+                      item-title="label"
+                      item-value="value"
+                      label="Período"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </div>
+
+                  <div v-if="appointmentsLoadError" class="empty-note">
+                    Não consegui carregar seus agendamentos agora.
+                    <div class="mt-2">
+                      <v-btn size="small" color="primary" variant="outlined" @click="loadAppointments()">
+                        Tentar novamente
+                      </v-btn>
+                    </div>
+                  </div>
+
+                  <div v-else-if="!filteredAppointments.length" class="empty-note">
+                    Nenhum agendamento encontrado com os filtros atuais.
+                  </div>
+
+                  <v-card v-for="appointment in filteredAppointments" :key="appointment.id" class="appointment-card"
                     elevation="0">
                     <v-card-text>
                       <div class="appointment-head">
@@ -255,10 +378,26 @@
 
                       <div class="appointment-footer">
                         <strong>{{ formatCurrencyBRL(appointment.total_price) }}</strong>
-                        <v-btn v-if="appointment.status === 'scheduled'" variant="outlined" color="primary" size="small"
-                          @click="cancelAppointment(appointment)">
-                          Cancelar
-                        </v-btn>
+                        <div class="appointment-actions">
+                          <v-btn
+                            v-if="appointment.status === 'scheduled'"
+                            variant="tonal"
+                            color="primary"
+                            size="small"
+                            @click="startReschedule(appointment)"
+                          >
+                            Reagendar
+                          </v-btn>
+                          <v-btn
+                            v-if="appointment.status === 'scheduled'"
+                            variant="outlined"
+                            color="primary"
+                            size="small"
+                            @click="cancelAppointment(appointment)"
+                          >
+                            Cancelar
+                          </v-btn>
+                        </div>
                       </div>
                     </v-card-text>
                   </v-card>
@@ -274,6 +413,14 @@
               <template v-else-if="state === 'services'">
                 <div v-if="loadingCatalog" class="loading-box">
                   <v-progress-circular indeterminate color="primary" />
+                </div>
+                <div v-else-if="catalogLoadError" class="empty-note">
+                  Catálogo indisponível no momento.
+                  <div class="mt-2">
+                    <v-btn size="small" color="primary" variant="outlined" @click="loadCatalog({ force: true })">
+                      Tentar novamente
+                    </v-btn>
+                  </div>
                 </div>
 
                 <div v-else-if="!servicesCatalog.length" class="empty-note">
@@ -378,6 +525,22 @@
           <div ref="chatBottomRef" class="chat-bottom-anchor" aria-hidden="true"></div>
         </div>
       </div>
+
+      <div v-if="showStickyBookingSummary" class="booking-sticky">
+        <div class="booking-sticky__meta">
+          <div>{{ selectedStaff?.name || 'Profissional' }}</div>
+          <div>{{ booking.serviceIds.length }} serviço(s) • {{ totalDuration }} min</div>
+        </div>
+        <div class="booking-sticky__value">{{ formatCurrencyBRL(totalPrice) }}</div>
+        <v-btn
+          v-if="state === 'booking-confirm'"
+          color="primary"
+          :loading="booking.saving"
+          @click="confirmBooking"
+        >
+          Confirmar
+        </v-btn>
+      </div>
     </div>
   </div>
 </template>
@@ -408,10 +571,18 @@ let contentResizeObserver = null
 
 const state = ref('menu')
 const loadingCatalog = ref(false)
+const catalogLoadError = ref(false)
 const loadingAppointments = ref(false)
+const appointmentsLoadError = ref(false)
 const staffOptions = ref([])
 const servicesCatalog = ref([])
 const appointments = ref([])
+const rescheduleSource = ref(null)
+const appointmentFilters = reactive({
+  search: '',
+  status: 'all',
+  period: 'all',
+})
 const profileForm = reactive({
   name: '',
   email: '',
@@ -444,6 +615,7 @@ const booking = reactive({
   date: todayDate,
   slots: [],
   selectedSlot: null,
+  availabilityError: '',
   loadingSlots: false,
   saving: false,
 })
@@ -465,6 +637,22 @@ const panelTitle = computed(() => {
 })
 
 const companyName = computed(() => auth.user?.company?.name || 'Barbearia')
+const profileNeedsAttention = computed(() => auth.isAuthenticated && !String(auth.user?.email || '').trim())
+
+const statusFilterOptions = [
+  { label: 'Todos', value: 'all' },
+  { label: 'Agendado', value: 'scheduled' },
+  { label: 'Finalizado', value: 'done' },
+  { label: 'Cancelado', value: 'canceled' },
+  { label: 'Não compareceu', value: 'no_show' },
+]
+
+const periodFilterOptions = [
+  { label: 'Tudo', value: 'all' },
+  { label: 'Próximos 7 dias', value: 'next_7' },
+  { label: 'Próximos 30 dias', value: 'next_30' },
+  { label: 'Últimos 30 dias', value: 'past_30' },
+]
 
 const profileRoleLabel = computed(() => {
   if (auth.user?.role === 'super_admin') return 'Super admin'
@@ -483,6 +671,12 @@ const selectedServices = computed(() =>
   availableServices.value.filter((service) => booking.serviceIds.includes(service.id))
 )
 
+const showStickyBookingSummary = computed(() => {
+  if (!String(state.value || '').startsWith('booking-')) return false
+  if (!booking.staffId || !booking.serviceIds.length) return false
+  return true
+})
+
 const selectedServicesLabel = computed(() => {
   if (!selectedServices.value.length) return 'Nenhum serviço selecionado'
   return selectedServices.value.map((service) => service.name).join(', ')
@@ -495,6 +689,103 @@ const totalPrice = computed(() =>
 const totalDuration = computed(() =>
   selectedServices.value.reduce((sum, service) => sum + Number(service.duration_minutes || 0), 0)
 )
+
+const filteredAppointments = computed(() => {
+  const term = String(appointmentFilters.search || '').trim().toLowerCase()
+  const now = new Date()
+
+  return appointments.value.filter((appointment) => {
+    if (appointmentFilters.status !== 'all' && appointment.status !== appointmentFilters.status) {
+      return false
+    }
+
+    const start = new Date(appointment.start_at)
+    if (appointmentFilters.period === 'next_7') {
+      const limit = new Date(now)
+      limit.setDate(limit.getDate() + 7)
+      if (!(start >= now && start <= limit)) return false
+    }
+
+    if (appointmentFilters.period === 'next_30') {
+      const limit = new Date(now)
+      limit.setDate(limit.getDate() + 30)
+      if (!(start >= now && start <= limit)) return false
+    }
+
+    if (appointmentFilters.period === 'past_30') {
+      const limit = new Date(now)
+      limit.setDate(limit.getDate() - 30)
+      if (!(start <= now && start >= limit)) return false
+    }
+
+    if (!term) return true
+
+    const staffName = String(appointment.staff?.name || '').toLowerCase()
+    const services = Array.isArray(appointment.services) ? appointment.services : []
+    const serviceText = services.map((service) => String(service.name || '').toLowerCase()).join(' ')
+    return staffName.includes(term) || serviceText.includes(term)
+  })
+})
+
+const upcomingReminders = computed(() => {
+  const now = new Date()
+  const in2Hours = now.getTime() + 2 * 60 * 60 * 1000
+  const in24Hours = now.getTime() + 24 * 60 * 60 * 1000
+
+  return appointments.value
+    .filter((appointment) => appointment.status === 'scheduled')
+    .map((appointment) => {
+      const start = new Date(appointment.start_at)
+      const time = start.getTime()
+      if (Number.isNaN(time) || time < now.getTime() || time > in24Hours) return null
+
+      if (time <= in2Hours) {
+        return {
+          id: `${appointment.id}-2h`,
+          text: `Seu horário de ${formatTime(appointment.start_at)} é hoje. Saia com antecedência.`,
+        }
+      }
+
+      return {
+        id: `${appointment.id}-24h`,
+        text: `Lembrete: você tem horário em ${formatDateTime(appointment.start_at)}.`,
+      }
+    })
+    .filter(Boolean)
+})
+
+const favoriteSummary = computed(() => {
+  const countsByStaff = new Map()
+  const countsByService = new Map()
+
+  appointments.value.forEach((appointment) => {
+    if (!['scheduled', 'done'].includes(appointment.status)) return
+
+    if (appointment.staff?.id) {
+      const current = countsByStaff.get(appointment.staff.id) || { count: 0, staff: appointment.staff }
+      current.count += 1
+      countsByStaff.set(appointment.staff.id, current)
+    }
+
+    ;(appointment.services || []).forEach((service) => {
+      const current = countsByService.get(service.id) || { count: 0, service }
+      current.count += 1
+      countsByService.set(service.id, current)
+    })
+  })
+
+  const topStaff = Array.from(countsByStaff.values()).sort((a, b) => b.count - a.count)[0]?.staff || null
+  const topServices = Array.from(countsByService.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 2)
+    .map((item) => item.service)
+
+  return {
+    staff: topStaff,
+    services: topServices,
+    hasAny: Boolean(topStaff || topServices.length),
+  }
+})
 
 const syncProfileForm = () => {
   profileForm.name = auth.user?.name || ''
@@ -557,8 +848,10 @@ const resetBooking = () => {
   booking.date = todayDate
   booking.slots = []
   booking.selectedSlot = null
+  booking.availabilityError = ''
   booking.loadingSlots = false
   booking.saving = false
+  rescheduleSource.value = null
 }
 
 const statusLabel = (status) => {
@@ -630,6 +923,7 @@ const loadCatalog = async ({ force = false } = {}) => {
   if (loadingCatalog.value) return
 
   loadingCatalog.value = true
+  catalogLoadError.value = false
   try {
     const [staffResponse, servicesResponse] = await runWithTyping(() =>
       Promise.all([
@@ -641,6 +935,7 @@ const loadCatalog = async ({ force = false } = {}) => {
     staffOptions.value = Array.isArray(staffResponse.data) ? staffResponse.data : []
     servicesCatalog.value = Array.isArray(servicesResponse.data) ? servicesResponse.data : []
   } catch {
+    catalogLoadError.value = true
     sendBotMessage('Não consegui atualizar os dados agora. Tente novamente em instantes.')
   } finally {
     loadingCatalog.value = false
@@ -685,6 +980,13 @@ const goToLogin = () => {
   router.push({ name: 'login', query: { redirect: route.fullPath } })
 }
 
+const leaveChat = async () => {
+  if (auth.isAuthenticated) {
+    await auth.logout()
+  }
+  router.replace({ name: 'login' })
+}
+
 const startBooking = async () => {
   sendUserMessage('Quero fazer um novo agendamento.')
 
@@ -706,11 +1008,45 @@ const startBooking = async () => {
   sendBotMessage('Perfeito. Primeiro, escolha o profissional.')
 }
 
+const startBookingFromFavoriteStaff = async () => {
+  if (!favoriteSummary.value.staff) {
+    await startBooking()
+    return
+  }
+
+  if (!auth.isAuthenticated) {
+    state.value = 'auth-required'
+    sendBotMessage('Faça login para usar seus atalhos.')
+    return
+  }
+
+  const ready = await ensureCatalogLoaded()
+  if (!ready) return
+
+  const preferred = staffOptions.value.find((staff) => staff.id === favoriteSummary.value.staff.id)
+  if (!preferred) {
+    await startBooking()
+    return
+  }
+
+  resetBooking()
+  booking.staffId = preferred.id
+  booking.serviceIds = favoriteSummary.value.services
+    .map((service) => service.id)
+    .filter((serviceId) => preferred.services?.some((service) => service.id === serviceId))
+  state.value = 'booking-date'
+  sendUserMessage(`Quero repetir com ${preferred.name}.`)
+  sendBotMessage('Perfeito. Selecione a data para eu buscar horários.')
+}
+
 const chooseStaff = (staff) => {
   booking.staffId = staff.id
-  booking.serviceIds = []
+  if (!rescheduleSource.value) {
+    booking.serviceIds = []
+  }
   booking.slots = []
   booking.selectedSlot = null
+  booking.availabilityError = ''
 
   sendUserMessage(`Quero ser atendido por ${staff.name}.`)
   state.value = 'booking-services'
@@ -752,6 +1088,7 @@ const fetchAvailability = async () => {
   booking.loadingSlots = true
   booking.selectedSlot = null
   booking.slots = []
+  booking.availabilityError = ''
 
   sendUserMessage(`Quero agendar para ${formatDate(dateParam)}.`)
 
@@ -773,6 +1110,9 @@ const fetchAvailability = async () => {
 
     state.value = 'booking-slot'
     sendBotMessage(`Encontrei ${booking.slots.length} horário(s). Escolha o que preferir.`)
+  } catch {
+    booking.availabilityError = 'Falha ao buscar horários. Toque em "Buscar horários" para tentar de novo.'
+    sendBotMessage('Não consegui buscar horários agora. Vamos tentar novamente.')
   } finally {
     booking.loadingSlots = false
   }
@@ -808,6 +1148,18 @@ const confirmBooking = async () => {
     )
 
     sendBotMessage(`Total confirmado: ${formatCurrencyBRL(data?.total_price || totalPrice.value)}.`)
+
+    if (rescheduleSource.value?.id) {
+      try {
+        await api.post(`/api/appointments/${rescheduleSource.value.id}/cancel`, {
+          reason: 'Reagendado pelo cliente (chat)',
+        })
+        sendBotMessage('Seu horário anterior foi cancelado automaticamente.')
+      } catch {
+        sendBotMessage('Consegui criar o novo horário, mas não cancelou o anterior. Cancele em "Meus horários".')
+      }
+    }
+
     alerts.success('Agendamento confirmado com sucesso.')
 
     await loadAppointments({ silent: true })
@@ -835,6 +1187,7 @@ const loadAppointments = async ({ silent = false } = {}) => {
   }
 
   loadingAppointments.value = true
+  appointmentsLoadError.value = false
   try {
     const { data } = await runWithTyping(() => api.get('/api/appointments'))
     appointments.value = Array.isArray(data) ? data : []
@@ -846,6 +1199,12 @@ const loadAppointments = async ({ silent = false } = {}) => {
       } else {
         sendBotMessage(`Aqui estão seus ${appointments.value.length} agendamento(s).`)
       }
+    }
+  } catch {
+    appointmentsLoadError.value = true
+    if (!silent) {
+      state.value = 'appointments'
+      sendBotMessage('Não consegui carregar seus agendamentos agora.')
     }
   } finally {
     loadingAppointments.value = false
@@ -876,6 +1235,38 @@ const cancelAppointment = async (appointment) => {
   } catch {
     sendBotMessage('Não consegui cancelar esse horário agora. Tente novamente em instantes.')
   }
+}
+
+const startReschedule = async (appointment) => {
+  if (!appointment || appointment.status !== 'scheduled') return
+
+  const ready = await ensureCatalogLoaded()
+  if (!ready) return
+
+  const staff = staffOptions.value.find((item) => item.id === appointment.staff?.id)
+  if (!staff) {
+    sendBotMessage('Esse profissional não está disponível agora. Escolha outro para reagendar.')
+    state.value = 'booking-staff'
+    return
+  }
+
+  resetBooking()
+  rescheduleSource.value = appointment
+  booking.staffId = staff.id
+  booking.serviceIds = (appointment.services || [])
+    .map((service) => service.id)
+    .filter((serviceId) => staff.services?.some((service) => service.id === serviceId))
+  booking.date = toDateString(appointment.start_at) || todayDate
+
+  sendUserMessage(`Quero reagendar ${formatDateTime(appointment.start_at)}.`)
+  if (!booking.serviceIds.length) {
+    state.value = 'booking-services'
+    sendBotMessage('Os serviços antigos não estão mais disponíveis. Escolha novos serviços para reagendar.')
+    return
+  }
+
+  state.value = 'booking-date'
+  sendBotMessage('Vamos reagendar. Escolha a data e busque os horários disponíveis.')
 }
 
 const openServices = async () => {
@@ -987,9 +1378,11 @@ watch(
   () => [
     booking.loadingSlots,
     booking.slots.length,
+    booking.availabilityError,
     booking.saving,
     loadingCatalog.value,
     loadingAppointments.value,
+    appointmentsLoadError.value,
     appointments.value.length,
     savingProfile.value,
     uploadingProfilePhoto.value,
@@ -1058,16 +1451,16 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .client-chat-page {
-  min-height: calc(100vh - 104px);
-  min-height: calc(100dvh - 104px);
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .chat-shell {
   display: grid;
   grid-template-rows: auto minmax(320px, 1fr);
-  min-height: calc(100vh - 128px);
-  min-height: calc(100dvh - 128px);
-  border-radius: 26px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  border-radius: 0;
   overflow: hidden;
   border: 1px solid rgba(88, 116, 130, 0.28);
   box-shadow: 0 24px 56px rgba(22, 33, 40, 0.22);
@@ -1120,9 +1513,25 @@ onBeforeUnmount(() => {
 }
 
 .header-actions {
+  --status-control-height: 28px;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
   gap: 8px;
+}
+
+.agent-chip {
+  min-height: var(--status-control-height);
+  height: var(--status-control-height);
+}
+
+.options-btn {
+  min-height: var(--status-control-height) !important;
+  height: var(--status-control-height) !important;
+  min-width: var(--status-control-height) !important;
+  width: var(--status-control-height) !important;
+  padding: 0 !important;
 }
 
 .chat-body {
@@ -1254,6 +1663,24 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 10px;
+}
+
+.favorites-box {
+  margin-top: 12px;
+  border: 1px solid rgba(87, 120, 132, 0.2);
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.favorites-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.favorite-chip {
+  border-style: dashed;
 }
 
 .panel-actions--split {
@@ -1388,6 +1815,23 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 
+.appointments-skeleton {
+  border-radius: 12px;
+}
+
+.reminders-box {
+  border: 1px solid rgba(87, 120, 132, 0.2);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.appointments-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .appointment-card {
   border: 1px solid rgba(87, 120, 132, 0.16);
   border-radius: 14px;
@@ -1423,6 +1867,11 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.appointment-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .profile-card {
@@ -1487,6 +1936,33 @@ onBeforeUnmount(() => {
   color: var(--ink-700);
 }
 
+.booking-sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  margin: 10px 18px 0;
+  border: 1px solid rgba(153, 184, 198, 0.3);
+  background: rgba(248, 253, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.booking-sticky__meta {
+  color: var(--ink-900);
+  font-size: 0.82rem;
+}
+
+.booking-sticky__value {
+  font-family: var(--display-font);
+  font-weight: 700;
+  color: var(--ink-900);
+}
+
 .bubble-enter-active,
 .bubble-leave-active {
   transition: all 0.25s ease;
@@ -1514,14 +1990,13 @@ onBeforeUnmount(() => {
 
 @media (max-width: 960px) {
   .client-chat-page {
-    min-height: calc(100vh - 92px);
-    min-height: calc(100dvh - 92px);
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .chat-shell {
-    min-height: calc(100vh - 106px);
-    min-height: calc(100dvh - 106px);
-    border-radius: 18px;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .chat-header {
@@ -1540,8 +2015,13 @@ onBeforeUnmount(() => {
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   }
 
+  .appointments-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .header-actions {
     gap: 6px;
+    margin-left: auto;
   }
 
   .service-media {
@@ -1563,14 +2043,13 @@ onBeforeUnmount(() => {
 
 @media (max-width: 640px) {
   .client-chat-page {
-    min-height: calc(100vh - 84px);
-    min-height: calc(100dvh - 84px);
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .chat-shell {
-    min-height: calc(100vh - 96px);
-    min-height: calc(100dvh - 96px);
-    border-radius: 14px;
+    min-height: 100vh;
+    min-height: 100dvh;
   }
 
   .chat-header {
@@ -1585,24 +2064,11 @@ onBeforeUnmount(() => {
   }
 
   .header-actions {
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    width: auto;
+    display: flex;
+    justify-content: flex-end;
+    align-self: flex-end;
     gap: 8px;
-  }
-
-  .header-actions .agent-chip {
-    width: 100%;
-  }
-
-  .header-actions .agent-chip :deep(.v-chip__content) {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .header-actions :deep(.v-btn) {
-    width: 100%;
-    min-width: 0;
   }
 
   .message-row {
@@ -1671,6 +2137,21 @@ onBeforeUnmount(() => {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+  }
+
+  .appointment-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .appointments-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-sticky {
+    margin: 8px 10px 0;
+    grid-template-columns: 1fr;
   }
 
 }

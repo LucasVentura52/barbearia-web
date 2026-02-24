@@ -12,6 +12,7 @@ const StaffServicesView = () => import('@/views/staff/StaffServicesView.vue')
 const StaffProductsView = () => import('@/views/staff/StaffProductsView.vue')
 const StaffTeamView = () => import('@/views/staff/StaffTeamView.vue')
 const SuperAdminCompaniesView = () => import('@/views/super/SuperAdminCompaniesView.vue')
+const NotFoundView = () => import('@/views/NotFoundView.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -99,6 +100,12 @@ const router = createRouter({
       component: SuperAdminCompaniesView,
       meta: { layout: 'staff', requiresAuth: true, role: 'super_admin' },
     },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: NotFoundView,
+      meta: { layout: 'auth' },
+    },
   ],
   scrollBehavior() {
     return { top: 0 }
@@ -107,12 +114,13 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
+  const isPublicRoute = ['login', 'not-found'].includes(String(to.name || ''))
 
-  if (to.name !== 'login' && !auth.token) {
+  if (!isPublicRoute && !auth.token) {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
 
-  if (auth.token && !auth.user) {
+  if (auth.token && (!auth.user || !auth.hasValidatedSession)) {
     try {
       const restored = await auth.restoreSession()
       if (!restored) {

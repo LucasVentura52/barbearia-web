@@ -148,22 +148,24 @@
               Editar
             </v-btn>
             <v-btn v-if="canComplete" color="success" variant="tonal" prepend-icon="mdi-check-circle-outline"
+              :loading="isSavingAction('status_done')" :disabled="saving"
               @click="updateStatus(selectedAppointment.id, 'done')">
               Finalizar
             </v-btn>
             <v-btn v-if="canComplete" color="warning" variant="tonal" prepend-icon="mdi-account-off-outline"
+              :loading="isSavingAction('status_no_show')" :disabled="saving"
               @click="updateStatus(selectedAppointment.id, 'no_show')">
               Não compareceu
             </v-btn>
           </div>
           <div class="detail-actions-danger">
-            <v-btn variant="text" prepend-icon="mdi-close" @click="detailDialog = false">Fechar</v-btn>
+            <v-btn variant="text" prepend-icon="mdi-close" :disabled="saving" @click="detailDialog = false">Fechar</v-btn>
             <v-btn v-if="canCancel" color="secondary" variant="outlined" prepend-icon="mdi-cancel"
-              @click="openCancel(selectedAppointment)">
+              :disabled="saving" @click="openCancel(selectedAppointment)">
               Cancelar
             </v-btn>
             <v-btn color="error" variant="tonal" prepend-icon="mdi-delete-outline"
-              @click="openDelete(selectedAppointment)">
+              :disabled="saving" @click="openDelete(selectedAppointment)">
               Deletar
             </v-btn>
           </div>
@@ -193,8 +195,8 @@
           </div>
         </v-card-text>
         <v-card-actions class="dialog-actions">
-          <v-btn variant="text" @click="editDialog = false">Cancelar</v-btn>
-          <v-btn color="secondary" variant="flat" :loading="saving" @click="saveEdit">Salvar</v-btn>
+          <v-btn variant="text" :disabled="saving" @click="editDialog = false">Cancelar</v-btn>
+          <v-btn color="secondary" variant="flat" :loading="isSavingAction('edit')" :disabled="saving && !isSavingAction('edit')" @click="saveEdit">Salvar</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -207,8 +209,8 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="cancelDialog = false">Voltar</v-btn>
-          <v-btn color="secondary" @click="confirmCancel" :loading="saving">
+          <v-btn variant="text" :disabled="saving" @click="cancelDialog = false">Voltar</v-btn>
+          <v-btn color="secondary" @click="confirmCancel" :loading="isSavingAction('cancel')" :disabled="saving && !isSavingAction('cancel')">
             Confirmar
           </v-btn>
         </v-card-actions>
@@ -222,8 +224,8 @@
           Tem certeza que deseja excluir este agendamento? Essa ação é permanente.
         </v-card-text>
         <v-card-actions>
-          <v-btn variant="text" @click="deleteDialog = false">Cancelar</v-btn>
-          <v-btn color="error" :loading="saving" @click="confirmDelete">Excluir</v-btn>
+          <v-btn variant="text" :disabled="saving" @click="deleteDialog = false">Cancelar</v-btn>
+          <v-btn color="error" :loading="isSavingAction('delete')" :disabled="saving && !isSavingAction('delete')" @click="confirmDelete">Excluir</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -267,6 +269,7 @@ const serviceOptions = ref([])
 const createSlots = ref([])
 const loadingCreateSlots = ref(false)
 const hasInitializedStaffSelection = ref(false)
+const savingAction = ref('')
 const createForm = ref({
   client_user_id: null,
   staff_id: null,
@@ -280,7 +283,7 @@ const { smAndDown } = useDisplay()
 let clientSearchTimer = null
 let clientRequestCounter = 0
 
-const isAdmin = computed(() => auth.user?.role === 'admin')
+const isAdmin = computed(() => ['admin', 'super_admin'].includes(auth.user?.role))
 
 const staffSelectItems = computed(() => {
   if (!isAdmin.value) return []
@@ -387,6 +390,7 @@ const formatTime = (value) => {
 const canEdit = computed(() => selectedAppointment.value?.status === 'scheduled')
 const canCancel = computed(() => selectedAppointment.value?.status === 'scheduled')
 const canComplete = computed(() => selectedAppointment.value?.status === 'scheduled')
+const isSavingAction = (action) => saving.value && savingAction.value === action
 
 const editForm = ref({
   date: '',
@@ -634,6 +638,7 @@ const openCancel = (appointment) => {
 
 const confirmCancel = async () => {
   if (!selectedAppointment.value) return
+  savingAction.value = 'cancel'
   saving.value = true
   try {
     await api.post(`/api/staff/appointments/${selectedAppointment.value.id}/cancel`, {
@@ -645,10 +650,12 @@ const confirmCancel = async () => {
     alerts.success('Agendamento cancelado.')
   } finally {
     saving.value = false
+    savingAction.value = ''
   }
 }
 
 const updateStatus = async (id, status) => {
+  savingAction.value = `status_${status}`
   saving.value = true
   try {
     await api.post(`/api/staff/appointments/${id}/status`, { status })
@@ -657,6 +664,7 @@ const updateStatus = async (id, status) => {
     alerts.success('Status atualizado.')
   } finally {
     saving.value = false
+    savingAction.value = ''
   }
 }
 
@@ -682,6 +690,7 @@ const saveEdit = async () => {
     return
   }
   saving.value = true
+  savingAction.value = 'edit'
   try {
     await api.put(`/api/staff/appointments/${selectedAppointment.value.id}`,
       {
@@ -695,6 +704,7 @@ const saveEdit = async () => {
     alerts.success('Agendamento atualizado.')
   } finally {
     saving.value = false
+    savingAction.value = ''
   }
 }
 
@@ -705,6 +715,7 @@ const openDelete = (appointment) => {
 
 const confirmDelete = async () => {
   if (!selectedAppointment.value) return
+  savingAction.value = 'delete'
   saving.value = true
   try {
     await api.delete(`/api/staff/appointments/${selectedAppointment.value.id}`)
@@ -714,6 +725,7 @@ const confirmDelete = async () => {
     alerts.success('Agendamento excluído.')
   } finally {
     saving.value = false
+    savingAction.value = ''
   }
 }
 
@@ -780,7 +792,7 @@ watch(
   ([user]) => {
     if (!user) return
     if (!selectedStaffId.value) {
-      selectedStaffId.value = user.role === 'admin' ? 'all' : 'mine'
+      selectedStaffId.value = ['admin', 'super_admin'].includes(user.role) ? 'all' : 'mine'
     }
   },
   { immediate: true }

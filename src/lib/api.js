@@ -8,6 +8,37 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || defaultApiUrl,
 })
 
+const normalizeRequestPath = (url = '') => {
+  const value = String(url || '')
+
+  if (!value) return ''
+
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    try {
+      return new URL(value).pathname
+    } catch {
+      return value
+    }
+  }
+
+  return value
+}
+
+const shouldSkipCompanyHeader = (config) => {
+  if (config?.skipCompanyHeader) {
+    return true
+  }
+
+  const method = String(config?.method || 'get').toLowerCase()
+  const path = normalizeRequestPath(config?.url)
+
+  if (path === '/api/auth/login' || path === '/api/auth/register') {
+    return true
+  }
+
+  return method === 'get' && path === '/api/companies'
+}
+
 const getCache = new Map()
 const pendingGetRequests = new Map()
 const DEFAULT_GET_TTL_MS = 15_000
@@ -157,7 +188,7 @@ api.interceptors.request.use((config) => {
   }
 
   const companySlug = localStorage.getItem('company_slug') || import.meta.env.VITE_COMPANY_SLUG
-  if (companySlug) {
+  if (companySlug && !shouldSkipCompanyHeader(config)) {
     config.headers['X-Company-Slug'] = companySlug
   }
 
@@ -185,6 +216,34 @@ export const setupInterceptors = (auth, router, alerts) => {
     (response) => response,
     (error) => {
       const status = error?.response?.status
+      const message = parseErrorMessage(error)
+
+      if (status === 422 && message === 'Company context not found') {
+        localStorage.removeItem('company_slug')
+        clearGetCache()
+
+        const requestConfig = error?.config || {}
+        const method = String(requestConfig?.method || 'get').toLowerCase()
+        const isSafeMethod = ['get', 'head', 'options'].includes(method)
+
+        if (isSafeMethod && !requestConfig.__retriedAfterCompanyReset) {
+          const retryHeaders = {
+            ...(requestConfig.headers || {}),
+          }
+          delete retryHeaders['X-Company-Slug']
+          delete retryHeaders['x-company-slug']
+
+          return api.request({
+            ...requestConfig,
+            __retriedAfterCompanyReset: true,
+            headers: retryHeaders,
+          })
+        }
+
+        alerts?.warning('Empresa selecionada inválida. Selecione outra empresa.')
+        return Promise.reject(error)
+      }
+
       if (status === 401) {
         clearGetCache()
         if (typeof auth?.clearSession === 'function') {
@@ -205,7 +264,7 @@ export const setupInterceptors = (auth, router, alerts) => {
         return Promise.reject(error)
       }
       if (status === 422) {
-        alerts?.warning(parseErrorMessage(error))
+        alerts?.warning(message)
         return Promise.reject(error)
       }
       if (status >= 500) {
@@ -215,7 +274,7 @@ export const setupInterceptors = (auth, router, alerts) => {
       if (!status) {
         alerts?.error('Erro de conexão. Verifique sua internet ou a API.')
       } else {
-        alerts?.error(parseErrorMessage(error))
+        alerts?.error(message)
       }
       return Promise.reject(error)
     }
