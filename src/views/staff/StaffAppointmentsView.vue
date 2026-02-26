@@ -140,6 +140,22 @@
             </div>
             <div v-else class="detail-meta">Nenhum serviço vinculado.</div>
           </div>
+
+          <div class="detail-section">
+            <div class="detail-label">Produtos adicionados</div>
+            <div v-if="selectedAppointment.products?.length" class="detail-chips">
+              <v-chip
+                v-for="product in selectedAppointment.products"
+                :key="`product-${product.id}`"
+                size="small"
+                color="primary"
+                variant="tonal"
+              >
+                {{ product.name }} x{{ product.pivot?.quantity || 1 }}
+              </v-chip>
+            </div>
+            <div v-else class="detail-meta">Nenhum produto adicional.</div>
+          </div>
         </v-card-text>
         <v-card-actions class="dialog-actions detail-actions">
           <div v-if="canEdit || canComplete" class="detail-actions-main">
@@ -149,7 +165,7 @@
             </v-btn>
             <v-btn v-if="canComplete" color="success" variant="tonal" prepend-icon="mdi-check-circle-outline"
               :loading="isSavingAction('status_done')" :disabled="saving"
-              @click="updateStatus(selectedAppointment.id, 'done')">
+              @click="openFinalizeDialog(selectedAppointment)">
               Finalizar
             </v-btn>
             <v-btn v-if="canComplete" color="warning" variant="tonal" prepend-icon="mdi-account-off-outline"
@@ -169,6 +185,103 @@
               Deletar
             </v-btn>
           </div>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="finalizeDialog" max-width="760">
+      <v-card class="modal-card">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">Finalizar agendamento</div>
+            <div class="modal-subtitle">Adicione produtos vendidos para compor o valor final.</div>
+          </div>
+          <v-icon icon="mdi-check-circle-outline" />
+        </div>
+        <v-card-text class="form-grid">
+          <div class="finalize-add-row">
+            <v-autocomplete
+              v-model="selectedFinalizeProductId"
+              :items="sellableProducts"
+              item-title="name"
+              item-value="id"
+              label="Adicionar produto"
+              clearable
+              variant="outlined"
+              density="compact"
+              no-data-text="Nenhum produto disponível"
+              class="finalize-add-field"
+            >
+              <template #item="{ props, item }">
+                <v-list-item
+                  v-bind="props"
+                  :title="item.raw.name"
+                  :subtitle="`Estoque: ${item.raw.stock ?? '—'} · ${formatCurrencyBRL(item.raw.price)}`"
+                />
+              </template>
+            </v-autocomplete>
+
+            <v-btn
+              color="secondary"
+              variant="tonal"
+              prepend-icon="mdi-plus"
+              :disabled="!selectedFinalizeProductId"
+              class="finalize-add-btn"
+              @click="addFinalizeProduct"
+            >
+              Adicionar produto
+            </v-btn>
+          </div>
+
+          <div v-if="!finalizeItems.length" class="detail-meta">
+            Nenhum produto adicional selecionado.
+          </div>
+
+          <div v-else class="finalize-products-list">
+            <div v-for="item in finalizeItems" :key="`finalize-${item.product_id}`" class="finalize-product-row">
+              <div class="finalize-product-main">
+                <div class="detail-value">{{ item.name }}</div>
+                <div class="detail-meta">
+                  {{ formatCurrencyBRL(item.price) }} · Estoque: {{ item.stock ?? '—' }}
+                </div>
+              </div>
+              <v-text-field
+                v-model.number="item.quantity"
+                type="number"
+                min="1"
+                :max="item.stock ?? undefined"
+                label="Qtd"
+                variant="outlined"
+                density="compact"
+                hide-details
+                class="finalize-qty-input"
+              />
+              <div class="finalize-product-total">
+                {{ formatCurrencyBRL(item.quantity * item.price) }}
+              </div>
+              <v-btn
+                icon="mdi-delete-outline"
+                variant="text"
+                color="error"
+                @click="removeFinalizeProduct(item.product_id)"
+              />
+            </div>
+          </div>
+
+          <div class="edit-summary">
+            <div class="text-muted">Serviços</div>
+            <div>{{ formatCurrencyBRL(selectedAppointment?.total_price || 0) }}</div>
+            <div class="text-muted">Produtos</div>
+            <div>{{ formatCurrencyBRL(finalizeProductsTotal) }}</div>
+            <div class="text-muted">Total final</div>
+            <div>{{ formatCurrencyBRL((selectedAppointment?.total_price || 0) + finalizeProductsTotal) }}</div>
+          </div>
+        </v-card-text>
+        <v-card-actions class="dialog-actions">
+          <v-btn variant="text" :disabled="saving" @click="finalizeDialog = false">Cancelar</v-btn>
+          <v-btn color="success" variant="flat" :loading="isSavingAction('status_done')" :disabled="saving && !isSavingAction('status_done')" @click="confirmFinalize">
+            Confirmar finalização
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -259,6 +372,7 @@ const selectedStaffId = ref(null)
 const createDialog = ref(false)
 const detailDialog = ref(false)
 const editDialog = ref(false)
+const finalizeDialog = ref(false)
 const cancelDialog = ref(false)
 const deleteDialog = ref(false)
 const cancelReason = ref('')
@@ -266,6 +380,9 @@ const clientSearch = ref('')
 const loadingClientOptions = ref(false)
 const selectedAppointment = ref(null)
 const serviceOptions = ref([])
+const productOptions = ref([])
+const finalizeItems = ref([])
+const selectedFinalizeProductId = ref(null)
 const createSlots = ref([])
 const loadingCreateSlots = ref(false)
 const hasInitializedStaffSelection = ref(false)
@@ -413,6 +530,14 @@ const createTotals = computed(() => {
     total: selected.reduce((sum, service) => sum + Number(service.price || 0), 0),
   }
 })
+
+const sellableProducts = computed(() =>
+  productOptions.value.filter((product) => product.active !== false)
+)
+
+const finalizeProductsTotal = computed(() =>
+  finalizeItems.value.reduce((sum, item) => sum + (Number(item.quantity || 0) * Number(item.price || 0)), 0)
+)
 
 const createSlotItems = computed(() =>
   createSlots.value.map((slot) => ({
@@ -654,14 +779,107 @@ const confirmCancel = async () => {
   }
 }
 
-const updateStatus = async (id, status) => {
+const resetFinalizeForm = () => {
+  finalizeItems.value = []
+  selectedFinalizeProductId.value = null
+}
+
+const openFinalizeDialog = (appointment) => {
+  selectedAppointment.value = appointment
+  resetFinalizeForm()
+  finalizeDialog.value = true
+}
+
+const addFinalizeProduct = () => {
+  const productId = selectedFinalizeProductId.value
+  if (!productId) return
+
+  const product = sellableProducts.value.find((item) => item.id === productId)
+  if (!product) {
+    selectedFinalizeProductId.value = null
+    return
+  }
+
+  const existing = finalizeItems.value.find((item) => item.product_id === product.id)
+  if (existing) {
+    const nextQuantity = Number(existing.quantity || 1) + 1
+    if (product.stock !== null && product.stock !== undefined && nextQuantity > product.stock) {
+      alerts.warning(`Estoque insuficiente para ${product.name}.`)
+      return
+    }
+    existing.quantity = nextQuantity
+    selectedFinalizeProductId.value = null
+    return
+  }
+
+  if (product.stock !== null && product.stock !== undefined && Number(product.stock) < 1) {
+    alerts.warning(`Sem estoque disponível para ${product.name}.`)
+    selectedFinalizeProductId.value = null
+    return
+  }
+
+  finalizeItems.value.push({
+    product_id: product.id,
+    name: product.name,
+    price: Number(product.price || 0),
+    stock: product.stock,
+    quantity: 1,
+  })
+  selectedFinalizeProductId.value = null
+}
+
+const removeFinalizeProduct = (productId) => {
+  finalizeItems.value = finalizeItems.value.filter((item) => item.product_id !== productId)
+}
+
+const normalizeFinalizeItems = () =>
+  finalizeItems.value
+    .map((item) => {
+      const stockLimit = item.stock === null || item.stock === undefined ? null : Number(item.stock)
+      const normalizedQty = Math.max(1, Number(item.quantity || 1))
+      const quantity = stockLimit !== null ? Math.min(normalizedQty, stockLimit) : normalizedQty
+
+      return {
+        product_id: item.product_id,
+        quantity,
+      }
+    })
+    .filter((item) => item.product_id && Number(item.quantity) > 0)
+
+const confirmFinalize = async () => {
+  if (!selectedAppointment.value) return
+  const updated = await updateStatus(selectedAppointment.value.id, 'done', {
+    products: normalizeFinalizeItems(),
+  })
+  if (updated) {
+    finalizeDialog.value = false
+  }
+}
+
+const updateStatus = async (id, status, extraPayload = {}) => {
   savingAction.value = `status_${status}`
   saving.value = true
   try {
-    await api.post(`/api/staff/appointments/${id}/status`, { status })
+    const payload = { status }
+    if (status === 'done') {
+      payload.products = Array.isArray(extraPayload.products) ? extraPayload.products : normalizeFinalizeItems()
+    }
+
+    await api.post(`/api/staff/appointments/${id}/status`, payload)
     detailDialog.value = false
+    if (status === 'done') {
+      await loadProductOptions()
+    }
     refetchEvents()
     alerts.success('Status atualizado.')
+    return true
+  } catch (error) {
+    const validationErrors = error?.response?.data?.errors
+    const firstValidationMessage = validationErrors
+      ? Object.values(validationErrors).flat().find(Boolean)
+      : ''
+    alerts.error(firstValidationMessage || error?.response?.data?.message || 'Não foi possível atualizar o status.')
+    return false
   } finally {
     saving.value = false
     savingAction.value = ''
@@ -754,11 +972,16 @@ const loadServiceOptions = async (staffId) => {
   serviceOptions.value = data
 }
 
+const loadProductOptions = async () => {
+  const { data } = await cachedGet('/api/products?include_inactive=1', {}, { ttl: 10_000, force: true })
+  productOptions.value = Array.isArray(data) ? data : []
+}
+
 onMounted(async () => {
   if (auth.token && !auth.user) {
     await auth.loadMe()
   }
-  await loadStaffOptions()
+  await Promise.all([loadStaffOptions(), loadProductOptions()])
   if (!selectedStaffId.value) {
     selectedStaffId.value = isAdmin.value ? 'all' : 'mine'
   }
@@ -1033,6 +1256,50 @@ watch(
   margin-top: 10px;
 }
 
+.finalize-products-list {
+  display: grid;
+  gap: 10px;
+}
+
+.finalize-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.finalize-add-field {
+  min-width: 0;
+}
+
+.finalize-add-btn {
+  min-height: 40px;
+}
+
+.finalize-product-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 90px 130px auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid rgba(35, 58, 74, 0.14);
+  border-radius: 12px;
+  background: rgba(35, 58, 74, 0.03);
+}
+
+.finalize-product-main {
+  min-width: 0;
+}
+
+.finalize-qty-input {
+  min-width: 80px;
+}
+
+.finalize-product-total {
+  font-weight: 600;
+  text-align: right;
+}
+
 .form-grid {
   display: grid;
   gap: 12px;
@@ -1127,6 +1394,23 @@ watch(
 
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .finalize-product-row {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .finalize-add-row {
+    grid-template-columns: 1fr;
+  }
+
+  .finalize-add-btn {
+    width: 100%;
+  }
+
+  .finalize-product-total {
+    text-align: left;
   }
 
   .detail-actions-main,
