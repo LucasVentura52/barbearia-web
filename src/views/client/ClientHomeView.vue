@@ -2,28 +2,23 @@
   <div class="client-chat-page">
     <div class="chat-shell">
       <header class="chat-header">
-        <div class="chat-agent">
-          <div class="agent-avatar">IA</div>
-          <div>
-            <div class="agent-title">Assistente de agendamento</div>
-            <div class="agent-subtitle">{{ companyName }}</div>
+        <div class="chat-header-inner">
+          <div class="chat-agent">
+            <div class="agent-title">Assistente {{ companyName }}</div>
           </div>
-        </div>
-        <div class="header-actions">
-          <v-chip size="small" color="success" variant="tonal" class="agent-chip">
-            Online agora
-          </v-chip>
-          <v-menu location="bottom end">
-            <template #activator="{ props }">
-              <v-btn v-bind="props" variant="outlined" color="primary" size="small" class="options-btn">
-                <v-icon icon="mdi-dots-vertical" />
-              </v-btn>
-            </template>
-            <v-list density="compact" min-width="180">
-              <v-list-item prepend-icon="mdi-refresh" title="Reiniciar" @click="beginConversation" />
-              <v-list-item prepend-icon="mdi-logout" title="Sair" @click="leaveChat" />
-            </v-list>
-          </v-menu>
+          <div class="header-actions">
+            <v-menu location="bottom end">
+              <template #activator="{ props }">
+                <v-btn v-bind="props" variant="outlined" color="primary" size="small" class="options-btn">
+                  <v-icon icon="mdi-dots-vertical" />
+                </v-btn>
+              </template>
+              <v-list density="compact" min-width="180">
+                <v-list-item prepend-icon="mdi-refresh" title="Reiniciar" @click="beginConversation" />
+                <v-list-item prepend-icon="mdi-logout" title="Sair" @click="leaveChat" />
+              </v-list>
+            </v-menu>
+          </div>
         </div>
       </header>
 
@@ -33,7 +28,12 @@
             <div v-for="message in messages" :key="message.id" class="message-row"
               :class="`message-row--${message.role}`">
               <div class="message-bubble" :class="`message-bubble--${message.role}`">
-                {{ message.text }}
+                <template v-if="message.type === 'gif' && message.mediaUrl">
+                  <img :src="message.mediaUrl" :alt="message.alt || 'GIF'" class="message-gif" loading="lazy" />
+                </template>
+                <template v-else>
+                  {{ message.text }}
+                </template>
               </div>
               <div class="message-time">{{ formatMessageTime(message.sentAt) }}</div>
             </div>
@@ -47,8 +47,8 @@
             </div>
           </div>
 
-          <div class="message-row message-row--bot inline-options-row">
-            <div class="inline-options-card">
+          <div v-if="showInlineOptionsPanel" class="message-row message-row--bot inline-options-row">
+            <div class="message-bubble message-bubble--bot inline-options-card">
               <div class="inline-options-title">{{ panelTitle }}</div>
 
               <template v-if="state === 'menu'">
@@ -56,7 +56,7 @@
                   <v-btn color="primary" size="large" prepend-icon="mdi-calendar-check-outline" @click="startBooking">
                     Novo agendamento
                   </v-btn>
-                  <v-btn color="secondary" variant="tonal" size="large" prepend-icon="mdi-content-cut"
+                  <v-btn color="secondary" variant="tonal" size="large" prepend-icon="mdi-content-cut" class="menu-btn--services"
                     @click="openServices">
                     Ver serviços
                   </v-btn>
@@ -82,31 +82,6 @@
                   </template>
                 </v-alert>
 
-                <div v-if="favoriteSummary.hasAny" class="favorites-box">
-                  <div class="field-label mb-1">Seus atalhos</div>
-                  <div class="favorites-actions">
-                    <v-btn
-                      v-if="favoriteSummary.staff"
-                      size="small"
-                      variant="tonal"
-                      color="secondary"
-                      prepend-icon="mdi-star-outline"
-                      @click="startBookingFromFavoriteStaff"
-                    >
-                      {{ favoriteSummary.staff.name }}
-                    </v-btn>
-                    <v-chip
-                      v-for="service in favoriteSummary.services"
-                      :key="service.id"
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                      class="favorite-chip"
-                    >
-                      {{ service.name }}
-                    </v-chip>
-                  </div>
-                </div>
               </template>
 
               <template v-else-if="state === 'auth-required'">
@@ -139,8 +114,14 @@
 
                 <template v-else>
                   <div class="choice-grid">
-                    <button v-for="staff in staffOptions" :key="staff.id" type="button" class="choice-card"
-                      @click="chooseStaff(staff)">
+                    <button
+                      v-for="staff in staffOptions"
+                      :key="staff.id"
+                      type="button"
+                      class="choice-card"
+                      :class="{ 'choice-card--selected': booking.staffId === staff.id }"
+                      @click="chooseStaff(staff)"
+                    >
                       <v-avatar size="44" class="choice-avatar">
                         <v-img v-if="staff.avatar_url" :src="resolveMediaUrl(staff.avatar_url)" cover />
                         <span v-else>{{ initials(staff.name) }}</span>
@@ -149,9 +130,12 @@
                       <div class="choice-subtitle">{{ staff.services?.length || 0 }} serviço(s)</div>
                     </button>
                   </div>
-                  <div class="panel-actions">
-                    <v-btn variant="outlined" color="primary" prepend-icon="mdi-arrow-left" @click="goToMenu">
+                  <div class="panel-actions panel-actions--split">
+                    <v-btn variant="text" color="primary" prepend-icon="mdi-arrow-left" @click="goToMenu">
                       Voltar
+                    </v-btn>
+                    <v-btn color="primary" :disabled="!booking.staffId" @click="continueToServiceStep">
+                      Continuar
                     </v-btn>
                   </div>
                 </template>
@@ -187,7 +171,7 @@
                 </div>
 
                 <div class="panel-actions panel-actions--split">
-                  <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="state = 'booking-staff'">
+                  <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="backToStaffSelection">
                     Trocar profissional
                   </v-btn>
                   <v-btn color="primary" :disabled="!booking.serviceIds.length" @click="continueToDateStep">
@@ -216,7 +200,7 @@
                 </div>
 
                 <div class="panel-actions panel-actions--split">
-                  <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="state = 'booking-services'">
+                  <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="backToServiceSelection">
                     Voltar
                   </v-btn>
                 </div>
@@ -235,7 +219,7 @@
                 </div>
 
                 <div class="panel-actions panel-actions--split">
-                  <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="state = 'booking-date'">
+                  <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="backToDateSelection">
                     Trocar data
                   </v-btn>
                 </div>
@@ -267,12 +251,12 @@
                   </v-card-text>
                 </v-card>
 
-                <v-alert type="info" variant="tonal" class="mt-3">
+                <v-alert type="info" variant="tonal" class="mt-3 confirm-policy-alert">
                   Cancelamentos: até 2h antes sem custo. Menor antecedência pode impactar prioridade de novos encaixes.
                 </v-alert>
 
                 <div class="panel-actions panel-actions--split">
-                  <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="state = 'booking-slot'">
+                  <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="backToSlotSelection">
                     Trocar horário
                   </v-btn>
                   <v-btn color="primary" :loading="booking.saving" @click="confirmBooking">
@@ -526,21 +510,6 @@
         </div>
       </div>
 
-      <div v-if="showStickyBookingSummary" class="booking-sticky">
-        <div class="booking-sticky__meta">
-          <div>{{ selectedStaff?.name || 'Profissional' }}</div>
-          <div>{{ booking.serviceIds.length }} serviço(s) • {{ totalDuration }} min</div>
-        </div>
-        <div class="booking-sticky__value">{{ formatCurrencyBRL(totalPrice) }}</div>
-        <v-btn
-          v-if="state === 'booking-confirm'"
-          color="primary"
-          :loading="booking.saving"
-          @click="confirmBooking"
-        >
-          Confirmar
-        </v-btn>
-      </div>
     </div>
   </div>
 </template>
@@ -559,15 +528,23 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const alerts = useAlertStore()
+const BOOKING_SUCCESS_GIF_URL = 'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif'
 
 const chatBodyRef = ref(null)
 const chatContentRef = ref(null)
 const chatBottomRef = ref(null)
 const messages = ref([])
-const assistantTyping = ref(false)
+const assistantTypingByRequest = ref(false)
+const botQueuePendingCount = ref(0)
+const assistantTypingByQueue = computed(() => botQueuePendingCount.value > 0)
+const assistantTyping = computed(() => assistantTypingByRequest.value || assistantTypingByQueue.value)
 let nextMessageId = 1
 let pendingScrollFrame = null
 let contentResizeObserver = null
+let isChatActive = true
+let botMessageQueue = Promise.resolve()
+let botMessageQueueVersion = 0
+const activeTimeouts = new Set()
 
 const state = ref('menu')
 const loadingCatalog = ref(false)
@@ -671,10 +648,23 @@ const selectedServices = computed(() =>
   availableServices.value.filter((service) => booking.serviceIds.includes(service.id))
 )
 
-const showStickyBookingSummary = computed(() => {
-  if (!String(state.value || '').startsWith('booking-')) return false
-  if (!booking.staffId || !booking.serviceIds.length) return false
-  return true
+const showInlineOptionsPanel = computed(() => {
+  const statesWithPanel = [
+    'menu',
+    'auth-required',
+    'booking-staff',
+    'booking-services',
+    'booking-date',
+    'booking-slot',
+    'booking-confirm',
+    'appointments',
+    'services',
+    'profile',
+  ]
+
+  if (!statesWithPanel.includes(String(state.value || ''))) return false
+  if (!messages.value.length) return false
+  return !assistantTypingByQueue.value
 })
 
 const selectedServicesLabel = computed(() => {
@@ -754,57 +744,94 @@ const upcomingReminders = computed(() => {
     .filter(Boolean)
 })
 
-const favoriteSummary = computed(() => {
-  const countsByStaff = new Map()
-  const countsByService = new Map()
-
-  appointments.value.forEach((appointment) => {
-    if (!['scheduled', 'done'].includes(appointment.status)) return
-
-    if (appointment.staff?.id) {
-      const current = countsByStaff.get(appointment.staff.id) || { count: 0, staff: appointment.staff }
-      current.count += 1
-      countsByStaff.set(appointment.staff.id, current)
-    }
-
-    ;(appointment.services || []).forEach((service) => {
-      const current = countsByService.get(service.id) || { count: 0, service }
-      current.count += 1
-      countsByService.set(service.id, current)
-    })
-  })
-
-  const topStaff = Array.from(countsByStaff.values()).sort((a, b) => b.count - a.count)[0]?.staff || null
-  const topServices = Array.from(countsByService.values())
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 2)
-    .map((item) => item.service)
-
-  return {
-    staff: topStaff,
-    services: topServices,
-    hasAny: Boolean(topStaff || topServices.length),
-  }
-})
-
 const syncProfileForm = () => {
   profileForm.name = auth.user?.name || ''
   profileForm.email = auth.user?.email || ''
   profileErrors.value = {}
 }
 
-const pushMessage = (role, text) => {
+const buildAssistantSeenStorageKey = () => {
+  if (auth.user?.id) {
+    return `client_chat_seen:${auth.user.id}`
+  }
+  return 'client_chat_seen:guest'
+}
+
+const hasSeenAssistantBefore = () => {
+  return localStorage.getItem(buildAssistantSeenStorageKey()) === '1'
+}
+
+const markAssistantAsSeen = () => {
+  localStorage.setItem(buildAssistantSeenStorageKey(), '1')
+}
+
+const hasAppointmentHistory = computed(() => appointments.value.length > 0)
+
+const BOT_MESSAGE_GAP_MS = 80
+const BOT_MIN_TYPING_MS = 180
+const BOT_MAX_TYPING_MS = 780
+
+const pushMessage = (role, text, options = {}) => {
   messages.value.push({
     id: nextMessageId++,
     role,
     text,
+    type: options.type || 'text',
+    mediaUrl: options.mediaUrl || '',
+    alt: options.alt || '',
     sentAt: new Date(),
   })
   scrollChatToBottom()
 }
 
-const sendBotMessage = (text) => pushMessage('bot', text)
+const wait = (ms) =>
+  new Promise((resolve) => {
+    const timeoutId = setTimeout(() => {
+      activeTimeouts.delete(timeoutId)
+      resolve()
+    }, ms)
+    activeTimeouts.add(timeoutId)
+  })
+
+const estimateBotTypingMs = ({ text = '', type = 'text' } = {}) => {
+  if (type === 'gif') return 320
+  const length = String(text || '').trim().length
+  const estimated = 130 + length * 14
+  return Math.max(BOT_MIN_TYPING_MS, Math.min(BOT_MAX_TYPING_MS, estimated))
+}
+
+const resetBotMessageQueue = () => {
+  botMessageQueueVersion += 1
+  botMessageQueue = Promise.resolve()
+  botQueuePendingCount.value = 0
+}
+
+const enqueueBotMessage = ({ text = '', options = {} }) => {
+  botQueuePendingCount.value += 1
+  const queueVersion = botMessageQueueVersion
+  botMessageQueue = botMessageQueue
+    .then(async () => {
+      if (!isChatActive || queueVersion !== botMessageQueueVersion) return
+
+      await wait(estimateBotTypingMs({ text, type: options.type }))
+      if (!isChatActive || queueVersion !== botMessageQueueVersion) return
+
+      pushMessage('bot', text, options)
+      await wait(BOT_MESSAGE_GAP_MS)
+    })
+    .finally(() => {
+      botQueuePendingCount.value = Math.max(0, botQueuePendingCount.value - 1)
+    })
+    .catch(() => {
+      // No-op: queue accounting is handled in finally.
+    })
+}
+
+const sendBotMessage = (text) => enqueueBotMessage({ text })
 const sendUserMessage = (text) => pushMessage('user', text)
+const sendBotGif = (mediaUrl, alt = 'GIF de confirmação') => {
+  enqueueBotMessage({ text: '', options: { type: 'gif', mediaUrl, alt } })
+}
 
 const scrollChatToBottomNow = () => {
   const element = chatBodyRef.value
@@ -834,11 +861,11 @@ const scrollChatToBottom = () => {
 }
 
 const runWithTyping = async (request) => {
-  assistantTyping.value = true
+  assistantTypingByRequest.value = true
   try {
     return await request()
   } finally {
-    assistantTyping.value = false
+    assistantTypingByRequest.value = false
   }
 }
 
@@ -949,28 +976,50 @@ const ensureCatalogLoaded = async () => {
 }
 
 const beginConversation = () => {
+  resetBotMessageQueue()
   messages.value = []
   nextMessageId = 1
   state.value = 'menu'
   resetBooking()
 
   const firstName = auth.user?.name?.split(' ')[0]
-  if (firstName) {
-    sendBotMessage(`Olá, ${firstName}. Vou te ajudar a agendar em poucos passos.`)
-  } else {
-    sendBotMessage('Olá. Sou sua assistente de agendamento.')
-  }
+  const seenBefore = hasSeenAssistantBefore()
+  const isFirstAccess = auth.isAuthenticated && !seenBefore && !hasAppointmentHistory.value
 
-  if (auth.isAuthenticated) {
+  if (isFirstAccess) {
+    if (firstName) {
+      sendBotMessage(`Bem-vindo, ${firstName}. Esse é seu primeiro acesso por aqui.`)
+    } else {
+      sendBotMessage('Bem-vindo. Esse é seu primeiro acesso por aqui.')
+    }
+    sendBotMessage('Posso te guiar no seu primeiro agendamento: escolha profissional, serviços, data e horário.')
+    sendBotMessage('Quando confirmar, você acompanha seus horários na opção "Meus agendamentos".')
+  } else if (auth.isAuthenticated && hasAppointmentHistory.value) {
+    if (firstName) {
+      sendBotMessage(`Que bom te ver de novo, ${firstName}.`)
+    } else {
+      sendBotMessage('Que bom te ver de novo.')
+    }
+    sendBotMessage('Vi que você já tem histórico de agendamentos. Posso acelerar seu próximo atendimento.')
+    sendBotMessage(`Você já tem ${appointments.value.length} agendamento(s) registrado(s).`)
+  } else if (auth.isAuthenticated) {
+    if (firstName) {
+      sendBotMessage(`Olá, ${firstName}. Vou te ajudar a agendar em poucos passos.`)
+    } else {
+      sendBotMessage('Olá. Sou sua assistente de agendamento.')
+    }
     sendBotMessage('Sua conta está conectada. Podemos criar, revisar ou cancelar horários por aqui.')
   } else {
+    sendBotMessage('Olá. Sou sua assistente de agendamento.')
     sendBotMessage('Você pode explorar serviços agora e fazer login para confirmar agendamentos.')
   }
 
   sendBotMessage('Escolha uma opção abaixo para continuar.')
+  markAssistantAsSeen()
 }
 
 const goToMenu = () => {
+  sendUserMessage('Voltar ao menu.')
   state.value = 'menu'
   sendBotMessage('Perfeito. O que você quer fazer agora?')
 }
@@ -1008,35 +1057,28 @@ const startBooking = async () => {
   sendBotMessage('Perfeito. Primeiro, escolha o profissional.')
 }
 
-const startBookingFromFavoriteStaff = async () => {
-  if (!favoriteSummary.value.staff) {
-    await startBooking()
-    return
-  }
+const backToStaffSelection = () => {
+  sendUserMessage('Quero trocar o profissional.')
+  state.value = 'booking-staff'
+  sendBotMessage('Sem problema. Escolha outro profissional.')
+}
 
-  if (!auth.isAuthenticated) {
-    state.value = 'auth-required'
-    sendBotMessage('Faça login para usar seus atalhos.')
-    return
-  }
+const backToServiceSelection = () => {
+  sendUserMessage('Quero ajustar os serviços.')
+  state.value = 'booking-services'
+  sendBotMessage('Claro. Atualize os serviços que você deseja.')
+}
 
-  const ready = await ensureCatalogLoaded()
-  if (!ready) return
-
-  const preferred = staffOptions.value.find((staff) => staff.id === favoriteSummary.value.staff.id)
-  if (!preferred) {
-    await startBooking()
-    return
-  }
-
-  resetBooking()
-  booking.staffId = preferred.id
-  booking.serviceIds = favoriteSummary.value.services
-    .map((service) => service.id)
-    .filter((serviceId) => preferred.services?.some((service) => service.id === serviceId))
+const backToDateSelection = () => {
+  sendUserMessage('Quero escolher outra data.')
   state.value = 'booking-date'
-  sendUserMessage(`Quero repetir com ${preferred.name}.`)
-  sendBotMessage('Perfeito. Selecione a data para eu buscar horários.')
+  sendBotMessage('Perfeito. Selecione outra data para buscar horários.')
+}
+
+const backToSlotSelection = () => {
+  sendUserMessage('Quero escolher outro horário.')
+  state.value = 'booking-slot'
+  sendBotMessage('Sem problema. Escolha outro horário disponível.')
 }
 
 const chooseStaff = (staff) => {
@@ -1047,10 +1089,17 @@ const chooseStaff = (staff) => {
   booking.slots = []
   booking.selectedSlot = null
   booking.availabilityError = ''
+}
 
-  sendUserMessage(`Quero ser atendido por ${staff.name}.`)
+const continueToServiceStep = () => {
+  if (!booking.staffId) {
+    alerts.warning('Selecione um profissional para continuar.')
+    return
+  }
+
+  sendUserMessage(`Quero ser atendido por ${selectedStaff.value?.name || 'esse profissional'}.`)
   state.value = 'booking-services'
-  sendBotMessage(`Ótimo. Agora selecione os serviços com ${staff.name}.`)
+  sendBotMessage(`Ótimo. Agora selecione os serviços com ${selectedStaff.value?.name || 'esse profissional'}.`)
 }
 
 const toggleService = (serviceId) => {
@@ -1100,7 +1149,12 @@ const fetchAvailability = async () => {
     booking.serviceIds.forEach((serviceId) => params.append('service_ids[]', String(serviceId)))
 
     const { data } = await runWithTyping(() => api.get(`/api/availability?${params.toString()}`))
-    booking.slots = Array.isArray(data?.slots) ? data.slots : []
+    const now = Date.now()
+    const apiSlots = Array.isArray(data?.slots) ? data.slots : []
+    booking.slots = apiSlots.filter((slot) => {
+      const timestamp = new Date(slot).getTime()
+      return Number.isFinite(timestamp) && timestamp > now
+    })
 
     if (!booking.slots.length) {
       state.value = 'booking-date'
@@ -1148,6 +1202,9 @@ const confirmBooking = async () => {
     )
 
     sendBotMessage(`Total confirmado: ${formatCurrencyBRL(data?.total_price || totalPrice.value)}.`)
+    sendBotMessage('Perfeito. Seu horario ja esta reservado e te aguardo no dia marcado.')
+    sendBotGif(BOOKING_SUCCESS_GIF_URL, 'Agendamento confirmado')
+    sendBotMessage('Se quiser, posso te ajudar com outro agendamento ou te mostrar seus horarios.')
 
     if (rescheduleSource.value?.id) {
       try {
@@ -1437,6 +1494,11 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  isChatActive = false
+  resetBotMessageQueue()
+  activeTimeouts.forEach((timeoutId) => clearTimeout(timeoutId))
+  activeTimeouts.clear()
+
   if (pendingScrollFrame !== null) {
     cancelAnimationFrame(pendingScrollFrame)
     pendingScrollFrame = null
@@ -1468,32 +1530,24 @@ onBeforeUnmount(() => {
 }
 
 .chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding: 16px 18px;
   border-bottom: 1px solid rgba(180, 208, 221, 0.2);
   background: linear-gradient(148deg, rgba(26, 36, 45, 0.96), rgba(18, 25, 32, 0.86));
 }
 
+.chat-header-inner {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .chat-agent {
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.agent-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  font-family: var(--display-font);
-  font-size: 0.84rem;
-  letter-spacing: 0.06em;
-  color: #f4f9fb;
-  background: linear-gradient(142deg, #5a8b8f 0%, #7fa4a8 58%, #c39872 100%);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.26);
+  min-width: 0;
 }
 
 .agent-title {
@@ -1501,15 +1555,9 @@ onBeforeUnmount(() => {
   color: #edf4f7;
   font-size: 1rem;
   font-weight: 700;
-}
-
-.agent-subtitle {
-  color: rgba(226, 238, 244, 0.68);
-  font-size: 0.8rem;
-}
-
-.agent-chip {
-  border-color: rgba(112, 179, 141, 0.42) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-actions {
@@ -1519,11 +1567,6 @@ onBeforeUnmount(() => {
   justify-content: flex-end;
   margin-left: auto;
   gap: 8px;
-}
-
-.agent-chip {
-  min-height: var(--status-control-height);
-  height: var(--status-control-height);
 }
 
 .options-btn {
@@ -1549,6 +1592,8 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  width: min(980px, 100%);
+  margin: 0 auto;
 }
 
 .chat-bottom-anchor {
@@ -1577,6 +1622,14 @@ onBeforeUnmount(() => {
   font-size: 0.95rem;
   line-height: 1.45;
   white-space: pre-wrap;
+}
+
+.message-gif {
+  display: block;
+  width: min(320px, 100%);
+  max-width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(205, 229, 237, 0.35);
 }
 
 .message-bubble--bot {
@@ -1637,19 +1690,96 @@ onBeforeUnmount(() => {
 }
 
 .inline-options-card {
-  width: 100%;
-  border: 1px solid rgba(153, 184, 198, 0.32);
-  background: linear-gradient(176deg, rgba(247, 252, 254, 0.96), rgba(237, 246, 250, 0.9));
+  width: min(980px, 100%);
+  max-width: 100%;
+  border: 1px solid rgba(122, 163, 176, 0.24);
+  background: linear-gradient(156deg, rgba(77, 108, 119, 0.78), rgba(59, 81, 91, 0.86));
   border-radius: 16px;
-  padding: 12px;
-  box-shadow: 0 14px 30px rgba(6, 12, 16, 0.2);
+  padding: 12px 12px 14px;
+  box-shadow: none;
+  color: #f6fafc;
 }
 
 .inline-options-title {
   font-family: var(--display-font);
   font-size: 0.92rem;
-  color: var(--ink-900);
+  color: rgba(236, 247, 252, 0.92);
   margin-bottom: 10px;
+}
+
+.inline-options-card :deep(.v-btn) {
+  border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.inline-options-card :deep(.v-btn.v-btn--variant-elevated),
+.inline-options-card :deep(.v-btn.v-btn--variant-flat) {
+  box-shadow: 0 8px 18px rgba(8, 14, 18, 0.32);
+}
+
+.inline-options-card :deep(.v-btn.v-btn--variant-elevated.v-theme--light.bg-primary),
+.inline-options-card :deep(.v-btn.v-btn--variant-flat.v-theme--light.bg-primary),
+.inline-options-card :deep(.v-btn.v-btn--variant-elevated.bg-primary),
+.inline-options-card :deep(.v-btn.v-btn--variant-flat.bg-primary) {
+  background: linear-gradient(140deg, #6ea5b0, #3f7480) !important;
+  color: #f7fcff !important;
+}
+
+.inline-options-card :deep(.v-btn.v-btn--variant-elevated.v-theme--light.bg-secondary),
+.inline-options-card :deep(.v-btn.v-btn--variant-flat.v-theme--light.bg-secondary),
+.inline-options-card :deep(.v-btn.v-btn--variant-elevated.bg-secondary),
+.inline-options-card :deep(.v-btn.v-btn--variant-flat.bg-secondary) {
+  background: linear-gradient(140deg, #c08a58, #9b6439) !important;
+  color: #fff8f1 !important;
+}
+
+.inline-options-card :deep(.v-btn.v-btn--variant-outlined),
+.inline-options-card :deep(.v-btn.v-btn--variant-text),
+.inline-options-card :deep(.v-btn.v-btn--variant-tonal) {
+  border-color: rgba(198, 224, 233, 0.44) !important;
+  color: rgba(241, 249, 252, 0.96) !important;
+}
+
+.inline-options-card :deep(.menu-btn--services) {
+  border: 1px solid rgba(246, 214, 183, 0.72) !important;
+}
+
+.inline-options-card :deep(.v-field) {
+  background: rgba(12, 22, 28, 0.42) !important;
+  color: rgba(238, 249, 253, 0.96) !important;
+}
+
+.inline-options-card :deep(.v-field__outline) {
+  --v-field-border-opacity: 0.7;
+}
+
+.inline-options-card :deep(.v-field-label),
+.inline-options-card :deep(.v-field__input),
+.inline-options-card :deep(.v-select__selection-text),
+.inline-options-card :deep(input),
+.inline-options-card :deep(textarea) {
+  color: rgba(238, 249, 253, 0.96) !important;
+}
+
+.inline-options-card :deep(.v-input__prepend .v-icon),
+.inline-options-card :deep(.v-input__append .v-icon),
+.inline-options-card :deep(.v-field__clearable .v-icon),
+.inline-options-card :deep(.v-field__append-inner .v-icon) {
+  color: rgba(205, 229, 237, 0.9) !important;
+}
+
+.inline-options-card :deep(.v-input__details),
+.inline-options-card :deep(.v-messages__message) {
+  color: rgba(198, 221, 230, 0.82) !important;
+}
+
+.inline-options-card :deep(.v-alert) {
+  color: rgba(238, 249, 253, 0.96) !important;
+}
+
+.inline-options-card :deep(.v-alert .v-alert__content) {
+  color: rgba(238, 249, 253, 0.96) !important;
 }
 
 .action-grid {
@@ -1663,24 +1793,6 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 10px;
-}
-
-.favorites-box {
-  margin-top: 12px;
-  border: 1px solid rgba(87, 120, 132, 0.2);
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 12px;
-  padding: 10px;
-}
-
-.favorites-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.favorite-chip {
-  border-style: dashed;
 }
 
 .panel-actions--split {
@@ -1699,8 +1811,8 @@ onBeforeUnmount(() => {
 }
 
 .choice-card {
-  border: 1px solid rgba(87, 120, 132, 0.22);
-  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(174, 208, 219, 0.42);
+  background: linear-gradient(158deg, rgba(101, 142, 156, 0.34), rgba(46, 69, 80, 0.52));
   border-radius: 14px;
   text-align: left;
   padding: 11px 12px;
@@ -1710,8 +1822,8 @@ onBeforeUnmount(() => {
 
 .choice-card:hover {
   transform: translateY(-1px);
-  border-color: rgba(87, 120, 132, 0.46);
-  box-shadow: 0 10px 20px rgba(59, 90, 100, 0.16);
+  border-color: rgba(216, 238, 245, 0.72);
+  box-shadow: 0 10px 20px rgba(8, 14, 18, 0.34);
 }
 
 .choice-card--service {
@@ -1724,10 +1836,10 @@ onBeforeUnmount(() => {
   height: 110px;
   border-radius: 12px;
   overflow: hidden;
-  background: rgba(35, 58, 74, 0.08);
+  background: rgba(10, 19, 25, 0.3);
   display: grid;
   place-items: center;
-  color: rgba(35, 58, 74, 0.7);
+  color: rgba(222, 239, 246, 0.82);
   margin-bottom: 8px;
 }
 
@@ -1737,42 +1849,44 @@ onBeforeUnmount(() => {
 }
 
 .choice-card--selected {
-  border-color: rgba(91, 140, 143, 0.68);
-  background: linear-gradient(154deg, rgba(91, 140, 143, 0.15), rgba(184, 136, 94, 0.12));
+  border-color: rgba(246, 214, 183, 0.78);
+  background: linear-gradient(154deg, rgba(192, 138, 88, 0.42), rgba(118, 165, 178, 0.38));
+  box-shadow: 0 0 0 1px rgba(255, 228, 199, 0.35) inset;
 }
 
 .choice-avatar {
   margin-bottom: 8px;
-  background: rgba(35, 58, 74, 0.1);
+  background: rgba(12, 22, 28, 0.42);
 }
 
 .choice-title {
   font-weight: 700;
-  color: var(--ink-900);
+  color: #eef7fb;
   line-height: 1.3;
 }
 
 .choice-subtitle {
-  color: var(--ink-500);
+  color: rgba(214, 231, 238, 0.74);
   font-size: 0.82rem;
 }
 
 .choice-price {
   margin-top: 4px;
   font-family: var(--display-font);
-  color: var(--ink-900);
+  color: #f3fafc;
 }
 
 .panel-summary {
   margin-top: 10px;
-  border: 1px solid rgba(87, 120, 132, 0.18);
-  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(143, 183, 196, 0.2);
+  background: rgba(17, 28, 35, 0.34);
   border-radius: 12px;
   padding: 10px 12px;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   justify-content: space-between;
+  color: rgba(238, 249, 253, 0.96);
 }
 
 .date-tools {
@@ -1790,12 +1904,19 @@ onBeforeUnmount(() => {
 
 .slot-btn {
   min-width: 88px;
+  color: rgba(238, 249, 253, 0.96) !important;
+  border-color: rgba(187, 217, 226, 0.62) !important;
+  background: rgba(17, 28, 35, 0.34) !important;
 }
 
 .confirm-card {
-  border: 1px solid rgba(87, 120, 132, 0.2);
+  border: 1px solid rgba(143, 183, 196, 0.24);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(19, 31, 38, 0.42);
+}
+
+.confirm-card :deep(.v-card-text) {
+  color: rgba(236, 247, 252, 0.92);
 }
 
 .confirm-row {
@@ -1804,6 +1925,24 @@ onBeforeUnmount(() => {
   gap: 14px;
   padding: 6px 0;
   border-bottom: 1px dashed rgba(87, 120, 132, 0.18);
+}
+
+.confirm-row span {
+  color: rgba(197, 221, 230, 0.78);
+}
+
+.confirm-row strong {
+  color: #f7fcff;
+}
+
+.confirm-policy-alert {
+  border: 1px solid rgba(170, 213, 226, 0.52) !important;
+  background: linear-gradient(148deg, rgba(74, 121, 135, 0.34), rgba(37, 73, 87, 0.5)) !important;
+  color: rgba(238, 249, 253, 0.96) !important;
+}
+
+.confirm-policy-alert :deep(.v-alert__content) {
+  color: rgba(238, 249, 253, 0.96) !important;
 }
 
 .confirm-row:last-child {
@@ -1820,8 +1959,8 @@ onBeforeUnmount(() => {
 }
 
 .reminders-box {
-  border: 1px solid rgba(87, 120, 132, 0.2);
-  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(143, 183, 196, 0.2);
+  background: rgba(17, 29, 36, 0.34);
   border-radius: 12px;
   padding: 10px;
 }
@@ -1833,9 +1972,13 @@ onBeforeUnmount(() => {
 }
 
 .appointment-card {
-  border: 1px solid rgba(87, 120, 132, 0.16);
+  border: 1px solid rgba(143, 183, 196, 0.2);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(18, 29, 36, 0.38);
+}
+
+.appointment-card :deep(.v-card-text) {
+  color: rgba(236, 247, 252, 0.94);
 }
 
 .appointment-head {
@@ -1847,12 +1990,13 @@ onBeforeUnmount(() => {
 
 .appointment-title {
   font-weight: 700;
+  color: #f2fbff;
 }
 
 .appointment-time,
 .appointment-meta {
   font-size: 0.84rem;
-  color: var(--ink-500);
+  color: rgba(214, 231, 238, 0.74);
 }
 
 .appointment-services {
@@ -1869,14 +2013,23 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 
+.appointment-footer strong {
+  color: #f5fcff;
+}
+
+.appointment-services :deep(.v-chip) {
+  color: rgba(236, 247, 252, 0.94) !important;
+  border-color: rgba(174, 208, 219, 0.44) !important;
+}
+
 .appointment-actions {
   display: flex;
   gap: 8px;
 }
 
 .profile-card {
-  border: 1px solid rgba(87, 120, 132, 0.2);
-  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(143, 183, 196, 0.22);
+  background: rgba(19, 31, 38, 0.4);
   border-radius: 14px;
   padding: 12px;
 }
@@ -1923,44 +2076,17 @@ onBeforeUnmount(() => {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--ink-500);
+  color: rgba(198, 221, 230, 0.68);
 }
 
 .loading-box,
 .empty-note {
   border-radius: 12px;
   padding: 18px;
-  border: 1px solid rgba(87, 120, 132, 0.2);
-  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(143, 183, 196, 0.22);
+  background: rgba(15, 26, 33, 0.36);
   text-align: center;
-  color: var(--ink-700);
-}
-
-.booking-sticky {
-  position: sticky;
-  bottom: 0;
-  z-index: 4;
-  margin: 10px 18px 0;
-  border: 1px solid rgba(153, 184, 198, 0.3);
-  background: rgba(248, 253, 255, 0.95);
-  backdrop-filter: blur(8px);
-  border-radius: 14px;
-  padding: 10px 12px;
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 10px;
-  align-items: center;
-}
-
-.booking-sticky__meta {
-  color: var(--ink-900);
-  font-size: 0.82rem;
-}
-
-.booking-sticky__value {
-  font-family: var(--display-font);
-  font-weight: 700;
-  color: var(--ink-900);
+  color: rgba(227, 240, 246, 0.9);
 }
 
 .bubble-enter-active,
@@ -2003,6 +2129,11 @@ onBeforeUnmount(() => {
     padding: 14px;
   }
 
+  .header-actions {
+    gap: 6px;
+    margin-left: auto;
+  }
+
   .chat-body {
     padding: 12px;
   }
@@ -2017,11 +2148,6 @@ onBeforeUnmount(() => {
 
   .appointments-filters {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .header-actions {
-    gap: 6px;
-    margin-left: auto;
   }
 
   .service-media {
@@ -2053,21 +2179,22 @@ onBeforeUnmount(() => {
   }
 
   .chat-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
     padding: 12px;
   }
 
+  .chat-header-inner {
+    gap: 8px;
+  }
+
   .chat-agent {
-    gap: 10px;
+    gap: 0;
   }
 
   .header-actions {
     width: auto;
     display: flex;
     justify-content: flex-end;
-    align-self: flex-end;
+    align-self: auto;
     gap: 8px;
   }
 
@@ -2149,26 +2276,11 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
   }
 
-  .booking-sticky {
-    margin: 8px 10px 0;
-    grid-template-columns: 1fr;
-  }
-
 }
 
 @media (max-width: 420px) {
-  .agent-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 0.76rem;
-  }
-
   .agent-title {
     font-size: 0.92rem;
-  }
-
-  .agent-subtitle {
-    font-size: 0.74rem;
   }
 
   .message-bubble {

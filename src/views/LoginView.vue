@@ -259,18 +259,35 @@ watch(
   }
 )
 
-watchEffect(() => {
-  if (auth.isAuthenticated) {
-    if (auth.isSuperAdmin) {
-      router.replace(route.query.redirect || { name: 'super-admin-companies' })
-      return
-    }
-    if (auth.isStaff) {
-      router.replace(route.query.redirect || { name: 'staff-dashboard' })
-    } else {
-      router.replace(route.query.redirect || { name: 'client-home' })
-    }
+const defaultRouteByRole = () => {
+  if (auth.isSuperAdmin) return { name: 'super-admin-companies' }
+  if (auth.isStaff) return { name: 'staff-dashboard' }
+  return { name: 'client-home' }
+}
+
+const resolveRedirectForRole = () => {
+  const redirect = route.query.redirect
+  if (!redirect || typeof redirect !== 'string') return null
+
+  const resolved = router.resolve(redirect)
+  const targetName = String(resolved.name || '')
+
+  if (auth.isSuperAdmin) {
+    return redirect
   }
+
+  if (auth.isStaff) {
+    return targetName.startsWith('staff-') ? redirect : null
+  }
+
+  return targetName.startsWith('client-') ? redirect : null
+}
+
+watchEffect(() => {
+  if (!auth.isAuthenticated) return
+  if (!auth.hasValidatedSession) return
+
+  router.replace(resolveRedirectForRole() || defaultRouteByRole())
 })
 
 const handleLogin = async () => {
