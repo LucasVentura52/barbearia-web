@@ -295,7 +295,9 @@
                   <div class="appointments-filters">
                     <v-text-field
                       v-model="appointmentFilters.search"
-                      label="Buscar serviço/profissional"
+                      class="appointments-filter-control mt-3"
+                      placeholder="Buscar serviço/profissional"
+                      aria-label="Buscar serviço/profissional"
                       prepend-inner-icon="mdi-magnify"
                       variant="outlined"
                       density="compact"
@@ -303,20 +305,22 @@
                     />
                     <v-select
                       v-model="appointmentFilters.status"
+                      class="appointments-filter-control"
                       :items="statusFilterOptions"
                       item-title="label"
                       item-value="value"
-                      label="Status"
+                      aria-label="Filtrar por status"
                       variant="outlined"
                       density="compact"
                       hide-details
                     />
                     <v-select
                       v-model="appointmentFilters.period"
+                      class="appointments-filter-control"
                       :items="periodFilterOptions"
                       item-title="label"
                       item-value="value"
-                      label="Período"
+                      aria-label="Filtrar por período"
                       variant="outlined"
                       density="compact"
                       hide-details
@@ -377,7 +381,7 @@
                             variant="outlined"
                             color="primary"
                             size="small"
-                            @click="cancelAppointment(appointment)"
+                            @click="startCancellationFlow(appointment)"
                           >
                             Cancelar
                           </v-btn>
@@ -503,6 +507,34 @@
                   </v-btn>
                 </div>
               </template>
+
+              <template v-else-if="state === 'appointments-cancel-reason'">
+                <div class="panel-summary">
+                  <div>Cancelando: {{ formatDateTime(cancelContext.startAt) }}</div>
+                  <div>{{ cancelContext.staffName || 'Equipe' }}</div>
+                </div>
+
+                <v-textarea
+                  v-model="cancelContext.reason"
+                  class="mt-3"
+                  label="Conte o motivo do cancelamento"
+                  placeholder="Ex.: surgiu um imprevisto no trabalho."
+                  variant="outlined"
+                  density="compact"
+                  rows="3"
+                  auto-grow
+                  hide-details
+                />
+
+                <div class="panel-actions panel-actions--split mt-3">
+                  <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="cancelReasonStepBack">
+                    Voltar
+                  </v-btn>
+                  <v-btn color="primary" :loading="cancelContext.saving" @click="submitCancellationReason">
+                    Enviar e cancelar
+                  </v-btn>
+                </div>
+              </template>
             </div>
           </div>
 
@@ -529,6 +561,8 @@ const router = useRouter()
 const auth = useAuthStore()
 const alerts = useAlertStore()
 const BOOKING_SUCCESS_GIF_URL = 'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif'
+const BOOKING_CANCEL_SAD_GIF_URL = 'https://media.giphy.com/media/BEob5qwFkSJ7G/giphy.gif'
+const BOOKING_RESCHEDULE_GIF_URL = 'https://media.giphy.com/media/l3vR85PnGsBwu1PFK/giphy.gif'
 
 const chatBodyRef = ref(null)
 const chatContentRef = ref(null)
@@ -568,6 +602,13 @@ const profileErrors = ref({})
 const profilePhotoFile = ref(null)
 const savingProfile = ref(false)
 const uploadingProfilePhoto = ref(false)
+const cancelContext = reactive({
+  appointmentId: null,
+  startAt: '',
+  staffName: '',
+  reason: '',
+  saving: false,
+})
 
 const toLocalDateString = (date) => {
   const offset = date.getTimezoneOffset() * 60000
@@ -607,6 +648,7 @@ const panelTitle = computed(() => {
     'booking-slot': 'Passo 4: horário',
     'booking-confirm': 'Passo 5: confirmar',
     appointments: 'Seus agendamentos',
+    'appointments-cancel-reason': 'Motivo do cancelamento',
     services: 'Catálogo de serviços',
     profile: 'Seu perfil',
   }
@@ -658,6 +700,7 @@ const showInlineOptionsPanel = computed(() => {
     'booking-slot',
     'booking-confirm',
     'appointments',
+    'appointments-cancel-reason',
     'services',
     'profile',
   ]
@@ -879,6 +922,11 @@ const resetBooking = () => {
   booking.loadingSlots = false
   booking.saving = false
   rescheduleSource.value = null
+  cancelContext.appointmentId = null
+  cancelContext.startAt = ''
+  cancelContext.staffName = ''
+  cancelContext.reason = ''
+  cancelContext.saving = false
 }
 
 const statusLabel = (status) => {
@@ -1212,6 +1260,7 @@ const confirmBooking = async () => {
           reason: 'Reagendado pelo cliente (chat)',
         })
         sendBotMessage('Seu horário anterior foi cancelado automaticamente.')
+        sendBotGif(BOOKING_RESCHEDULE_GIF_URL, 'Reagendamento confirmado')
       } catch {
         sendBotMessage('Consegui criar o novo horário, mas não cancelou o anterior. Cancele em "Meus horários".')
       }
@@ -1273,24 +1322,57 @@ const openAppointments = async () => {
   await loadAppointments()
 }
 
-const cancelAppointment = async (appointment) => {
+const startCancellationFlow = (appointment) => {
   if (appointment.status !== 'scheduled') return
 
   sendUserMessage(`Cancelar horário de ${formatDateTime(appointment.start_at)}.`)
+  cancelContext.appointmentId = appointment.id
+  cancelContext.startAt = appointment.start_at
+  cancelContext.staffName = appointment.staff?.name || 'Equipe'
+  cancelContext.reason = ''
+  cancelContext.saving = false
+  state.value = 'appointments-cancel-reason'
+  sendBotMessage('Entendi. Me conte o motivo do cancelamento para eu registrar corretamente.')
+}
+
+const cancelReasonStepBack = () => {
+  cancelContext.reason = ''
+  cancelContext.saving = false
+  state.value = 'appointments'
+  sendBotMessage('Sem problemas. Você pode manter ou escolher outro horário.')
+}
+
+const submitCancellationReason = async () => {
+  if (!cancelContext.appointmentId) {
+    state.value = 'appointments'
+    return
+  }
+
+  const reason = String(cancelContext.reason || '').trim()
+  if (!reason) {
+    alerts.warning('Informe o motivo do cancelamento.')
+    return
+  }
+
+  sendUserMessage(`Motivo: ${reason}`)
+  cancelContext.saving = true
 
   try {
     await runWithTyping(() =>
-      api.post(`/api/appointments/${appointment.id}/cancel`, {
-        reason: 'Cancelado pelo cliente (chat)',
+      api.post(`/api/appointments/${cancelContext.appointmentId}/cancel`, {
+        reason,
       })
     )
 
     alerts.success('Agendamento cancelado.')
-    sendBotMessage('Agendamento cancelado com sucesso.')
+    sendBotMessage('Agendamento cancelado com sucesso. Sinto muito pelo imprevisto.')
+    sendBotGif(BOOKING_CANCEL_SAD_GIF_URL, 'Cancelamento confirmado')
     await loadAppointments({ silent: true })
     state.value = 'appointments'
   } catch {
     sendBotMessage('Não consegui cancelar esse horário agora. Tente novamente em instantes.')
+  } finally {
+    cancelContext.saving = false
   }
 }
 
@@ -1634,8 +1716,8 @@ onBeforeUnmount(() => {
 
 .message-bubble--bot {
   color: #f6fafc;
-  border: 1px solid rgba(122, 163, 176, 0.24);
-  background: linear-gradient(152deg, rgba(82, 118, 131, 0.82), rgba(62, 85, 96, 0.9));
+  border: 1px solid rgba(102, 170, 196, 0.34);
+  background: linear-gradient(152deg, rgba(46, 95, 116, 0.9), rgba(30, 64, 80, 0.92));
 }
 
 .message-bubble--user {
@@ -1663,8 +1745,8 @@ onBeforeUnmount(() => {
   justify-content: center;
   padding: 10px 0;
   border-radius: 16px;
-  border: 1px solid rgba(122, 163, 176, 0.24);
-  background: linear-gradient(152deg, rgba(82, 118, 131, 0.82), rgba(62, 85, 96, 0.9));
+  border: 1px solid rgba(102, 170, 196, 0.34);
+  background: linear-gradient(152deg, rgba(46, 95, 116, 0.9), rgba(30, 64, 80, 0.92));
 }
 
 .typing-bubble span {
@@ -1692,8 +1774,8 @@ onBeforeUnmount(() => {
 .inline-options-card {
   width: min(980px, 100%);
   max-width: 100%;
-  border: 1px solid rgba(122, 163, 176, 0.24);
-  background: linear-gradient(156deg, rgba(77, 108, 119, 0.78), rgba(59, 81, 91, 0.86));
+  border: 1px solid rgba(168, 183, 194, 0.24);
+  background: linear-gradient(156deg, rgba(52, 59, 68, 0.9), rgba(37, 43, 51, 0.92));
   border-radius: 16px;
   padding: 12px 12px 14px;
   box-shadow: none;
@@ -1775,11 +1857,13 @@ onBeforeUnmount(() => {
 }
 
 .inline-options-card :deep(.v-alert) {
+  border: 1px solid rgba(243, 202, 126, 0.62) !important;
+  background: linear-gradient(148deg, rgba(124, 92, 40, 0.54), rgba(92, 66, 28, 0.62)) !important;
   color: rgba(238, 249, 253, 0.96) !important;
 }
 
 .inline-options-card :deep(.v-alert .v-alert__content) {
-  color: rgba(238, 249, 253, 0.96) !important;
+  color: rgba(255, 244, 220, 0.98) !important;
 }
 
 .action-grid {
@@ -1811,8 +1895,8 @@ onBeforeUnmount(() => {
 }
 
 .choice-card {
-  border: 1px solid rgba(174, 208, 219, 0.42);
-  background: linear-gradient(158deg, rgba(101, 142, 156, 0.34), rgba(46, 69, 80, 0.52));
+  border: 1px solid rgba(139, 184, 206, 0.5);
+  background: linear-gradient(158deg, rgba(58, 93, 116, 0.52), rgba(30, 49, 62, 0.68));
   border-radius: 14px;
   text-align: left;
   padding: 11px 12px;
@@ -1849,8 +1933,8 @@ onBeforeUnmount(() => {
 }
 
 .choice-card--selected {
-  border-color: rgba(246, 214, 183, 0.78);
-  background: linear-gradient(154deg, rgba(192, 138, 88, 0.42), rgba(118, 165, 178, 0.38));
+  border-color: rgba(255, 205, 154, 0.84);
+  background: linear-gradient(154deg, rgba(176, 118, 67, 0.54), rgba(76, 121, 144, 0.42));
   box-shadow: 0 0 0 1px rgba(255, 228, 199, 0.35) inset;
 }
 
@@ -1878,8 +1962,8 @@ onBeforeUnmount(() => {
 
 .panel-summary {
   margin-top: 10px;
-  border: 1px solid rgba(143, 183, 196, 0.2);
-  background: rgba(17, 28, 35, 0.34);
+  border: 1px solid rgba(210, 176, 132, 0.34);
+  background: linear-gradient(152deg, rgba(73, 53, 33, 0.54), rgba(52, 38, 25, 0.6));
   border-radius: 12px;
   padding: 10px 12px;
   display: flex;
@@ -1905,14 +1989,14 @@ onBeforeUnmount(() => {
 .slot-btn {
   min-width: 88px;
   color: rgba(238, 249, 253, 0.96) !important;
-  border-color: rgba(187, 217, 226, 0.62) !important;
-  background: rgba(17, 28, 35, 0.34) !important;
+  border-color: rgba(150, 198, 220, 0.74) !important;
+  background: linear-gradient(152deg, rgba(35, 70, 88, 0.58), rgba(24, 49, 62, 0.64)) !important;
 }
 
 .confirm-card {
-  border: 1px solid rgba(143, 183, 196, 0.24);
+  border: 1px solid rgba(205, 173, 130, 0.4);
   border-radius: 14px;
-  background: rgba(19, 31, 38, 0.42);
+  background: linear-gradient(152deg, rgba(66, 48, 30, 0.54), rgba(43, 31, 20, 0.62));
 }
 
 .confirm-card :deep(.v-card-text) {
@@ -1936,13 +2020,13 @@ onBeforeUnmount(() => {
 }
 
 .confirm-policy-alert {
-  border: 1px solid rgba(170, 213, 226, 0.52) !important;
-  background: linear-gradient(148deg, rgba(74, 121, 135, 0.34), rgba(37, 73, 87, 0.5)) !important;
-  color: rgba(238, 249, 253, 0.96) !important;
+  border: 1px solid rgba(243, 202, 126, 0.7) !important;
+  background: linear-gradient(148deg, rgba(124, 92, 40, 0.62), rgba(92, 66, 28, 0.72)) !important;
+  color: rgba(255, 244, 220, 0.98) !important;
 }
 
 .confirm-policy-alert :deep(.v-alert__content) {
-  color: rgba(238, 249, 253, 0.96) !important;
+  color: rgba(255, 244, 220, 0.98) !important;
 }
 
 .confirm-row:last-child {
@@ -1959,8 +2043,8 @@ onBeforeUnmount(() => {
 }
 
 .reminders-box {
-  border: 1px solid rgba(143, 183, 196, 0.2);
-  background: rgba(17, 29, 36, 0.34);
+  border: 1px solid rgba(152, 176, 201, 0.34);
+  background: linear-gradient(152deg, rgba(44, 56, 72, 0.62), rgba(29, 39, 52, 0.7));
   border-radius: 12px;
   padding: 10px;
 }
@@ -1969,12 +2053,41 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  align-items: stretch;
+}
+
+.appointments-filter-control {
+  width: 100%;
+}
+
+.appointments-filter-control :deep(.v-input) {
+  height: 100%;
+}
+
+.appointments-filter-control :deep(.v-input__control) {
+  min-height: 44px;
+}
+
+.appointments-filter-control :deep(.v-field) {
+  height: 44px;
+  min-height: 44px;
+}
+
+.appointments-filter-control :deep(.v-field__input) {
+  min-height: 44px;
+  padding-top: 0;
+  padding-bottom: 0;
+  align-items: center;
+}
+
+.appointments-filter-control :deep(.v-field-label) {
+  display: none;
 }
 
 .appointment-card {
-  border: 1px solid rgba(143, 183, 196, 0.2);
+  border: 1px solid rgba(132, 176, 201, 0.34);
   border-radius: 14px;
-  background: rgba(18, 29, 36, 0.38);
+  background: linear-gradient(154deg, rgba(31, 56, 72, 0.56), rgba(22, 41, 53, 0.64));
 }
 
 .appointment-card :deep(.v-card-text) {
@@ -1996,7 +2109,7 @@ onBeforeUnmount(() => {
 .appointment-time,
 .appointment-meta {
   font-size: 0.84rem;
-  color: rgba(214, 231, 238, 0.74);
+  color: rgba(198, 219, 230, 0.8);
 }
 
 .appointment-services {
@@ -2019,7 +2132,8 @@ onBeforeUnmount(() => {
 
 .appointment-services :deep(.v-chip) {
   color: rgba(236, 247, 252, 0.94) !important;
-  border-color: rgba(174, 208, 219, 0.44) !important;
+  border-color: rgba(171, 201, 220, 0.44) !important;
+  background: rgba(32, 59, 76, 0.5) !important;
 }
 
 .appointment-actions {
