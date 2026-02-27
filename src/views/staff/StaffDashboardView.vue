@@ -135,23 +135,41 @@
 
     <v-row>
       <v-col cols="12" md="6">
-        <v-card class="glass-card" elevation="0">
-          <v-card-text>
-            <div class="section-label">Próximos agendamentos</div>
-            <div v-if="nextAppointments.length" class="list-grid">
-              <div class="list-item" v-for="appointment in nextAppointments" :key="appointment.id">
-                <div>
-                  <div class="list-title">{{ appointment.client?.name || 'Cliente' }}</div>
-                  <div class="text-muted">
-                    {{ formatDateTime(appointment.start_at) }} · {{ appointment.services.map((s) => s.name).join(', ') }}
+        <div class="stacked-cards">
+          <v-card class="glass-card" elevation="0">
+            <v-card-text>
+              <div class="section-label">Próximos agendamentos</div>
+              <div v-if="nextAppointments.length" class="list-grid">
+                <div class="list-item" v-for="appointment in nextAppointments" :key="appointment.id">
+                  <div>
+                    <div class="list-title">{{ appointment.client?.name || 'Cliente' }}</div>
+                    <div class="text-muted">
+                      {{ formatDateTime(appointment.start_at) }} · {{ appointment.services.map((s) => s.name).join(', ') }}
+                    </div>
                   </div>
+                  <v-chip color="secondary" variant="tonal">{{ formatCurrencyBRL(appointment.total_price) }}</v-chip>
                 </div>
-                <v-chip color="secondary" variant="tonal">{{ formatCurrencyBRL(appointment.total_price) }}</v-chip>
               </div>
-            </div>
-            <div v-else class="text-muted">Sem próximos agendamentos.</div>
-          </v-card-text>
-        </v-card>
+              <div v-else class="text-muted">Sem próximos agendamentos.</div>
+            </v-card-text>
+          </v-card>
+
+          <v-card class="glass-card" elevation="0">
+            <v-card-text>
+              <div class="section-label">Ranking de colaboradores (finalizados)</div>
+              <div v-if="staffRankingDone.length" class="list-grid">
+                <div class="list-item" v-for="(staff, index) in staffRankingDone" :key="staff.id">
+                  <div>
+                    <div class="list-title">{{ index + 1 }}. {{ staff.name }}</div>
+                    <div class="text-muted">{{ staff.done_count }} agendamento(s) concluído(s)</div>
+                  </div>
+                  <v-chip color="success" variant="tonal">{{ staff.done_count }}</v-chip>
+                </div>
+              </div>
+              <div v-else class="text-muted">Sem dados de agendamentos concluídos no período.</div>
+            </v-card-text>
+          </v-card>
+        </div>
       </v-col>
 
       <v-col cols="12" md="6">
@@ -293,6 +311,7 @@ const daily = ref([])
 const nextAppointments = ref([])
 const topServices = ref([])
 const topProducts = ref([])
+const staffRankingDone = ref([])
 
 const dailyChartCanvas = ref(null)
 const productMetricsChartCanvas = ref(null)
@@ -696,6 +715,7 @@ const loadDashboard = async () => {
     nextAppointments.value = data.next_appointments
     topServices.value = data.top_services
     topProducts.value = Array.isArray(data.top_products) ? data.top_products : []
+    staffRankingDone.value = Array.isArray(data.staff_ranking_done) ? data.staff_ranking_done : []
 
     await syncCharts()
   } finally {
@@ -792,6 +812,11 @@ onBeforeUnmount(destroyCharts)
 
 .list-title {
   font-weight: 600;
+}
+
+.stacked-cards {
+  display: grid;
+  gap: 12px;
 }
 
 .section-subtitle {
