@@ -220,6 +220,21 @@ a {
   color: rgba(87, 120, 132, 0.34);
 }
 
+.v-field .v-field-label {
+  opacity: 1;
+  color: rgba(33, 49, 57, 0.82);
+  font-weight: 500;
+}
+
+.v-field.v-field--active .v-field-label,
+.v-field.v-field--focused .v-field-label,
+.v-field.v-field--dirty .v-field-label,
+.v-field .v-field-label--floating {
+  opacity: 1 !important;
+  color: rgba(33, 49, 57, 0.9);
+  font-weight: 500;
+}
+
 .v-btn.bg-primary {
   background: linear-gradient(140deg, #55878a 0%, #67979b 58%, #8ca9ac 100%) !important;
   color: #f6fbfc !important;

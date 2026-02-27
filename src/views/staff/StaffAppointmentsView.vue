@@ -54,13 +54,13 @@
         </div>
         <v-card-text class="form-grid">
           <v-select v-if="isAdmin" v-model="createForm.staff_id" :items="createStaffItems" item-title="name"
-            item-value="id" label="Profissional" variant="outlined" />
+            item-value="id" label="Profissional" variant="outlined" hide-details="auto" />
           <v-text-field v-else :model-value="selectedCreateStaffLabel" label="Profissional" variant="outlined"
             prepend-inner-icon="mdi-account-tie" readonly />
 
           <v-autocomplete v-model="createForm.client_user_id" v-model:search="clientSearch" :items="clientOptions"
-            item-title="name" item-value="id" label="Cliente" clearable variant="outlined"
-            :loading="loadingClientOptions" no-data-text="Nenhum cliente encontrado">
+            item-title="name" item-value="id" label="Cliente" variant="outlined"
+            :loading="loadingClientOptions" no-data-text="Nenhum cliente encontrado" hide-details="auto">
             <template #item="{ props, item }">
               <v-list-item v-bind="props" :title="item.raw.name"
                 :subtitle="formatPhoneFromE164(item.raw.phone) || item.raw.email || 'Sem contato'" />
@@ -71,12 +71,12 @@
           </v-autocomplete>
 
           <v-select v-model="createForm.service_ids" :items="serviceOptions" item-title="name" item-value="id"
-            label="Serviços" multiple chips variant="outlined" />
+            label="Serviços" multiple chips variant="outlined" hide-details="auto" clearable />
 
-          <v-date-input v-model="createForm.date" label="Data" variant="outlined" />
+          <v-date-input v-model="createForm.date" label="Data" variant="outlined" hide-details="auto" clearable />
           <v-select v-model="createForm.slot" :items="createSlotItems" item-title="label" item-value="value"
             label="Horário disponível" variant="outlined" :loading="loadingCreateSlots"
-            no-data-text="Sem horários disponíveis" />
+            no-data-text="Sem horários disponíveis" hide-details="auto" clearable />
           <div class="edit-summary">
             <div class="text-muted">Duração</div>
             <div>{{ createTotals.duration }} min</div>
