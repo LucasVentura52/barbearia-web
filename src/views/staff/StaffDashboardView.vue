@@ -62,7 +62,7 @@
     </v-row>
 
     <v-row class="mb-2">
-      <v-col cols="12" md="4">
+      <v-col cols="12" md="6">
         <v-card class="glass-card dashboard-card" elevation="0">
           <v-card-text>
             <div class="card-label">Taxa de comparecimento</div>
@@ -71,7 +71,7 @@
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="12" md="4">
+      <v-col cols="12" md="6">
         <v-card class="glass-card dashboard-card" elevation="0">
           <v-card-text>
             <div class="card-label">Taxa de cancelamento</div>
@@ -80,23 +80,10 @@
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="12" md="4">
-        <v-card class="glass-card dashboard-card" elevation="0">
-          <v-card-text>
-            <div class="card-label">Status</div>
-            <div class="status-badges">
-              <v-chip size="small" color="primary" variant="tonal">Agendados {{ statusCount('scheduled') }}</v-chip>
-              <v-chip size="small" color="success" variant="tonal">Finalizados {{ statusCount('done') }}</v-chip>
-              <v-chip size="small" color="error" variant="tonal">Cancelados {{ statusCount('canceled') }}</v-chip>
-              <v-chip size="small" color="warning" variant="tonal">Não compareceu {{ statusCount('no_show') }}</v-chip>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
     </v-row>
 
     <v-row class="mb-2">
-      <v-col cols="12">
+      <v-col cols="12" md="6">
         <v-card class="glass-card chart-card" elevation="0">
           <v-card-text>
             <div class="section-label">Evolução diária</div>
@@ -107,9 +94,6 @@
           </v-card-text>
         </v-card>
       </v-col>
-    </v-row>
-
-    <v-row class="mb-2">
       <v-col cols="12" md="6">
         <v-card class="glass-card chart-card" elevation="0">
           <v-card-text>
@@ -117,6 +101,20 @@
             <div class="chart-shell">
               <canvas v-if="hasStatusData" ref="statusChartCanvas"></canvas>
               <div v-else class="chart-empty text-muted">Sem dados de status no período.</div>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <v-row class="mb-2">
+      <v-col cols="12" md="6">
+        <v-card class="glass-card chart-card" elevation="0">
+          <v-card-text>
+            <div class="section-label">Produtos no período</div>
+            <div class="chart-shell">
+              <canvas v-if="hasTopProductsData" ref="productMetricsChartCanvas"></canvas>
+              <div v-else class="chart-empty text-muted">Sem vendas de produtos no período.</div>
             </div>
           </v-card-text>
         </v-card>
@@ -159,7 +157,7 @@
       <v-col cols="12" md="6">
         <v-card class="glass-card" elevation="0">
           <v-card-text>
-            <div class="section-label">Resumo dos serviços</div>
+            <div class="section-label">Resumo dos serviços e produtos</div>
             <div v-if="topServices.length" class="list-grid">
               <div class="list-item" v-for="service in topServices" :key="service.id">
                 <div>
@@ -170,6 +168,20 @@
               </div>
             </div>
             <div v-else class="text-muted">Sem dados para este período.</div>
+
+            <v-divider class="my-4" />
+
+            <div class="section-subtitle">Top produtos</div>
+            <div v-if="topProducts.length" class="list-grid">
+              <div class="list-item" v-for="product in topProducts" :key="product.id">
+                <div>
+                  <div class="list-title">{{ product.name }}</div>
+                  <div class="text-muted">{{ product.quantity }} unidades</div>
+                </div>
+                <v-chip color="primary" variant="tonal">{{ formatCurrencyBRL(product.revenue) }}</v-chip>
+              </div>
+            </div>
+            <div v-else class="text-muted">Sem vendas de produtos no período.</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -274,15 +286,20 @@ const totals = ref({
   average_ticket_done: 0,
   attendance_rate: 0,
   cancel_rate: 0,
+  products_sold_quantity: 0,
+  products_revenue_realized: 0,
 })
 const daily = ref([])
 const nextAppointments = ref([])
 const topServices = ref([])
+const topProducts = ref([])
 
 const dailyChartCanvas = ref(null)
+const productMetricsChartCanvas = ref(null)
 const statusChartCanvas = ref(null)
 const topServicesChartCanvas = ref(null)
 let dailyChartInstance = null
+let productMetricsChartInstance = null
 let statusChartInstance = null
 let topServicesChartInstance = null
 
@@ -315,26 +332,29 @@ const periodLabel = computed(() => {
 
 const statusEntries = computed(() => {
   const order = ['scheduled', 'done', 'canceled', 'no_show']
-  const entries = Object.entries(totals.value.appointments_by_status || {})
-    .map(([status, total]) => ({
-      status,
-      total: Number(total || 0),
-    }))
-    .filter((item) => item.total > 0)
-
-  return entries.sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status))
+  const statusMap = totals.value.appointments_by_status || {}
+  return order.map((status) => ({
+    status,
+    total: Number(statusMap[status] || 0),
+  }))
 })
 
-const hasStatusData = computed(() => statusEntries.value.length > 0)
+const hasStatusData = computed(() => statusEntries.value.some((item) => item.total > 0))
 const hasDailyData = computed(() =>
   daily.value.some((item) => Number(item.appointments_total || 0) > 0 || Number(item.revenue_expected || 0) > 0)
 )
 const hasTopServicesData = computed(() => topServices.value.length > 0)
+const hasTopProductsData = computed(() => topProducts.value.length > 0)
 
 const destroyCharts = () => {
   if (dailyChartInstance) {
     dailyChartInstance.destroy()
     dailyChartInstance = null
+  }
+
+  if (productMetricsChartInstance) {
+    productMetricsChartInstance.destroy()
+    productMetricsChartInstance = null
   }
 
   if (statusChartInstance) {
@@ -461,6 +481,88 @@ const renderTopServicesChart = () => {
   })
 }
 
+const renderProductMetricsChart = () => {
+  if (!productMetricsChartCanvas.value || !hasTopProductsData.value) {
+    if (productMetricsChartInstance) {
+      productMetricsChartInstance.destroy()
+      productMetricsChartInstance = null
+    }
+    return
+  }
+
+  if (productMetricsChartInstance) {
+    productMetricsChartInstance.destroy()
+  }
+
+  const labels = topProducts.value.map((product) => product.name)
+  const revenueData = topProducts.value.map((product) => Number(product.revenue || 0))
+
+  productMetricsChartInstance = new Chart(productMetricsChartCanvas.value, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Valor vendido',
+          data: revenueData,
+          borderRadius: 10,
+          backgroundColor: '#5B8C8F',
+          hoverBackgroundColor: '#4f7d80',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: '#425763',
+            usePointStyle: true,
+            pointStyle: 'circle',
+            boxWidth: 10,
+            padding: 16,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const item = topProducts.value[context.dataIndex]
+              const quantity = Number(item?.quantity || 0)
+              const revenue = Number(item?.revenue || 0)
+              return [`Quantidade: ${quantity}`, `Valor: ${formatCurrencyBRL(revenue)}`]
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: '#637b87',
+            autoSkip: false,
+            maxRotation: 35,
+            minRotation: 0,
+          },
+          grid: {
+            display: false,
+          },
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: '#637b87',
+            callback: (value) => formatCurrencyBRL(value),
+          },
+          grid: {
+            color: 'rgba(87, 120, 132, 0.14)',
+          },
+        },
+      },
+    },
+  })
+}
+
 const renderDailyChart = () => {
   if (!dailyChartCanvas.value || !hasDailyData.value) {
     if (dailyChartInstance) {
@@ -576,6 +678,7 @@ const renderDailyChart = () => {
 const syncCharts = async () => {
   await nextTick()
   renderDailyChart()
+  renderProductMetricsChart()
   renderStatusChart()
   renderTopServicesChart()
 }
@@ -592,6 +695,7 @@ const loadDashboard = async () => {
     daily.value = Array.isArray(data.daily) ? data.daily : []
     nextAppointments.value = data.next_appointments
     topServices.value = data.top_services
+    topProducts.value = Array.isArray(data.top_products) ? data.top_products : []
 
     await syncCharts()
   } finally {
@@ -599,7 +703,6 @@ const loadDashboard = async () => {
   }
 }
 
-const statusCount = (status) => totals.value.appointments_by_status?.[status] || 0
 const formatPercent = (value) => `${Number(value || 0).toLocaleString('pt-BR', {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
@@ -689,6 +792,11 @@ onBeforeUnmount(destroyCharts)
 
 .list-title {
   font-weight: 600;
+}
+
+.section-subtitle {
+  font-weight: 600;
+  color: rgba(35, 58, 74, 0.74);
 }
 
 @media (max-width: 960px) {

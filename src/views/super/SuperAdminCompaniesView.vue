@@ -38,76 +38,103 @@
             </v-btn>
           </v-card-title>
           <v-card-text>
-            <template v-if="!smAndDown">
-              <v-table class="staff-table">
-                <thead>
-                  <tr>
-                    <th class="text-left">Nome</th>
-                    <th class="text-left">Telefone</th>
-                    <th class="text-left">Papel</th>
-                    <th class="text-left">Status</th>
-                    <th class="text-left">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="membership in memberships" :key="membership.id">
-                    <td>{{ membership.user?.name || '-' }}</td>
-                    <td>{{ formatPhoneFromE164(membership.user?.phone) || '-' }}</td>
-                    <td>
-                      <v-chip size="small" variant="tonal" color="primary">
-                        {{ membership.role }}
-                      </v-chip>
-                    </td>
-                    <td>
-                      <v-chip size="small" variant="tonal" :color="membership.active ? 'success' : 'warning'">
-                        {{ membership.active ? 'Ativo' : 'Inativo' }}
-                      </v-chip>
-                    </td>
-                    <td>
-                      <div class="row-actions">
-                        <v-btn icon="mdi-pencil-outline" variant="text" @click="openEditMembership(membership)" />
-                        <v-btn icon="mdi-delete-outline" variant="text" color="error"
-                          @click="deleteMembership(membership)" />
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </v-table>
+            <template v-if="loadingMemberships">
+              <template v-if="!smAndDown">
+                <v-table class="staff-table">
+                  <thead>
+                    <tr>
+                      <th class="text-left">Nome</th>
+                      <th class="text-left">Telefone</th>
+                      <th class="text-left">Papel</th>
+                      <th class="text-left">Status</th>
+                      <th class="text-left">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colspan="5">
+                        <app-list-skeleton mode="table" :rows="6" :columns="5" />
+                      </td>
+                    </tr>
+                  </tbody>
+                </v-table>
+              </template>
+              <template v-else>
+                <app-list-skeleton mode="cards" :rows="6" :columns="1" />
+              </template>
             </template>
             <template v-else>
-              <v-row dense>
-                <v-col v-for="membership in memberships" :key="membership.id" cols="12">
-                  <v-card variant="outlined" class="membership-mobile-card">
-                    <v-card-item>
-                      <v-card-title class="text-body-1">{{ membership.user?.name || '-' }}</v-card-title>
-                      <v-card-subtitle>{{ formatPhoneFromE164(membership.user?.phone) || '-' }}</v-card-subtitle>
-                    </v-card-item>
-                    <v-card-text class="pt-0">
-                      <div class="row-actions mb-2">
-                        <v-chip size="small" variant="tonal" color="primary">{{ membership.role }}</v-chip>
+              <template v-if="!smAndDown">
+                <v-table class="staff-table">
+                  <thead>
+                    <tr>
+                      <th class="text-left">Nome</th>
+                      <th class="text-left">Telefone</th>
+                      <th class="text-left">Papel</th>
+                      <th class="text-left">Status</th>
+                      <th class="text-left">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="membership in memberships" :key="membership.id">
+                      <td>{{ membership.user?.name || '-' }}</td>
+                      <td>{{ formatPhoneFromE164(membership.user?.phone) || '-' }}</td>
+                      <td>
+                        <v-chip size="small" variant="tonal" color="primary">
+                          {{ membership.role }}
+                        </v-chip>
+                      </td>
+                      <td>
                         <v-chip size="small" variant="tonal" :color="membership.active ? 'success' : 'warning'">
                           {{ membership.active ? 'Ativo' : 'Inativo' }}
                         </v-chip>
-                      </div>
-                      <div class="row-actions">
-                        <v-btn size="small" variant="tonal" prepend-icon="mdi-pencil-outline"
-                          @click="openEditMembership(membership)">
-                          Editar
-                        </v-btn>
-                        <v-btn size="small" variant="text" color="error" prepend-icon="mdi-delete-outline"
-                          @click="deleteMembership(membership)">
-                          Excluir
-                        </v-btn>
-                      </div>
-                    </v-card-text>
-                  </v-card>
-                </v-col>
-              </v-row>
-            </template>
+                      </td>
+                      <td>
+                        <div class="row-actions">
+                          <v-btn icon="mdi-pencil-outline" variant="text" @click="openEditMembership(membership)" />
+                          <v-btn icon="mdi-delete-outline" variant="text" color="error"
+                            @click="deleteMembership(membership)" />
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </v-table>
+              </template>
+              <template v-else>
+                <v-row dense>
+                  <v-col v-for="membership in memberships" :key="membership.id" cols="12">
+                    <v-card variant="outlined" class="membership-mobile-card">
+                      <v-card-item>
+                        <v-card-title class="text-body-1">{{ membership.user?.name || '-' }}</v-card-title>
+                        <v-card-subtitle>{{ formatPhoneFromE164(membership.user?.phone) || '-' }}</v-card-subtitle>
+                      </v-card-item>
+                      <v-card-text class="pt-0">
+                        <div class="row-actions mb-2">
+                          <v-chip size="small" variant="tonal" color="primary">{{ membership.role }}</v-chip>
+                          <v-chip size="small" variant="tonal" :color="membership.active ? 'success' : 'warning'">
+                            {{ membership.active ? 'Ativo' : 'Inativo' }}
+                          </v-chip>
+                        </div>
+                        <div class="row-actions">
+                          <v-btn size="small" variant="tonal" prepend-icon="mdi-pencil-outline"
+                            @click="openEditMembership(membership)">
+                            Editar
+                          </v-btn>
+                          <v-btn size="small" variant="text" color="error" prepend-icon="mdi-delete-outline"
+                            @click="deleteMembership(membership)">
+                            Excluir
+                          </v-btn>
+                        </div>
+                      </v-card-text>
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </template>
 
-            <div v-if="!memberships.length" class="empty-state">
-              Sem vínculos para a empresa selecionada.
-            </div>
+              <div v-if="!memberships.length" class="empty-state">
+                Sem vínculos para a empresa selecionada.
+              </div>
+            </template>
           </v-card-text>
         </v-card>
       </v-col>
@@ -127,13 +154,18 @@
               prepend-inner-icon="mdi-magnify"
               hide-details="auto"
             />
-            <v-list density="compact" class="user-list">
-              <v-list-item v-for="user in users" :key="user.id" :title="user.name" :subtitle="formatPhoneFromE164(user.phone) || '-'">
-                <template #append>
-                  <v-chip size="x-small" variant="tonal">{{ user.role }}</v-chip>
-                </template>
-              </v-list-item>
-            </v-list>
+            <template v-if="loadingUsers">
+              <app-list-skeleton mode="list" :rows="8" />
+            </template>
+            <template v-else>
+              <v-list density="compact" class="user-list">
+                <v-list-item v-for="user in users" :key="user.id" :title="user.name" :subtitle="formatPhoneFromE164(user.phone) || '-'">
+                  <template #append>
+                    <v-chip size="x-small" variant="tonal">{{ user.role }}</v-chip>
+                  </template>
+                </v-list-item>
+              </v-list>
+            </template>
           </v-card-text>
         </v-card>
       </v-col>
@@ -147,12 +179,12 @@
           <v-text-field v-model="companyForm.slug" label="Slug" variant="outlined" hint="Ex.: matriz-sp" persistent-hint />
           <div class="modal-switch-row">
             <v-switch v-model="companyForm.active" label="Ativa" color="secondary" />
+            <v-card-actions class="dialog-actions">
+              <v-btn variant="text" @click="companyDialog = false">Cancelar</v-btn>
+              <v-btn color="secondary" variant="flat" :loading="saving" @click="saveCompany">Salvar</v-btn>
+            </v-card-actions>
           </div>
         </v-card-text>
-        <v-card-actions class="dialog-actions">
-          <v-btn variant="text" @click="companyDialog = false">Cancelar</v-btn>
-          <v-btn color="secondary" variant="flat" :loading="saving" @click="saveCompany">Salvar</v-btn>
-        </v-card-actions>
       </v-card>
     </v-dialog>
 
@@ -172,12 +204,12 @@
           <v-select v-model="membershipForm.role" :items="membershipRoleOptions" label="Papel na empresa" variant="outlined" />
           <div class="modal-switch-row">
             <v-switch v-model="membershipForm.active" label="Ativo" color="secondary" />
+            <v-card-actions class="dialog-actions">
+              <v-btn variant="text" @click="membershipDialog = false">Cancelar</v-btn>
+              <v-btn color="secondary" variant="flat" :loading="saving" @click="saveMembership">Salvar</v-btn>
+            </v-card-actions>
           </div>
         </v-card-text>
-        <v-card-actions class="dialog-actions">
-          <v-btn variant="text" @click="membershipDialog = false">Cancelar</v-btn>
-          <v-btn color="secondary" variant="flat" :loading="saving" @click="saveMembership">Salvar</v-btn>
-        </v-card-actions>
       </v-card>
     </v-dialog>
 
@@ -200,11 +232,13 @@
           <v-text-field v-model="userForm.email" label="E-mail" variant="outlined" />
           <v-text-field v-model="userForm.password" label="Senha" type="password" variant="outlined" />
           <v-select v-model="userForm.role" :items="globalRoleOptions" label="Papel global" variant="outlined" />
+          <div class="modal-switch-row">
+            <v-card-actions class="dialog-actions">
+              <v-btn variant="text" @click="userDialog = false">Cancelar</v-btn>
+              <v-btn color="secondary" :loading="saving" @click="saveUser">Criar usuário</v-btn>
+            </v-card-actions>
+          </div>
         </v-card-text>
-        <v-card-actions class="dialog-actions">
-          <v-btn variant="text" @click="userDialog = false">Cancelar</v-btn>
-          <v-btn color="secondary" :loading="saving" @click="saveUser">Criar usuário</v-btn>
-        </v-card-actions>
       </v-card>
     </v-dialog>
   </v-container>
@@ -216,6 +250,7 @@ import { useDisplay } from 'vuetify'
 import api from '@/lib/api'
 import { useAlertStore } from '@/stores/alerts'
 import { buildE164, formatPhone, formatPhoneFromE164, normalizePhone } from '@/lib/phone'
+import AppListSkeleton from '@/components/AppListSkeleton.vue'
 
 const alerts = useAlertStore()
 
@@ -225,6 +260,8 @@ const users = ref([])
 const selectedCompanyId = ref(null)
 const userSearch = ref('')
 const saving = ref(false)
+const loadingMemberships = ref(false)
+const loadingUsers = ref(false)
 const { smAndDown } = useDisplay()
 
 const companyDialog = ref(false)
@@ -323,6 +360,7 @@ const loadMemberships = async () => {
   membershipsRequestController = controller
 
   try {
+    loadingMemberships.value = true
     const { data } = await api.get(`/api/super-admin/companies/${companyId}/memberships`, {
       signal: controller.signal,
     })
@@ -331,6 +369,10 @@ const loadMemberships = async () => {
   } catch (error) {
     if (isRequestCanceled(error)) return
     throw error
+  } finally {
+    if (requestId === membershipsRequestCounter) {
+      loadingMemberships.value = false
+    }
   }
 }
 
@@ -347,6 +389,7 @@ const loadUsers = async () => {
   }
 
   try {
+    loadingUsers.value = true
     const { data } = await api.get(`/api/super-admin/users?${params.toString()}`, {
       signal: controller.signal,
     })
@@ -355,6 +398,10 @@ const loadUsers = async () => {
   } catch (error) {
     if (isRequestCanceled(error)) return
     throw error
+  } finally {
+    if (requestId === usersRequestCounter) {
+      loadingUsers.value = false
+    }
   }
 }
 
@@ -565,5 +612,18 @@ onBeforeUnmount(() => {
 
 .membership-mobile-card {
   border-radius: 14px;
+}
+
+.modal-switch-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.dialog-actions {
+  margin-left: auto;
+  padding: 0;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>

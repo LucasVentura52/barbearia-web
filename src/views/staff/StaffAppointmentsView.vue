@@ -158,30 +158,37 @@
           </div>
         </v-card-text>
         <v-card-actions class="dialog-actions detail-actions">
-          <div v-if="canEdit || canComplete" class="detail-actions-main">
-            <v-btn v-if="canEdit" color="secondary" variant="tonal" prepend-icon="mdi-pencil-outline"
-              @click="openEdit(selectedAppointment)">
-              Editar
-            </v-btn>
-            <v-btn v-if="canComplete" color="success" variant="tonal" prepend-icon="mdi-check-circle-outline"
-              :loading="isSavingAction('status_done')" :disabled="saving"
-              @click="openFinalizeDialog(selectedAppointment)">
-              Finalizar
-            </v-btn>
-            <v-btn v-if="canComplete" color="warning" variant="tonal" prepend-icon="mdi-account-off-outline"
-              :loading="isSavingAction('status_no_show')" :disabled="saving"
-              @click="updateStatus(selectedAppointment.id, 'no_show')">
-              Não compareceu
-            </v-btn>
-          </div>
-          <div class="detail-actions-danger">
+          <div class="detail-actions-row">
             <v-btn variant="text" prepend-icon="mdi-close" :disabled="saving" @click="detailDialog = false">Fechar</v-btn>
-            <v-btn v-if="canCancel" color="secondary" variant="outlined" prepend-icon="mdi-cancel"
-              :disabled="saving" @click="openCancel(selectedAppointment)">
-              Cancelar
-            </v-btn>
-            <v-btn color="error" variant="tonal" prepend-icon="mdi-delete-outline"
-              :disabled="saving" @click="openDelete(selectedAppointment)">
+            <v-menu v-if="isScheduledAppointment" v-model="detailOptionsMenu" location="top end">
+              <template #activator="{ props }">
+                <v-btn
+                  v-bind="props"
+                  color="secondary"
+                  variant="tonal"
+                  prepend-icon="mdi-dots-vertical"
+                  :loading="saving"
+                  :disabled="saving"
+                >
+                  Opções
+                </v-btn>
+              </template>
+              <v-list density="compact" nav>
+                <v-list-item prepend-icon="mdi-pencil-outline" title="Editar" :disabled="saving" @click="handleDetailOption('edit')" />
+                <v-list-item prepend-icon="mdi-check-circle-outline" title="Finalizar" :disabled="saving" @click="handleDetailOption('done')" />
+                <v-list-item prepend-icon="mdi-account-off-outline" title="Não compareceu" :disabled="saving" @click="handleDetailOption('no_show')" />
+                <v-list-item prepend-icon="mdi-cancel" title="Cancelar" :disabled="saving" @click="handleDetailOption('cancel')" />
+                <v-list-item prepend-icon="mdi-delete-outline" title="Deletar" base-color="error" :disabled="saving" @click="handleDetailOption('delete')" />
+              </v-list>
+            </v-menu>
+            <v-btn
+              v-else
+              color="error"
+              variant="tonal"
+              prepend-icon="mdi-delete-outline"
+              :disabled="saving"
+              @click="openDelete(selectedAppointment)"
+            >
               Deletar
             </v-btn>
           </div>
@@ -379,6 +386,7 @@ const cancelReason = ref('')
 const clientSearch = ref('')
 const loadingClientOptions = ref(false)
 const selectedAppointment = ref(null)
+const detailOptionsMenu = ref(false)
 const serviceOptions = ref([])
 const productOptions = ref([])
 const finalizeItems = ref([])
@@ -507,7 +515,33 @@ const formatTime = (value) => {
 const canEdit = computed(() => selectedAppointment.value?.status === 'scheduled')
 const canCancel = computed(() => selectedAppointment.value?.status === 'scheduled')
 const canComplete = computed(() => selectedAppointment.value?.status === 'scheduled')
+const isScheduledAppointment = computed(() => selectedAppointment.value?.status === 'scheduled')
 const isSavingAction = (action) => saving.value && savingAction.value === action
+
+const handleDetailOption = (action) => {
+  detailOptionsMenu.value = false
+  if (!selectedAppointment.value) return
+
+  if (action === 'edit' && canEdit.value) {
+    openEdit(selectedAppointment.value)
+    return
+  }
+  if (action === 'done' && canComplete.value) {
+    openFinalizeDialog(selectedAppointment.value)
+    return
+  }
+  if (action === 'no_show' && canComplete.value) {
+    updateStatus(selectedAppointment.value.id, 'no_show')
+    return
+  }
+  if (action === 'cancel' && canCancel.value) {
+    openCancel(selectedAppointment.value)
+    return
+  }
+  if (action === 'delete') {
+    openDelete(selectedAppointment.value)
+  }
+}
 
 const editForm = ref({
   date: '',
@@ -1321,26 +1355,16 @@ watch(
 }
 
 .detail-actions {
-  display: grid;
-  gap: 10px;
-}
-
-.detail-actions-main {
   display: flex;
-  flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
-  width: 100%;
 }
 
-.detail-actions-danger {
+.detail-actions-row {
   width: 100%;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
-  border-top: 1px dashed rgba(35, 58, 74, 0.18);
-  padding-top: 10px;
 }
 
 @media (max-width: 960px) {
@@ -1413,8 +1437,7 @@ watch(
     text-align: left;
   }
 
-  .detail-actions-main,
-  .detail-actions-danger {
+  .detail-actions-row {
     justify-content: flex-start;
   }
 }

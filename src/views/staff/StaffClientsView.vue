@@ -22,116 +22,146 @@
 
     <v-card class="glass-card" elevation="0">
       <v-card-text>
-        <template v-if="!smAndDown">
-          <v-table class="staff-table">
-            <thead>
-              <tr>
-                <th class="text-left">Cliente</th>
-                <th class="text-left">Telefone</th>
-                <th class="text-left">Atendimentos</th>
-                <th class="text-left">Último atendimento</th>
-                <th class="text-left">Total gasto</th>
-                <th class="text-left">Situação</th>
-                <th class="text-left">Status</th>
-                <th class="text-left">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="client in clients" :key="client.id">
-                <td>
-                  <div class="client-cell">
-                    <v-avatar size="38" class="client-avatar">
-                      <v-img v-if="client.avatar_url" :src="resolveMediaUrl(client.avatar_url)" cover />
-                      <span v-else>{{ client.name?.slice(0, 1) || '?' }}</span>
-                    </v-avatar>
-                    <div>
-                      <div class="cell-title">{{ client.name || 'Cliente' }}</div>
-                      <div class="text-muted">{{ client.email || 'Sem e-mail' }}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>{{ formatPhoneFromE164(client.phone) || 'Telefone não informado' }}</td>
-                <td>{{ client.appointments_total }}</td>
-                <td>{{ formatDateTime(client.last_appointment_at) }}</td>
-                <td>{{ formatCurrencyBRL(client.total_spent) }}</td>
-                <td>
-                  <v-chip size="small" :color="client.active ? 'success' : 'warning'" variant="tonal">
-                    {{ client.active ? 'Ativo' : 'Inativo' }}
-                  </v-chip>
-                </td>
-                <td>
-                  <div class="status-chips">
-                    <v-chip size="x-small" variant="tonal" color="primary">Ag {{ client.scheduled_count }}</v-chip>
-                    <v-chip size="x-small" variant="tonal" color="success">Ok {{ client.done_count }}</v-chip>
-                    <v-chip size="x-small" variant="tonal" color="error">Can {{ client.canceled_count }}</v-chip>
-                    <v-chip size="x-small" variant="tonal" color="warning">Falta {{ client.no_show_count }}</v-chip>
-                  </div>
-                </td>
-                <td>
-                  <div class="row-actions">
-                    <v-btn icon="mdi-pencil-outline" variant="text" @click="openEdit(client)" />
-                    <v-btn icon="mdi-power" variant="text" color="warning" @click="toggleActive(client)" />
-                    <v-btn icon="mdi-delete-outline" variant="text" color="error" @click="askDelete(client)" />
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
+        <template v-if="loading">
+          <template v-if="!smAndDown">
+            <v-table class="staff-table">
+              <thead>
+                <tr>
+                  <th class="text-left">Cliente</th>
+                  <th class="text-left">Telefone</th>
+                  <th class="text-left">Atendimentos</th>
+                  <th class="text-left">Último atendimento</th>
+                  <th class="text-left">Total gasto</th>
+                  <th class="text-left">Situação</th>
+                  <th class="text-left">Status</th>
+                  <th class="text-left">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="8">
+                    <app-list-skeleton mode="table" :rows="6" :columns="8" />
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </template>
+          <template v-else>
+            <app-list-skeleton mode="cards" :rows="6" :columns="1" />
+          </template>
         </template>
-
         <template v-else>
-          <v-row dense>
-            <v-col v-for="client in clients" :key="client.id" cols="12">
-              <v-card variant="outlined" class="mobile-row-card">
-                <v-card-item>
-                  <template #prepend>
-                    <v-avatar size="40" class="client-avatar me-3">
-                      <v-img v-if="client.avatar_url" :src="resolveMediaUrl(client.avatar_url)" cover />
-                      <span v-else>{{ client.name?.slice(0, 1) || '?' }}</span>
-                    </v-avatar>
-                  </template>
-                  <v-card-title class="text-body-1">{{ client.name || 'Cliente' }}</v-card-title>
-                  <v-card-subtitle>{{ formatPhoneFromE164(client.phone) || 'Telefone não informado' }}</v-card-subtitle>
-                </v-card-item>
-                <v-card-text class="pt-0">
-                  <div class="mobile-meta">
-                    <v-chip size="small" variant="tonal" :color="client.active ? 'success' : 'warning'">
+          <template v-if="!smAndDown">
+            <v-table class="staff-table">
+              <thead>
+                <tr>
+                  <th class="text-left">Cliente</th>
+                  <th class="text-left">Telefone</th>
+                  <th class="text-left">Atendimentos</th>
+                  <th class="text-left">Último atendimento</th>
+                  <th class="text-left">Total gasto</th>
+                  <th class="text-left">Situação</th>
+                  <th class="text-left">Status</th>
+                  <th class="text-left">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="client in clients" :key="client.id">
+                  <td>
+                    <div class="client-cell">
+                      <v-avatar size="38" class="client-avatar">
+                        <v-img v-if="client.avatar_url" :src="resolveMediaUrl(client.avatar_url)" cover />
+                        <span v-else>{{ client.name?.slice(0, 1) || '?' }}</span>
+                      </v-avatar>
+                      <div>
+                        <div class="cell-title">{{ client.name || 'Cliente' }}</div>
+                        <div class="text-muted">{{ client.email || 'Sem e-mail' }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{{ formatPhoneFromE164(client.phone) || 'Telefone não informado' }}</td>
+                  <td>{{ client.appointments_total }}</td>
+                  <td>{{ formatDateTime(client.last_appointment_at) }}</td>
+                  <td>{{ formatCurrencyBRL(client.total_spent) }}</td>
+                  <td>
+                    <v-chip size="small" :color="client.active ? 'success' : 'warning'" variant="tonal">
                       {{ client.active ? 'Ativo' : 'Inativo' }}
                     </v-chip>
-                    <v-chip size="small" variant="tonal" color="primary">{{ client.appointments_total }}
-                      atendimentos</v-chip>
-                    <v-chip size="small" variant="tonal" color="secondary">{{ formatCurrencyBRL(client.total_spent)
-                      }}</v-chip>
-                  </div>
-                  <div class="text-muted mt-2">{{ formatDateTime(client.last_appointment_at) }}</div>
-                  <div class="status-chips mt-2">
-                    <v-chip size="x-small" variant="tonal" color="primary">Ag {{ client.scheduled_count }}</v-chip>
-                    <v-chip size="x-small" variant="tonal" color="success">Ok {{ client.done_count }}</v-chip>
-                    <v-chip size="x-small" variant="tonal" color="error">Can {{ client.canceled_count }}</v-chip>
-                    <v-chip size="x-small" variant="tonal" color="warning">Falta {{ client.no_show_count }}</v-chip>
-                  </div>
-                  <div class="mobile-actions mt-3">
-                    <v-btn size="small" variant="tonal" prepend-icon="mdi-pencil-outline" @click="openEdit(client)">
-                      Editar
-                    </v-btn>
-                    <v-btn size="small" variant="text" color="warning" prepend-icon="mdi-power"
-                      @click="toggleActive(client)">
-                      {{ client.active ? 'Inativar' : 'Ativar' }}
-                    </v-btn>
-                    <v-btn size="small" variant="text" color="error" prepend-icon="mdi-delete-outline"
-                      @click="askDelete(client)">
-                      Excluir
-                    </v-btn>
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-          </v-row>
-        </template>
+                  </td>
+                  <td>
+                    <div class="status-chips">
+                      <v-chip size="x-small" variant="tonal" color="primary">Ag {{ client.scheduled_count }}</v-chip>
+                      <v-chip size="x-small" variant="tonal" color="success">Ok {{ client.done_count }}</v-chip>
+                      <v-chip size="x-small" variant="tonal" color="error">Can {{ client.canceled_count }}</v-chip>
+                      <v-chip size="x-small" variant="tonal" color="warning">Falta {{ client.no_show_count }}</v-chip>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="row-actions">
+                      <v-btn icon="mdi-pencil-outline" variant="text" @click="openEdit(client)" />
+                      <v-btn icon="mdi-power" variant="text" color="warning" @click="toggleActive(client)" />
+                      <v-btn icon="mdi-delete-outline" variant="text" color="error" @click="askDelete(client)" />
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </template>
 
-        <div v-if="!clients.length && !loading" class="empty-state">
-          Nenhum cliente encontrado.
-        </div>
+          <template v-else>
+            <v-row dense>
+              <v-col v-for="client in clients" :key="client.id" cols="12">
+                <v-card variant="outlined" class="mobile-row-card">
+                  <v-card-item>
+                    <template #prepend>
+                      <v-avatar size="40" class="client-avatar me-3">
+                        <v-img v-if="client.avatar_url" :src="resolveMediaUrl(client.avatar_url)" cover />
+                        <span v-else>{{ client.name?.slice(0, 1) || '?' }}</span>
+                      </v-avatar>
+                    </template>
+                    <v-card-title class="text-body-1">{{ client.name || 'Cliente' }}</v-card-title>
+                    <v-card-subtitle>{{ formatPhoneFromE164(client.phone) || 'Telefone não informado' }}</v-card-subtitle>
+                  </v-card-item>
+                  <v-card-text class="pt-0">
+                    <div class="mobile-meta">
+                      <v-chip size="small" variant="tonal" :color="client.active ? 'success' : 'warning'">
+                        {{ client.active ? 'Ativo' : 'Inativo' }}
+                      </v-chip>
+                      <v-chip size="small" variant="tonal" color="primary">{{ client.appointments_total }}
+                        atendimentos</v-chip>
+                      <v-chip size="small" variant="tonal" color="secondary">{{ formatCurrencyBRL(client.total_spent)
+                        }}</v-chip>
+                    </div>
+                    <div class="text-muted mt-2">{{ formatDateTime(client.last_appointment_at) }}</div>
+                    <div class="status-chips mt-2">
+                      <v-chip size="x-small" variant="tonal" color="primary">Ag {{ client.scheduled_count }}</v-chip>
+                      <v-chip size="x-small" variant="tonal" color="success">Ok {{ client.done_count }}</v-chip>
+                      <v-chip size="x-small" variant="tonal" color="error">Can {{ client.canceled_count }}</v-chip>
+                      <v-chip size="x-small" variant="tonal" color="warning">Falta {{ client.no_show_count }}</v-chip>
+                    </div>
+                    <div class="mobile-actions mt-3">
+                      <v-btn size="small" variant="tonal" prepend-icon="mdi-pencil-outline" @click="openEdit(client)">
+                        Editar
+                      </v-btn>
+                      <v-btn size="small" variant="text" color="warning" prepend-icon="mdi-power"
+                        @click="toggleActive(client)">
+                        {{ client.active ? 'Inativar' : 'Ativar' }}
+                      </v-btn>
+                      <v-btn size="small" variant="text" color="error" prepend-icon="mdi-delete-outline"
+                        @click="askDelete(client)">
+                        Excluir
+                      </v-btn>
+                    </div>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
+          </template>
+
+          <div v-if="!clients.length" class="empty-state">
+            Nenhum cliente encontrado.
+          </div>
+        </template>
       </v-card-text>
     </v-card>
 
@@ -145,28 +175,28 @@
           <v-icon icon="mdi-account-edit" />
         </div>
         <v-card-text class="form-grid">
-          <v-text-field v-model="form.name" label="Nome" variant="outlined" />
+          <v-text-field v-model="form.name" label="Nome" variant="outlined" hide-details="auto"/>
           <div class="phone-row">
             <v-select v-model="form.country" :items="countryOptions" item-title="label" item-value="code" label="País"
-              variant="outlined" class="phone-country" />
+              variant="outlined" class="phone-country mt-3" />
             <v-text-field v-model="phoneInput" label="Telefone" placeholder="(11) 99999-9999" variant="outlined"
               type="tel" class="phone-input" maxlength="15" />
           </div>
-          <v-text-field v-model="form.email" label="E-mail" variant="outlined" />
+          <v-text-field v-model="form.email" label="E-mail" variant="outlined" hide-details="auto" />
           <v-file-input v-model="form.photo" label="Foto do cliente" accept="image/*" prepend-icon="mdi-camera"
-            show-size chips variant="outlined" />
+            show-size chips variant="outlined" hide-details="auto" />
           <v-text-field v-model="form.password" label="Nova senha" type="password" variant="outlined"
-            hint="Deixe vazio para manter a senha atual." persistent-hint />
+            hint="Deixe vazio para manter a senha atual." persistent-hint hide-details="auto" />
           <v-text-field v-model="form.password_confirmation" label="Confirmar nova senha" type="password"
-            variant="outlined" />
+            variant="outlined" hide-details="auto" />
           <div class="modal-switch-row">
             <v-switch v-model="form.active" color="secondary" label="Ativo" />
+            <v-card-actions class="dialog-actions">
+              <v-btn variant="text" @click="dialog = false">Cancelar</v-btn>
+              <v-btn color="secondary" variant="flat" :loading="saving" @click="saveClient">Salvar</v-btn>
+            </v-card-actions>
           </div>
         </v-card-text>
-        <v-card-actions class="dialog-actions">
-          <v-btn variant="text" @click="dialog = false">Cancelar</v-btn>
-          <v-btn color="secondary" variant="flat" :loading="saving" @click="saveClient">Salvar</v-btn>
-        </v-card-actions>
       </v-card>
     </v-dialog>
 
@@ -193,6 +223,7 @@ import { formatPhone, normalizePhone, buildE164, formatPhoneFromE164 } from '@/l
 import { resolveMediaUrl } from '@/lib/media'
 import { formatCurrencyBRL } from '@/lib/currency'
 import { useAlertStore } from '@/stores/alerts'
+import AppListSkeleton from '@/components/AppListSkeleton.vue'
 
 const clients = ref([])
 const search = ref('')
@@ -547,7 +578,8 @@ onBeforeUnmount(() => {
 
 .modal-switch-row {
   display: flex;
-  justify-content: flex-start;
+  align-items: center;
+  width: 100%;
 }
 
 .phone-row {
@@ -557,7 +589,10 @@ onBeforeUnmount(() => {
 }
 
 .dialog-actions {
-  padding: 0 24px 20px;
+  margin-left: auto;
+  padding: 0;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 @media (max-width: 960px) {

@@ -16,95 +16,123 @@
 
     <v-card class="glass-card" elevation="0">
       <v-card-text>
-        <template v-if="!smAndDown">
-          <v-table class="staff-table">
-            <thead>
-              <tr>
-                <th class="text-left">Foto</th>
-                <th class="text-left">Produto</th>
-                <th class="text-left">Preço</th>
-                <th class="text-left">Estoque</th>
-                <th class="text-left">Status</th>
-                <th class="text-left">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="product in filteredProducts" :key="product.id">
-                <td>
-                  <div class="cell-avatar">
-                    <v-img v-if="product.photo_url" :src="resolveMediaUrl(product.photo_url)" cover
-                      class="cell-avatar__img" />
-                    <div v-else class="cell-avatar__initials">
-                      {{ product.name?.slice(0, 1) || '?' }}
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <div class="cell-title">{{ product.name }}</div>
-                  <div class="text-muted line-clamp">
-                    {{ product.description || 'Sem descrição' }}
-                  </div>
-                </td>
-                <td>{{ formatCurrencyBRL(product.price) }}</td>
-                <td>{{ product.stock ?? '—' }}</td>
-                <td>
-                  <v-chip size="small" :color="product.active ? 'success' : 'warning'" variant="tonal">
-                    {{ product.active ? 'Ativo' : 'Inativo' }}
-                  </v-chip>
-                </td>
-                <td>
-                  <div class="row-actions">
-                    <v-btn icon="mdi-pencil-outline" variant="text" @click="openEdit(product)" />
-                    <v-btn icon="mdi-delete-outline" variant="text" color="error" @click="askDelete(product)" />
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
+        <template v-if="loading">
+          <template v-if="!smAndDown">
+            <v-table class="staff-table">
+              <thead>
+                <tr>
+                  <th class="text-left">Foto</th>
+                  <th class="text-left">Produto</th>
+                  <th class="text-left">Preço</th>
+                  <th class="text-left">Estoque</th>
+                  <th class="text-left">Status</th>
+                  <th class="text-left">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="6">
+                    <app-list-skeleton mode="table" :rows="6" :columns="6" />
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </template>
+          <template v-else>
+            <app-list-skeleton mode="cards" :rows="6" :columns="1" />
+          </template>
         </template>
         <template v-else>
-          <v-row dense>
-            <v-col v-for="product in filteredProducts" :key="product.id" cols="12">
-              <v-card variant="outlined" class="mobile-row-card">
-                <v-card-item>
-                  <template #prepend>
-                    <div class="cell-avatar me-3">
+          <template v-if="!smAndDown">
+            <v-table class="staff-table">
+              <thead>
+                <tr>
+                  <th class="text-left">Foto</th>
+                  <th class="text-left">Produto</th>
+                  <th class="text-left">Preço</th>
+                  <th class="text-left">Estoque</th>
+                  <th class="text-left">Status</th>
+                  <th class="text-left">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="product in filteredProducts" :key="product.id">
+                  <td>
+                    <div class="cell-avatar">
                       <v-img v-if="product.photo_url" :src="resolveMediaUrl(product.photo_url)" cover
                         class="cell-avatar__img" />
                       <div v-else class="cell-avatar__initials">
                         {{ product.name?.slice(0, 1) || '?' }}
                       </div>
                     </div>
-                  </template>
-                  <v-card-title class="text-body-1">{{ product.name }}</v-card-title>
-                  <v-card-subtitle class="text-wrap">{{ product.description || 'Sem descrição' }}</v-card-subtitle>
-                </v-card-item>
-                <v-card-text class="pt-0">
-                  <div class="mobile-meta">
-                    <v-chip size="small" color="primary" variant="tonal">{{ formatCurrencyBRL(product.price) }}</v-chip>
-                    <v-chip size="small" color="secondary" variant="tonal">Estoque: {{ product.stock ?? '—' }}</v-chip>
+                  </td>
+                  <td>
+                    <div class="cell-title">{{ product.name }}</div>
+                    <div class="text-muted line-clamp">
+                      {{ product.description || 'Sem descrição' }}
+                    </div>
+                  </td>
+                  <td>{{ formatCurrencyBRL(product.price) }}</td>
+                  <td>{{ product.stock ?? '—' }}</td>
+                  <td>
                     <v-chip size="small" :color="product.active ? 'success' : 'warning'" variant="tonal">
                       {{ product.active ? 'Ativo' : 'Inativo' }}
                     </v-chip>
-                  </div>
-                  <div class="mobile-actions">
-                    <v-btn size="small" variant="tonal" prepend-icon="mdi-pencil-outline" @click="openEdit(product)">
-                      Editar
-                    </v-btn>
-                    <v-btn size="small" variant="text" color="error" prepend-icon="mdi-delete-outline"
-                      @click="askDelete(product)">
-                      Excluir
-                    </v-btn>
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-          </v-row>
-        </template>
+                  </td>
+                  <td>
+                    <div class="row-actions">
+                      <v-btn icon="mdi-pencil-outline" variant="text" @click="openEdit(product)" />
+                      <v-btn icon="mdi-delete-outline" variant="text" color="error" @click="askDelete(product)" />
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </template>
+          <template v-else>
+            <v-row dense>
+              <v-col v-for="product in filteredProducts" :key="product.id" cols="12">
+                <v-card variant="outlined" class="mobile-row-card">
+                  <v-card-item>
+                    <template #prepend>
+                      <div class="cell-avatar me-3">
+                        <v-img v-if="product.photo_url" :src="resolveMediaUrl(product.photo_url)" cover
+                          class="cell-avatar__img" />
+                        <div v-else class="cell-avatar__initials">
+                          {{ product.name?.slice(0, 1) || '?' }}
+                        </div>
+                      </div>
+                    </template>
+                    <v-card-title class="text-body-1">{{ product.name }}</v-card-title>
+                    <v-card-subtitle class="text-wrap">{{ product.description || 'Sem descrição' }}</v-card-subtitle>
+                  </v-card-item>
+                  <v-card-text class="pt-0">
+                    <div class="mobile-meta">
+                      <v-chip size="small" color="primary" variant="tonal">{{ formatCurrencyBRL(product.price) }}</v-chip>
+                      <v-chip size="small" color="secondary" variant="tonal">Estoque: {{ product.stock ?? '—' }}</v-chip>
+                      <v-chip size="small" :color="product.active ? 'success' : 'warning'" variant="tonal">
+                        {{ product.active ? 'Ativo' : 'Inativo' }}
+                      </v-chip>
+                    </div>
+                    <div class="mobile-actions">
+                      <v-btn size="small" variant="tonal" prepend-icon="mdi-pencil-outline" @click="openEdit(product)">
+                        Editar
+                      </v-btn>
+                      <v-btn size="small" variant="text" color="error" prepend-icon="mdi-delete-outline"
+                        @click="askDelete(product)">
+                        Excluir
+                      </v-btn>
+                    </div>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
+          </template>
 
-        <div v-if="!filteredProducts.length" class="empty-state">
-          Nenhum produto encontrado.
-        </div>
+          <div v-if="!filteredProducts.length" class="empty-state">
+            Nenhum produto encontrado.
+          </div>
+        </template>
       </v-card-text>
     </v-card>
 
@@ -135,14 +163,14 @@
             variant="outlined" />
           <div class="modal-switch-row">
             <v-switch v-model="form.active" color="secondary" label="Ativo" />
+            <v-card-actions class="dialog-actions">
+              <v-btn variant="text" @click="dialog = false">Cancelar</v-btn>
+              <v-btn color="secondary" variant="flat" :loading="saving" @click="saveProduct">
+                Salvar
+              </v-btn>
+            </v-card-actions>
           </div>
         </v-card-text>
-        <v-card-actions class="dialog-actions">
-          <v-btn variant="text" @click="dialog = false">Cancelar</v-btn>
-          <v-btn color="secondary" variant="flat" :loading="saving" @click="saveProduct">
-            Salvar
-          </v-btn>
-        </v-card-actions>
       </v-card>
     </v-dialog>
 
@@ -152,7 +180,7 @@
         <v-card-text>
           Tem certeza que deseja excluir <strong>{{ deleting?.name }}</strong>?
         </v-card-text>
-        <v-card-actions class="dialog-actions">
+        <v-card-actions>
           <v-btn variant="text" @click="confirmDelete = false">Cancelar</v-btn>
           <v-btn color="error" :loading="deletingLoading" @click="deleteProduct">
             Excluir
@@ -170,9 +198,11 @@ import api from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
 import { useAlertStore } from '@/stores/alerts'
 import { formatCurrencyBRL, formatCurrencyInput, parseCurrencyInputToNumber } from '@/lib/currency'
+import AppListSkeleton from '@/components/AppListSkeleton.vue'
 
 const products = ref([])
 const search = ref('')
+const loading = ref(false)
 const dialog = ref(false)
 const confirmDelete = ref(false)
 const saving = ref(false)
@@ -210,8 +240,13 @@ const filteredProducts = computed(() => {
 })
 
 const loadProducts = async () => {
-  const { data } = await api.get('/api/products?include_inactive=1')
-  products.value = data
+  loading.value = true
+  try {
+    const { data } = await api.get('/api/products?include_inactive=1')
+    products.value = data
+  } finally {
+    loading.value = false
+  }
 }
 
 const resetForm = () => {
@@ -391,9 +426,16 @@ onMounted(loadProducts)
 }
 
 .dialog-actions {
-  padding: 16px 24px 20px;
+  margin-left: auto;
+  padding: 0;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.modal-switch-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
 .modal-card {

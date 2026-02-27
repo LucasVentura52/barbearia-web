@@ -1368,7 +1368,8 @@ const submitCancellationReason = async () => {
     sendBotMessage('Agendamento cancelado com sucesso. Sinto muito pelo imprevisto.')
     sendBotGif(BOOKING_CANCEL_SAD_GIF_URL, 'Cancelamento confirmado')
     await loadAppointments({ silent: true })
-    state.value = 'appointments'
+    state.value = 'menu'
+    sendBotMessage('Quando quiser, posso te ajudar com um novo agendamento.')
   } catch {
     sendBotMessage('Não consegui cancelar esse horário agora. Tente novamente em instantes.')
   } finally {

@@ -16,115 +16,143 @@
 
     <v-card class="glass-card" elevation="0">
       <v-card-text>
-        <template v-if="!smAndDown">
-          <v-table class="staff-table">
-            <thead>
-              <tr>
-                <th class="text-left">Nome</th>
-                <th class="text-left">Telefone</th>
-                <th class="text-left">Funcao</th>
-                <th class="text-left">Servicos</th>
-                <th class="text-left">Status</th>
-                <th class="text-left">Acoes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="member in filteredStaff" :key="member.id">
-                <td>
-                  <div class="member-cell">
-                    <div class="member-avatar">
-                      <v-img v-if="member.avatar_url" :src="resolveMediaUrl(member.avatar_url)" cover />
-                      <span v-else>{{ member.name?.slice(0, 1) || '?' }}</span>
-                    </div>
-                    <div>
-                      <div class="cell-title">{{ member.name }}</div>
-                      <div class="text-muted">{{ member.email || 'Sem e-mail' }}</div>
-                    </div>
-                  </div>
-                </td>
-                <td>{{ formatPhoneFromE164(member.phone) || 'Telefone não informado' }}</td>
-                <td>
-                  <v-chip size="small" :color="member.role === 'admin' ? 'primary' : 'secondary'" variant="tonal">
-                    {{ member.role === 'admin' ? 'Admin' : 'Staff' }}
-                  </v-chip>
-                </td>
-                <td>
-                  <div class="service-chips">
-                    <v-chip v-for="service in member.services" :key="service.id" size="x-small" color="secondary"
-                      variant="tonal">
-                      {{ service.name }}
-                    </v-chip>
-                    <span v-if="!member.services.length" class="text-muted">Sem servicos</span>
-                  </div>
-                </td>
-                <td>
-                  <v-chip size="small" :color="member.profile?.active ? 'success' : 'warning'" variant="tonal">
-                    {{ member.profile?.active ? 'Ativo' : 'Inativo' }}
-                  </v-chip>
-                </td>
-                <td>
-                  <div class="row-actions">
-                    <v-btn icon="mdi-pencil-outline" variant="text" @click="openEdit(member)" />
-                    <v-btn icon="mdi-power" variant="text" color="warning" @click="toggleActive(member)" />
-                    <v-btn icon="mdi-delete-outline" variant="text" color="error" @click="askDelete(member)" />
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
+        <template v-if="loading">
+          <template v-if="!smAndDown">
+            <v-table class="staff-table">
+              <thead>
+                <tr>
+                  <th class="text-left">Nome</th>
+                  <th class="text-left">Telefone</th>
+                  <th class="text-left">Funcao</th>
+                  <th class="text-left">Servicos</th>
+                  <th class="text-left">Status</th>
+                  <th class="text-left">Acoes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="6">
+                    <app-list-skeleton mode="table" :rows="6" :columns="6" />
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </template>
+          <template v-else>
+            <app-list-skeleton mode="cards" :rows="6" :columns="1" />
+          </template>
         </template>
         <template v-else>
-          <v-row dense>
-            <v-col v-for="member in filteredStaff" :key="member.id" cols="12">
-              <v-card variant="outlined" class="mobile-row-card">
-                <v-card-item>
-                  <template #prepend>
-                    <div class="member-avatar me-3">
-                      <v-img v-if="member.avatar_url" :src="resolveMediaUrl(member.avatar_url)" cover />
-                      <span v-else>{{ member.name?.slice(0, 1) || '?' }}</span>
+          <template v-if="!smAndDown">
+            <v-table class="staff-table">
+              <thead>
+                <tr>
+                  <th class="text-left">Nome</th>
+                  <th class="text-left">Telefone</th>
+                  <th class="text-left">Funcao</th>
+                  <th class="text-left">Servicos</th>
+                  <th class="text-left">Status</th>
+                  <th class="text-left">Acoes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="member in filteredStaff" :key="member.id">
+                  <td>
+                    <div class="member-cell">
+                      <div class="member-avatar">
+                        <v-img v-if="member.avatar_url" :src="resolveMediaUrl(member.avatar_url)" cover />
+                        <span v-else>{{ member.name?.slice(0, 1) || '?' }}</span>
+                      </div>
+                      <div>
+                        <div class="cell-title">{{ member.name }}</div>
+                        <div class="text-muted">{{ member.email || 'Sem e-mail' }}</div>
+                      </div>
                     </div>
-                  </template>
-                  <v-card-title class="text-body-1">{{ member.name }}</v-card-title>
-                  <v-card-subtitle>{{ member.email || formatPhoneFromE164(member.phone) || 'Telefone não informado' }}</v-card-subtitle>
-                </v-card-item>
-                <v-card-text class="pt-0">
-                  <div class="mobile-meta">
+                  </td>
+                  <td>{{ formatPhoneFromE164(member.phone) || 'Telefone não informado' }}</td>
+                  <td>
                     <v-chip size="small" :color="member.role === 'admin' ? 'primary' : 'secondary'" variant="tonal">
                       {{ member.role === 'admin' ? 'Admin' : 'Staff' }}
                     </v-chip>
+                  </td>
+                  <td>
+                    <div class="service-chips">
+                      <v-chip v-for="service in member.services" :key="service.id" size="x-small" color="secondary"
+                        variant="tonal">
+                        {{ service.name }}
+                      </v-chip>
+                      <span v-if="!member.services.length" class="text-muted">Sem servicos</span>
+                    </div>
+                  </td>
+                  <td>
                     <v-chip size="small" :color="member.profile?.active ? 'success' : 'warning'" variant="tonal">
                       {{ member.profile?.active ? 'Ativo' : 'Inativo' }}
                     </v-chip>
-                  </div>
-                  <div class="service-chips mb-3">
-                    <v-chip v-for="service in member.services" :key="service.id" size="x-small" color="secondary"
-                      variant="tonal">
-                      {{ service.name }}
-                    </v-chip>
-                    <span v-if="!member.services.length" class="text-muted">Sem serviços</span>
-                  </div>
-                  <div class="mobile-actions">
-                    <v-btn size="small" variant="tonal" prepend-icon="mdi-pencil-outline" @click="openEdit(member)">
-                      Editar
-                    </v-btn>
-                    <v-btn size="small" variant="text" color="warning" prepend-icon="mdi-power"
-                      @click="toggleActive(member)">
-                      Status
-                    </v-btn>
-                    <v-btn size="small" variant="text" color="error" prepend-icon="mdi-delete-outline"
-                      @click="askDelete(member)">
-                      Excluir
-                    </v-btn>
-                  </div>
-                </v-card-text>
-              </v-card>
-            </v-col>
-          </v-row>
-        </template>
+                  </td>
+                  <td>
+                    <div class="row-actions">
+                      <v-btn icon="mdi-pencil-outline" variant="text" @click="openEdit(member)" />
+                      <v-btn icon="mdi-power" variant="text" color="warning" @click="toggleActive(member)" />
+                      <v-btn icon="mdi-delete-outline" variant="text" color="error" @click="askDelete(member)" />
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </template>
+          <template v-else>
+            <v-row dense>
+              <v-col v-for="member in filteredStaff" :key="member.id" cols="12">
+                <v-card variant="outlined" class="mobile-row-card">
+                  <v-card-item>
+                    <template #prepend>
+                      <div class="member-avatar me-3">
+                        <v-img v-if="member.avatar_url" :src="resolveMediaUrl(member.avatar_url)" cover />
+                        <span v-else>{{ member.name?.slice(0, 1) || '?' }}</span>
+                      </div>
+                    </template>
+                    <v-card-title class="text-body-1">{{ member.name }}</v-card-title>
+                    <v-card-subtitle>{{ member.email || formatPhoneFromE164(member.phone) || 'Telefone não informado' }}</v-card-subtitle>
+                  </v-card-item>
+                  <v-card-text class="pt-0">
+                    <div class="mobile-meta">
+                      <v-chip size="small" :color="member.role === 'admin' ? 'primary' : 'secondary'" variant="tonal">
+                        {{ member.role === 'admin' ? 'Admin' : 'Staff' }}
+                      </v-chip>
+                      <v-chip size="small" :color="member.profile?.active ? 'success' : 'warning'" variant="tonal">
+                        {{ member.profile?.active ? 'Ativo' : 'Inativo' }}
+                      </v-chip>
+                    </div>
+                    <div class="service-chips mb-3">
+                      <v-chip v-for="service in member.services" :key="service.id" size="x-small" color="secondary"
+                        variant="tonal">
+                        {{ service.name }}
+                      </v-chip>
+                      <span v-if="!member.services.length" class="text-muted">Sem serviços</span>
+                    </div>
+                    <div class="mobile-actions">
+                      <v-btn size="small" variant="tonal" prepend-icon="mdi-pencil-outline" @click="openEdit(member)">
+                        Editar
+                      </v-btn>
+                      <v-btn size="small" variant="text" color="warning" prepend-icon="mdi-power"
+                        @click="toggleActive(member)">
+                        Status
+                      </v-btn>
+                      <v-btn size="small" variant="text" color="error" prepend-icon="mdi-delete-outline"
+                        @click="askDelete(member)">
+                        Excluir
+                      </v-btn>
+                    </div>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
+          </template>
 
-        <div v-if="!filteredStaff.length" class="empty-state">
-          Nenhum colaborador encontrado.
-        </div>
+          <div v-if="!filteredStaff.length" class="empty-state">
+            Nenhum colaborador encontrado.
+          </div>
+        </template>
       </v-card-text>
     </v-card>
 
@@ -158,12 +186,12 @@
             label="Servicos" multiple chips variant="outlined" />
           <div class="modal-switch-row">
             <v-switch v-model="form.active" color="secondary" label="Ativo" />
+            <v-card-actions class="dialog-actions">
+              <v-btn variant="text" @click="dialog = false">Cancelar</v-btn>
+              <v-btn color="secondary" variant="flat" :loading="saving" @click="saveMember">Salvar</v-btn>
+            </v-card-actions>
           </div>
         </v-card-text>
-        <v-card-actions class="dialog-actions">
-          <v-btn variant="text" @click="dialog = false">Cancelar</v-btn>
-          <v-btn color="secondary" variant="flat" :loading="saving" @click="saveMember">Salvar</v-btn>
-        </v-card-actions>
       </v-card>
     </v-dialog>
 
@@ -189,6 +217,7 @@ import api from '@/lib/api'
 import { resolveMediaUrl } from '@/lib/media'
 import { useAlertStore } from '@/stores/alerts'
 import { formatPhone, normalizePhone, buildE164, formatPhoneFromE164 } from '@/lib/phone'
+import AppListSkeleton from '@/components/AppListSkeleton.vue'
 
 const alerts = useAlertStore()
 
@@ -196,6 +225,7 @@ const staff = ref([])
 const services = ref([])
 const search = ref('')
 const filterStatus = ref('all')
+const loading = ref(false)
 const dialog = ref(false)
 const confirmDelete = ref(false)
 const saving = ref(false)
@@ -269,8 +299,13 @@ const filteredStaff = computed(() => {
 })
 
 const loadStaff = async () => {
-  const { data } = await api.get('/api/admin/staff?include_inactive=1')
-  staff.value = data
+  loading.value = true
+  try {
+    const { data } = await api.get('/api/admin/staff?include_inactive=1')
+    staff.value = data
+  } finally {
+    loading.value = false
+  }
 }
 
 const loadServices = async () => {
@@ -529,6 +564,15 @@ onMounted(async () => {
 }
 
 .dialog-actions {
-  padding: 0 24px 20px;
+  margin-left: auto;
+  padding: 0;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal-switch-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 </style>
