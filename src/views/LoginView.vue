@@ -13,12 +13,12 @@
                   <div class="login-head__text">
                     <div class="text-h5 text-sm-h4 login-head__title">Entrar na plataforma</div>
                     <div class="text-body-2 login-head__subtitle">
-                    Use seu telefone e senha para acessar. Cadastro disponível apenas para clientes.
+                      Use seu telefone e senha para acessar. Cadastro disponível apenas para clientes.
                     </div>
                   </div>
                 </div>
 
-                <v-tabs v-model="tab" color="primary" grow  class="mb-4">
+                <v-tabs v-model="tab" color="primary" grow class="mb-4">
                   <v-tab value="login" prepend-icon="mdi-login">Login</v-tab>
                   <v-tab value="register" prepend-icon="mdi-account-plus-outline">Cadastrar conta</v-tab>
                 </v-tabs>
@@ -26,25 +26,24 @@
                 <v-window v-model="tab" :touch="false">
                   <v-window-item value="login">
                     <v-form @submit.prevent="handleLogin">
-                      <v-alert v-if="loginErrors._form" type="error" variant="tonal" class="mb-4" >
+                      <v-alert v-if="loginErrors._form" type="error" variant="tonal" class="mb-4">
                         {{ loginErrors._form[0] }}
                       </v-alert>
 
                       <v-row dense class="mt-1">
                         <v-col cols="12" sm="4">
                           <v-select v-model="loginForm.country" :items="countryOptions" item-title="label"
-                            item-value="code" label="País" variant="outlined" 
-                            hide-details="auto" />
+                            item-value="code" label="País" variant="outlined" hide-details="auto" />
                         </v-col>
                         <v-col cols="12" sm="8" class="mt-3 mt-sm-0">
                           <v-text-field v-model="loginPhone" label="Telefone" placeholder="(11) 99999-9999"
-                            variant="outlined"  prepend-inner-icon="mdi-phone-outline" type="tel"
-                            maxlength="15" :error-messages="loginErrors.phone" required />
+                            variant="outlined" prepend-inner-icon="mdi-phone-outline" type="tel" maxlength="15"
+                            :error-messages="loginErrors.phone" required />
                         </v-col>
                       </v-row>
 
                       <v-text-field v-model="loginForm.password" label="Senha"
-                        :type="showLoginPassword ? 'text' : 'password'" variant="outlined" 
+                        :type="showLoginPassword ? 'text' : 'password'" variant="outlined"
                         prepend-inner-icon="mdi-lock-outline"
                         :append-inner-icon="showLoginPassword ? 'mdi-eye-off' : 'mdi-eye'"
                         :error-messages="loginErrors.password" required
@@ -58,56 +57,42 @@
 
                   <v-window-item value="register">
                     <v-form @submit.prevent="handleRegister">
-                      <v-alert v-if="registerErrors._form" type="error" variant="tonal" class="mb-4"
-                        >
+                      <v-alert v-if="registerErrors._form" type="error" variant="tonal" class="mb-4">
                         {{ registerErrors._form[0] }}
                       </v-alert>
 
                       <v-text-field v-model="registerForm.name" class="mt-1" label="Nome" variant="outlined"
-                         prepend-inner-icon="mdi-account-outline"
-                        :error-messages="registerErrors.name" required />
+                        prepend-inner-icon="mdi-account-outline" :error-messages="registerErrors.name" required />
 
-                      <v-select
-                        v-model="registerForm.companySlug"
-                        :items="companyOptions"
-                        item-title="name"
-                        item-value="slug"
-                        label="Empresa"
-                        variant="outlined"
-                        prepend-inner-icon="mdi-domain"
-                        :loading="loadingCompanies"
-                        :error-messages="registerErrors.company_slug"
-                        hide-details="auto"
-                        class="mb-1"
-                        required
-                      />
+                      <v-select v-model="registerForm.companySlug" :items="companyOptions" item-title="name"
+                        item-value="slug" label="Empresa" variant="outlined" prepend-inner-icon="mdi-domain"
+                        :loading="loadingCompanies" :error-messages="registerErrors.company_slug" hide-details="auto"
+                        class="mb-1" required />
 
-                      <v-row dense class="mt-4">
+                      <v-row dense class="mt-5">
                         <v-col cols="12" sm="4">
                           <v-select v-model="registerForm.country" :items="countryOptions" item-title="label"
-                            item-value="code" label="País" variant="outlined" 
-                            hide-details="auto" />
+                            item-value="code" label="País" variant="outlined" hide-details="auto" />
                         </v-col>
                         <v-col cols="12" sm="8" class="mt-3 mt-sm-0">
                           <v-text-field v-model="registerPhone" label="Telefone" placeholder="(11) 99999-9999"
-                            variant="outlined"  prepend-inner-icon="mdi-phone-outline" type="tel"
-                            maxlength="15" :error-messages="registerErrors.phone" required />
+                            variant="outlined" prepend-inner-icon="mdi-phone-outline" type="tel" maxlength="15"
+                            :error-messages="registerErrors.phone" required />
                         </v-col>
                       </v-row>
 
                       <v-text-field v-model="registerForm.email" label="Email (opcional)" variant="outlined"
-                         prepend-inner-icon="mdi-email-outline"
-                        :error-messages="registerErrors.email" />
+                        prepend-inner-icon="mdi-email-outline" :error-messages="registerErrors.email" />
 
                       <v-text-field v-model="registerForm.password" label="Senha"
-                        :type="showRegisterPassword ? 'text' : 'password'" variant="outlined" 
+                        :type="showRegisterPassword ? 'text' : 'password'" variant="outlined"
                         prepend-inner-icon="mdi-lock-outline"
                         :append-inner-icon="showRegisterPassword ? 'mdi-eye-off' : 'mdi-eye'"
                         :error-messages="registerErrors.password" required
                         @click:append-inner="showRegisterPassword = !showRegisterPassword" />
 
                       <v-text-field v-model="registerForm.confirm" label="Confirmar senha"
-                        :type="showRegisterConfirm ? 'text' : 'password'" variant="outlined" 
+                        :type="showRegisterConfirm ? 'text' : 'password'" variant="outlined"
                         prepend-inner-icon="mdi-lock-check-outline"
                         :append-inner-icon="showRegisterConfirm ? 'mdi-eye-off' : 'mdi-eye'"
                         :error-messages="registerErrors.confirm" required
@@ -134,7 +119,8 @@
                 </p>
 
                 <v-list bg-color="transparent" class="pa-0 feature-list">
-                  <v-list-item class="px-0 feature-item" title="Sem conflitos" subtitle="Horários sincronizados em tempo real.">
+                  <v-list-item class="px-0 feature-item" title="Sem conflitos"
+                    subtitle="Horários sincronizados em tempo real.">
                     <template #prepend>
                       <v-avatar color="white" variant="tonal" size="36" class="me-3">
                         <v-icon icon="mdi-calendar-check-outline" size="18" />
@@ -142,7 +128,8 @@
                     </template>
                   </v-list-item>
 
-                  <v-list-item class="px-0 feature-item" title="Rápido e simples" subtitle="Agendamento em poucos cliques.">
+                  <v-list-item class="px-0 feature-item" title="Rápido e simples"
+                    subtitle="Agendamento em poucos cliques.">
                     <template #prepend>
                       <v-avatar color="white" variant="tonal" size="36" class="me-3">
                         <v-icon icon="mdi-flash-outline" size="18" />
