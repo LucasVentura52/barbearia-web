@@ -4,7 +4,7 @@
       <header class="chat-header">
         <div class="chat-header-inner">
           <div class="chat-agent">
-            <div class="agent-title">Assistente {{ companyName }}</div>
+            <div class="agent-title">Assistente do {{ companyName }}</div>
           </div>
           <div class="header-actions">
             <v-menu location="bottom end">
@@ -183,11 +183,22 @@
               <template v-else-if="state === 'booking-date'">
                 <div class="date-tools">
                   <v-date-input v-model="booking.date" label="Data" variant="outlined" density="compact" hide-details
-                    :min="todayDate" />
-                  <v-btn color="primary" size="large" :loading="booking.loadingSlots" @click="fetchAvailability">
+                    :min="todayDate" :allowed-dates="isBookingDateAllowed" :disabled="loadingCalendarAvailability" />
+                  <v-btn color="primary" size="large" :loading="booking.loadingSlots"
+                    :disabled="loadingCalendarAvailability || !isBookingDateAllowed(booking.date)"
+                    @click="fetchAvailability">
                     Buscar horários
                   </v-btn>
                 </div>
+
+                <v-alert v-if="loadingCalendarAvailability" type="info" variant="tonal" class="mt-3">
+                  Verificando os dias disponíveis para este profissional...
+                </v-alert>
+
+                <v-alert v-else-if="bookingCalendarLoaded && !availableBookingDates.length" type="warning" variant="tonal"
+                  class="mt-3">
+                  Não há datas disponíveis no período atual para este profissional e serviços.
+                </v-alert>
 
                 <v-alert v-if="booking.availabilityError" type="warning" variant="tonal" class="mt-3">
                   {{ booking.availabilityError }}
@@ -644,9 +655,12 @@ const loadingCatalog = ref(false)
 const catalogLoadError = ref(false)
 const loadingAppointments = ref(false)
 const appointmentsLoadError = ref(false)
+const loadingCalendarAvailability = ref(false)
+const bookingCalendarLoaded = ref(false)
 const staffOptions = ref([])
 const servicesCatalog = ref([])
 const appointments = ref([])
+const availableBookingDates = ref([])
 const rescheduleSource = ref(null)
 const appointmentFilters = reactive({
   search: '',
@@ -685,6 +699,7 @@ const toDateString = (value) => {
 }
 
 const todayDate = toLocalDateString(new Date())
+const calendarRangeEndDate = toLocalDateString(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000))
 
 const booking = reactive({
   staffId: null,
@@ -696,6 +711,8 @@ const booking = reactive({
   loadingSlots: false,
   saving: false,
 })
+
+const availableBookingDateSet = computed(() => new Set(availableBookingDates.value))
 
 const panelTitle = computed(() => {
   const map = {
@@ -868,6 +885,18 @@ const markAssistantAsSeen = () => {
 }
 
 const hasAppointmentHistory = computed(() => appointments.value.length > 0)
+const nextScheduledAppointment = computed(() => {
+  const now = Date.now()
+
+  return appointments.value
+    .filter((appointment) => appointment?.status === 'scheduled')
+    .map((appointment) => ({
+      appointment,
+      timestamp: new Date(appointment.start_at).getTime(),
+    }))
+    .filter((item) => Number.isFinite(item.timestamp) && item.timestamp >= now)
+    .sort((a, b) => a.timestamp - b.timestamp)[0]?.appointment || null
+})
 
 const BOT_MESSAGE_GAP_MS = 80
 const BOT_MIN_TYPING_MS = 180
@@ -980,6 +1009,9 @@ const resetBooking = () => {
   booking.availabilityError = ''
   booking.loadingSlots = false
   booking.saving = false
+  loadingCalendarAvailability.value = false
+  bookingCalendarLoaded.value = false
+  availableBookingDates.value = []
   rescheduleSource.value = null
   cancelContext.appointmentId = null
   cancelContext.startAt = ''
@@ -1035,11 +1067,52 @@ const formatDateTime = (value) => {
   })
 }
 
+const formatSpokenTime = (value) => {
+  if (!value) return '--'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '--'
+
+  const hour = date.getHours()
+  const minute = date.getMinutes()
+
+  if (!minute) return `${hour}h`
+  return `${hour}h${String(minute).padStart(2, '0')}`
+}
+
 const formatWeekday = (value) => {
   if (!value) return '--'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '--'
   return date.toLocaleDateString('pt-BR', { weekday: 'long' })
+}
+
+const startOfLocalDay = (value) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+const describeNextScheduledAppointment = (appointment) => {
+  if (!appointment) return ''
+
+  const appointmentDay = startOfLocalDay(appointment.start_at)
+  const today = startOfLocalDay(new Date())
+  if (!appointmentDay || !today) return ''
+
+  const diffMs = appointmentDay.getTime() - today.getTime()
+  const daysDiff = Math.round(diffMs / 86400000)
+
+  let whenLabel = ''
+  if (daysDiff <= 0) {
+    whenLabel = 'hoje'
+  } else if (daysDiff === 1) {
+    whenLabel = 'amanhã'
+  } else {
+    whenLabel = `daqui ${daysDiff} dias`
+  }
+
+  const staffName = appointment.staff?.name || 'Equipe'
+  return `Você tem um agendamento marcado para ${whenLabel} às ${formatSpokenTime(appointment.start_at)}, com o colaborador ${staffName}.`
 }
 
 const formatMessageTime = (value) => {
@@ -1141,7 +1214,12 @@ const beginConversation = () => {
     } else {
       sendBotMessage('Que bom te ver de novo.')
     }
-    sendBotMessage('Vi que você já tem histórico de agendamentos. Posso acelerar seu próximo atendimento.')
+    const nextAppointmentMessage = describeNextScheduledAppointment(nextScheduledAppointment.value)
+    if (nextAppointmentMessage) {
+      sendBotMessage(nextAppointmentMessage)
+    } else {
+      sendBotMessage('Vi que você já tem histórico de agendamentos. Posso acelerar seu próximo atendimento.')
+    }
     sendBotMessage(`Você já tem ${appointments.value.length} agendamento(s) registrado(s).`)
   } else if (auth.isAuthenticated) {
     if (firstName) {
@@ -1230,6 +1308,8 @@ const chooseStaff = (staff) => {
   booking.slots = []
   booking.selectedSlot = null
   booking.availabilityError = ''
+  bookingCalendarLoaded.value = false
+  availableBookingDates.value = []
 }
 
 const continueToServiceStep = () => {
@@ -1250,9 +1330,11 @@ const toggleService = (serviceId) => {
   }
 
   booking.serviceIds = [...booking.serviceIds, serviceId]
+  bookingCalendarLoaded.value = false
+  availableBookingDates.value = []
 }
 
-const continueToDateStep = () => {
+const continueToDateStep = async () => {
   if (!booking.serviceIds.length) {
     alerts.warning('Selecione pelo menos um serviço.')
     return
@@ -1261,6 +1343,7 @@ const continueToDateStep = () => {
   sendUserMessage(`Serviços escolhidos: ${selectedServicesLabel.value}.`)
   state.value = 'booking-date'
   sendBotMessage('Boa escolha. Agora selecione a data e eu busco os horários livres.')
+  await loadBookingCalendarAvailability()
 }
 
 const fetchAvailability = async () => {
@@ -1272,6 +1355,11 @@ const fetchAvailability = async () => {
   const dateParam = toDateString(booking.date)
   if (!dateParam) {
     alerts.warning('Selecione uma data válida.')
+    return
+  }
+
+  if (!isBookingDateAllowed(dateParam)) {
+    alerts.warning('Este dia está indisponível para o profissional selecionado.')
     return
   }
 
@@ -1500,6 +1588,60 @@ const startReschedule = async (appointment) => {
 
   state.value = 'booking-date'
   sendBotMessage('Vamos reagendar. Escolha a data e busque os horários disponíveis.')
+  await loadBookingCalendarAvailability()
+}
+
+const isBookingDateAllowed = (value) => {
+  const date = toDateString(value)
+  if (!date) return false
+  if (date < todayDate) return false
+  if (!booking.serviceIds.length || !booking.staffId) return false
+  return availableBookingDateSet.value.has(date)
+}
+
+const loadBookingCalendarAvailability = async () => {
+  if (!booking.staffId || !booking.serviceIds.length) {
+    bookingCalendarLoaded.value = false
+    availableBookingDates.value = []
+    return
+  }
+
+  loadingCalendarAvailability.value = true
+  bookingCalendarLoaded.value = false
+  booking.availabilityError = ''
+
+  try {
+    const params = new URLSearchParams()
+    params.append('staff_id', String(booking.staffId))
+    params.append('start_date', todayDate)
+    params.append('end_date', calendarRangeEndDate)
+    params.append('step_minutes', '30')
+    booking.serviceIds.forEach((serviceId) => params.append('service_ids[]', String(serviceId)))
+
+    const { data } = await api.get(`/api/availability/calendar?${params.toString()}`)
+    const dates = Array.isArray(data?.available_dates)
+      ? data.available_dates.filter((item) => typeof item === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item))
+      : []
+
+    availableBookingDates.value = dates
+    bookingCalendarLoaded.value = true
+
+    if (!dates.length) {
+      booking.date = todayDate
+      return
+    }
+
+    const currentDate = toDateString(booking.date)
+    if (!currentDate || !dates.includes(currentDate)) {
+      booking.date = dates[0]
+    }
+  } catch {
+    availableBookingDates.value = []
+    bookingCalendarLoaded.value = false
+    booking.availabilityError = 'Não consegui validar os dias disponíveis agora. Tente novamente em instantes.'
+  } finally {
+    loadingCalendarAvailability.value = false
+  }
 }
 
 const openServices = async () => {
