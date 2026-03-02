@@ -344,22 +344,77 @@
                     elevation="0">
                     <v-card-text>
                       <div class="appointment-head">
-                        <div>
-                          <div class="appointment-title">{{ formatDate(appointment.start_at) }}</div>
-                          <div class="appointment-time">
-                            {{ formatTime(appointment.start_at) }} - {{ formatTime(appointment.end_at) }}
+                        <div class="appointment-main">
+                          <div class="appointment-photo">
+                            <v-img
+                              v-if="appointmentPrimaryPhoto(appointment)"
+                              :src="resolveMediaUrl(appointmentPrimaryPhoto(appointment))"
+                              cover
+                            />
+                            <v-icon v-else icon="mdi-calendar-star" size="24" />
+                          </div>
+
+                          <div class="appointment-summary">
+                            <div class="appointment-title">{{ formatDate(appointment.start_at) }}</div>
+                            <div class="appointment-time">
+                              {{ formatTime(appointment.start_at) }} - {{ formatTime(appointment.end_at) }}
+                            </div>
+                            <div class="appointment-badges">
+                              <v-chip
+                                class="appointment-weekday-badge"
+                                size="small"
+                                variant="flat"
+                                color="info"
+                                prepend-icon="mdi-calendar-week"
+                              >
+                                {{ formatWeekday(appointment.start_at) }}
+                              </v-chip>
+                              <v-chip size="x-small" variant="tonal" color="secondary">
+                                {{ appointmentDurationMinutes(appointment) }} min
+                              </v-chip>
+                              <v-chip size="x-small" variant="tonal" color="secondary">
+                                {{ appointmentServiceCount(appointment) }} serviço(s)
+                              </v-chip>
+                            </div>
                           </div>
                         </div>
-                        <v-chip size="small" :color="statusColor(appointment.status)" variant="tonal">
-                          {{ statusLabel(appointment.status) }}
-                        </v-chip>
+
+                        <div class="appointment-status">
+                          <v-chip size="small" :color="statusColor(appointment.status)" variant="tonal">
+                            {{ statusLabel(appointment.status) }}
+                          </v-chip>
+                        </div>
                       </div>
 
-                      <div class="appointment-meta">{{ appointment.staff?.name || 'Equipe' }}</div>
+                      <div class="appointment-meta">
+                        <v-avatar size="28" class="appointment-staff-avatar">
+                          <v-img
+                            v-if="appointment.staff?.avatar_url"
+                            :src="resolveMediaUrl(appointment.staff.avatar_url)"
+                            cover
+                          />
+                          <span v-else>{{ initials(appointment.staff?.name || 'Equipe') }}</span>
+                        </v-avatar>
+                        <div class="appointment-meta-text">
+                          Profissional: <strong>{{ appointment.staff?.name || 'Equipe' }}</strong>
+                        </div>
+                      </div>
+
+                      <div
+                        v-if="appointment.status === 'canceled' && appointment.cancel_reason"
+                        class="appointment-cancel-reason"
+                      >
+                        Motivo do cancelamento: {{ appointment.cancel_reason }}
+                      </div>
 
                       <div class="appointment-services">
-                        <v-chip v-for="service in appointment.services" :key="service.id" size="x-small"
-                          color="secondary" variant="tonal">
+                        <v-chip
+                          v-for="service in appointment.services"
+                          :key="service.id"
+                          size="x-small"
+                          color="secondary"
+                          variant="tonal"
+                        >
                           {{ service.name }}
                         </v-chip>
                       </div>
@@ -369,18 +424,22 @@
                         <div class="appointment-actions">
                           <v-btn
                             v-if="appointment.status === 'scheduled'"
-                            variant="tonal"
-                            color="primary"
-                            size="small"
+                            class="appointment-action-btn appointment-action-btn--reschedule"
+                            variant="elevated"
+                            color="secondary"
+                            size="default"
+                            prepend-icon="mdi-calendar-refresh"
                             @click="startReschedule(appointment)"
                           >
                             Reagendar
                           </v-btn>
                           <v-btn
                             v-if="appointment.status === 'scheduled'"
-                            variant="outlined"
-                            color="primary"
-                            size="small"
+                            class="appointment-action-btn appointment-action-btn--cancel"
+                            variant="elevated"
+                            color="error"
+                            size="default"
+                            prepend-icon="mdi-close-circle-outline"
                             @click="startCancellationFlow(appointment)"
                           >
                             Cancelar
@@ -976,6 +1035,13 @@ const formatDateTime = (value) => {
   })
 }
 
+const formatWeekday = (value) => {
+  if (!value) return '--'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '--'
+  return date.toLocaleDateString('pt-BR', { weekday: 'long' })
+}
+
 const formatMessageTime = (value) => {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
@@ -992,6 +1058,33 @@ const initials = (name) => {
     .map((item) => item[0])
     .join('')
     .toUpperCase()
+}
+
+const appointmentServicesList = (appointment) =>
+  Array.isArray(appointment?.services) ? appointment.services : []
+
+const appointmentServiceCount = (appointment) => appointmentServicesList(appointment).length
+
+const appointmentPrimaryPhoto = (appointment) => {
+  const serviceWithPhoto = appointmentServicesList(appointment).find((service) => service?.photo_url)
+  if (serviceWithPhoto?.photo_url) return serviceWithPhoto.photo_url
+  if (appointment?.staff?.avatar_url) return appointment.staff.avatar_url
+  return ''
+}
+
+const appointmentDurationMinutes = (appointment) => {
+  const start = new Date(appointment?.start_at)
+  const end = new Date(appointment?.end_at)
+  const hasValidDates = !Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())
+
+  if (hasValidDates && end > start) {
+    return Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000))
+  }
+
+  return appointmentServicesList(appointment).reduce(
+    (total, service) => total + Number(service?.duration_minutes || 0),
+    0
+  )
 }
 
 const loadCatalog = async ({ force = false } = {}) => {
@@ -2088,7 +2181,7 @@ onBeforeUnmount(() => {
 .appointment-card {
   border: 1px solid rgba(132, 176, 201, 0.34);
   border-radius: 14px;
-  background: linear-gradient(154deg, rgba(31, 56, 72, 0.56), rgba(22, 41, 53, 0.64));
+  background: linear-gradient(154deg, rgba(31, 56, 72, 0.46), rgba(22, 41, 53, 0.52));
 }
 
 .appointment-card :deep(.v-card-text) {
@@ -2098,8 +2191,37 @@ onBeforeUnmount(() => {
 .appointment-head {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  align-items: center;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.appointment-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.appointment-photo {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(224, 239, 247, 0.86);
+  border: 1px solid rgba(158, 193, 210, 0.24);
+  background: linear-gradient(148deg, rgba(46, 76, 93, 0.64), rgba(30, 50, 63, 0.8));
+}
+
+.appointment-summary {
+  min-width: 0;
+}
+
+.appointment-status {
+  flex-shrink: 0;
 }
 
 .appointment-title {
@@ -2111,6 +2233,50 @@ onBeforeUnmount(() => {
 .appointment-meta {
   font-size: 0.84rem;
   color: rgba(198, 219, 230, 0.8);
+}
+
+.appointment-badges {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.appointment-weekday-badge {
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.01em;
+  border: 1px solid rgba(150, 217, 238, 0.28);
+  box-shadow: 0 2px 6px rgba(76, 163, 191, 0.12);
+}
+
+.appointment-meta {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.appointment-staff-avatar {
+  border: 1px solid rgba(166, 197, 215, 0.32);
+  background: linear-gradient(140deg, #4f7d83, #9a7450);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #eff9fc;
+}
+
+.appointment-meta-text strong {
+  color: rgba(236, 247, 252, 0.95);
+}
+
+.appointment-cancel-reason {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  border-radius: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(215, 125, 125, 0.4);
+  background: rgba(90, 36, 38, 0.3);
+  color: rgba(255, 220, 220, 0.94);
 }
 
 .appointment-services {
@@ -2140,6 +2306,20 @@ onBeforeUnmount(() => {
 .appointment-actions {
   display: flex;
   gap: 8px;
+}
+
+.appointment-action-btn {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  min-width: 126px;
+}
+
+.appointment-action-btn--reschedule {
+  box-shadow: 0 6px 16px rgba(90, 168, 189, 0.34);
+}
+
+.appointment-action-btn--cancel {
+  box-shadow: 0 6px 16px rgba(189, 72, 72, 0.34);
 }
 
 .profile-card {
@@ -2373,6 +2553,19 @@ onBeforeUnmount(() => {
   .appointment-head {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .appointment-main {
+    width: 100%;
+  }
+
+  .appointment-status {
+    width: 100%;
+  }
+
+  .appointment-status :deep(.v-chip) {
+    width: 100%;
+    justify-content: center;
   }
 
   .appointment-footer {
