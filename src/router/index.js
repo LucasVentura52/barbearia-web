@@ -4,6 +4,11 @@ import { useAuthStore } from '@/stores/auth'
 const LoginView = () => import('@/views/LoginView.vue')
 const ClientHomeView = () => import('@/views/client/ClientHomeView.vue')
 const StaffDashboardView = () => import('@/views/staff/StaffDashboardView.vue')
+const StaffReportCollaboratorsView = () => import('@/views/staff/reports/StaffReportCollaboratorsView.vue')
+const StaffReportClientsView = () => import('@/views/staff/reports/StaffReportClientsView.vue')
+const StaffReportProductsView = () => import('@/views/staff/reports/StaffReportProductsView.vue')
+const StaffReportAppointmentsView = () => import('@/views/staff/reports/StaffReportAppointmentsView.vue')
+const StaffReportFinancialView = () => import('@/views/staff/reports/StaffReportFinancialView.vue')
 const StaffAppointmentsView = () => import('@/views/staff/StaffAppointmentsView.vue')
 const StaffClientsView = () => import('@/views/staff/StaffClientsView.vue')
 const StaffProfileView = () => import('@/views/staff/StaffProfileView.vue')
@@ -50,6 +55,42 @@ const router = createRouter({
       path: '/staff',
       name: 'staff-dashboard',
       component: StaffDashboardView,
+      meta: { layout: 'staff', requiresAuth: true, role: 'staff' },
+    },
+    {
+      path: '/staff/reports',
+      name: 'staff-reports',
+      redirect: { name: 'staff-reports-collaborators' },
+      meta: { layout: 'staff', requiresAuth: true, role: 'staff' },
+    },
+    {
+      path: '/staff/reports/collaborators',
+      name: 'staff-reports-collaborators',
+      component: StaffReportCollaboratorsView,
+      meta: { layout: 'staff', requiresAuth: true, role: 'staff' },
+    },
+    {
+      path: '/staff/reports/clients',
+      name: 'staff-reports-clients',
+      component: StaffReportClientsView,
+      meta: { layout: 'staff', requiresAuth: true, role: 'staff' },
+    },
+    {
+      path: '/staff/reports/products',
+      name: 'staff-reports-products',
+      component: StaffReportProductsView,
+      meta: { layout: 'staff', requiresAuth: true, role: 'staff' },
+    },
+    {
+      path: '/staff/reports/appointments',
+      name: 'staff-reports-appointments',
+      component: StaffReportAppointmentsView,
+      meta: { layout: 'staff', requiresAuth: true, role: 'staff' },
+    },
+    {
+      path: '/staff/reports/financial',
+      name: 'staff-reports-financial',
+      component: StaffReportFinancialView,
       meta: { layout: 'staff', requiresAuth: true, role: 'staff' },
     },
     {

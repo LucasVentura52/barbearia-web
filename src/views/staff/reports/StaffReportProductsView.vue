@@ -1,0 +1,96 @@
+<template>
+  <v-container>
+    <div class="section-title"><h2>Relatório de Produtos</h2></div>
+    <v-card class="staff-toolbar-card mb-4" elevation="0">
+      <v-card-text class="toolbar">
+        <v-date-input v-model="dateRange" label="Período" multiple="range" hide-details />
+        <v-text-field v-model="search" label="Buscar produto" variant="outlined" density="compact" hide-details />
+        <v-select v-model="stockFilter" :items="stockFilterOptions" item-title="label" item-value="value" label="Filtro de estoque" variant="outlined" density="compact" hide-details />
+        <v-btn color="secondary" :loading="loading" @click="loadReport">Atualizar</v-btn>
+      </v-card-text>
+    </v-card>
+    <v-row>
+      <v-col cols="12" md="6">
+        <v-card class="glass-card" elevation="0">
+          <v-card-text>
+            <div class="chips-row mb-3">
+              <v-chip color="secondary" variant="tonal">Controlados: {{ summary.tracked_products }}</v-chip>
+              <v-chip color="primary" variant="tonal">Unidades: {{ summary.total_units }}</v-chip>
+              <v-chip color="warning" variant="tonal">Baixo: {{ summary.low_stock }}</v-chip>
+              <v-chip color="error" variant="tonal">Sem estoque: {{ summary.out_of_stock }}</v-chip>
+            </div>
+            <div class="section-label">Top produtos vendidos</div>
+            <v-table>
+              <thead><tr><th>Produto</th><th>Qtd</th><th>Receita</th></tr></thead>
+              <tbody>
+                <tr v-for="item in sales" :key="item.id"><td>{{ item.name }}</td><td>{{ item.quantity }}</td><td>{{ formatCurrencyBRL(item.revenue) }}</td></tr>
+                <tr v-if="!sales.length"><td colspan="3" class="text-muted">Sem vendas no período.</td></tr>
+              </tbody>
+            </v-table>
+          </v-card-text>
+        </v-card>
+      </v-col>
+      <v-col cols="12" md="6">
+        <v-card class="glass-card" elevation="0">
+          <v-card-text>
+            <div class="section-label">Alertas de estoque</div>
+            <v-table>
+              <thead><tr><th>Produto</th><th>Estoque</th><th>Preço</th></tr></thead>
+              <tbody>
+                <tr v-for="item in stockAlerts" :key="item.id"><td>{{ item.name }}</td><td>{{ item.stock }}</td><td>{{ formatCurrencyBRL(item.price) }}</td></tr>
+                <tr v-if="!stockAlerts.length"><td colspan="3" class="text-muted">Sem alertas.</td></tr>
+              </tbody>
+            </v-table>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import api from '@/lib/api'
+import { formatCurrencyBRL } from '@/lib/currency'
+const pad = (v) => String(v).padStart(2, '0')
+const toDate = (value) => {
+  if (!value) return ''
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  const d = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+const monthRange = () => { const now = new Date(); return [toDate(new Date(now.getFullYear(), now.getMonth(), 1)), toDate(new Date(now.getFullYear(), now.getMonth() + 1, 0))] }
+const dateRange = ref(monthRange())
+const search = ref('')
+const stockFilter = ref('all')
+const stockFilterOptions = [{ label: 'Todos', value: 'all' }, { label: 'Baixo', value: 'low' }, { label: 'Sem estoque', value: 'out' }]
+const loading = ref(false)
+const summary = ref({ tracked_products: 0, total_units: 0, out_of_stock: 0, low_stock: 0 })
+const sales = ref([])
+const stockAlerts = ref([])
+const period = computed(() => {
+  const values = (Array.isArray(dateRange.value) ? dateRange.value : [dateRange.value]).map((v) => toDate(v)).filter(Boolean).sort()
+  if (!values.length) return { from: monthRange()[0], to: monthRange()[1] }
+  if (values.length === 1) return { from: values[0], to: values[0] }
+  return { from: values[0], to: values[values.length - 1] }
+})
+const loadReport = async () => {
+  loading.value = true
+  try {
+    const params = new URLSearchParams({ from: period.value.from, to: period.value.to, stock_filter: stockFilter.value })
+    if (search.value.trim()) params.set('search', search.value.trim())
+    const { data } = await api.get(`/api/reports/products?${params.toString()}`)
+    summary.value = data?.summary || summary.value
+    sales.value = Array.isArray(data?.sales?.items) ? data.sales.items : []
+    stockAlerts.value = Array.isArray(data?.stock_alerts?.items) ? data.stock_alerts.items : []
+  } finally { loading.value = false }
+}
+onMounted(loadReport)
+</script>
+
+<style scoped>
+.toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.chips-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.section-label { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.14em; color: rgba(66,84,97,.74); margin-bottom: 10px; }
+</style>

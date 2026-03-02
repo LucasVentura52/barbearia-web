@@ -12,9 +12,30 @@
           <div class="brand-subtitle">{{ subtitle }}</div>
         </div>
       </div>
-      <v-list nav density="comfortable">
-        <v-list-item v-for="item in visibleNav" :key="item.to" :to="item.to" :prepend-icon="item.icon"
-          :title="item.title" @click="handleNavClick" />
+      <v-list nav density="comfortable" v-model:opened="openedGroups">
+        <template v-for="item in visibleNav" :key="item.title">
+          <v-list-group v-if="item.children" :value="item.group">
+            <template #activator="{ props }">
+              <v-list-item v-bind="props" :prepend-icon="item.icon" :title="item.title" />
+            </template>
+            <v-list-item
+              v-for="child in item.children"
+              :key="child.title"
+              :to="child.to"
+              :prepend-icon="child.icon"
+              :title="child.title"
+              class="nav-subitem"
+              @click="handleNavClick"
+            />
+          </v-list-group>
+          <v-list-item
+            v-else
+            :to="item.to"
+            :prepend-icon="item.icon"
+            :title="item.title"
+            @click="handleNavClick"
+          />
+        </template>
       </v-list>
       <div v-if="auth.isAuthenticated && auth.user?.role === 'super_admin' && smAndDown" class="drawer-company px-4 pb-2">
         <CompanySwitcher />
@@ -214,7 +235,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/stores/auth'
 import CompanySwitcher from '@/components/CompanySwitcher.vue'
@@ -224,8 +245,10 @@ import { useAlertStore } from '@/stores/alerts'
 
 const { mdAndUp, smAndDown } = useDisplay()
 const drawer = ref(mdAndUp.value)
+const openedGroups = ref([])
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const alerts = useAlertStore()
 const settingsDialog = ref(false)
 const settingsHelpDialog = ref(false)
@@ -248,6 +271,18 @@ const navItems = [
   { title: 'Horários', to: { name: 'staff-schedule' }, icon: 'mdi-calendar-clock-outline' },
   { title: 'Serviços', to: { name: 'staff-services' }, icon: 'mdi-scissors-cutting' },
   { title: 'Produtos', to: { name: 'staff-products' }, icon: 'mdi-bottle-tonic-outline' },
+  {
+    title: 'Relatórios',
+    icon: 'mdi-chart-box-outline',
+    group: 'reports',
+    children: [
+      { title: 'Colaboradores', to: { name: 'staff-reports-collaborators' }, icon: 'mdi-account-group-outline' },
+      { title: 'Clientes', to: { name: 'staff-reports-clients' }, icon: 'mdi-account-multiple-outline' },
+      { title: 'Produtos', to: { name: 'staff-reports-products' }, icon: 'mdi-bottle-tonic-outline' },
+      { title: 'Agendamentos', to: { name: 'staff-reports-appointments' }, icon: 'mdi-calendar-range' },
+      { title: 'Financeiro', to: { name: 'staff-reports-financial' }, icon: 'mdi-cash-multiple' },
+    ],
+  },
   { title: 'Perfil', to: { name: 'staff-profile' }, icon: 'mdi-account-tie' },
   { title: 'Colaboradores', to: { name: 'staff-team' }, icon: 'mdi-account-group', admin: true },
   { title: 'Empresas', to: { name: 'super-admin-companies' }, icon: 'mdi-domain', superAdmin: true },
@@ -260,6 +295,21 @@ const visibleNav = computed(() => {
     return true
   })
 })
+
+watch(
+  () => route.name,
+  (name) => {
+    const key = String(name || '')
+    if (key.startsWith('staff-reports-')) {
+      if (!openedGroups.value.includes('reports')) {
+        openedGroups.value = [...openedGroups.value, 'reports']
+      }
+      return
+    }
+    openedGroups.value = openedGroups.value.filter((group) => group !== 'reports')
+  },
+  { immediate: true }
+)
 
 const subtitle = computed(() => {
   if (auth.user?.role === 'super_admin') return 'Super Admin'
