@@ -82,7 +82,7 @@
                         required
                       />
 
-                      <v-row dense>
+                      <v-row dense class="mt-4">
                         <v-col cols="12" sm="4">
                           <v-select v-model="registerForm.country" :items="countryOptions" item-title="label"
                             item-value="code" label="País" variant="outlined" 
@@ -237,7 +237,12 @@ onMounted(async () => {
   loadingCompanies.value = true
   try {
     const { data } = await api.get('/api/companies')
-    companyOptions.value = Array.isArray(data) ? data : []
+    const companies = Array.isArray(data?.companies) ? data.companies : []
+    companyOptions.value = companies
+
+    if (!registerForm.value.companySlug && data?.current?.slug) {
+      registerForm.value.companySlug = String(data.current.slug)
+    }
   } catch {
     companyOptions.value = []
   } finally {
