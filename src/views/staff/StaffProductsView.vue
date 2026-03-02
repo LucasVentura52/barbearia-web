@@ -73,7 +73,11 @@
                     </div>
                   </td>
                   <td>{{ formatCurrencyBRL(product.price) }}</td>
-                  <td>{{ product.stock ?? '—' }}</td>
+                  <td>
+                    <v-chip size="small" :color="stockChipColor(product.stock)" variant="tonal">
+                      {{ stockLabel(product.stock) }}
+                    </v-chip>
+                  </td>
                   <td>
                     <v-chip size="small" :color="product.active ? 'success' : 'warning'" variant="tonal">
                       {{ product.active ? 'Ativo' : 'Inativo' }}
@@ -109,7 +113,9 @@
                   <v-card-text class="pt-0">
                     <div class="mobile-meta">
                       <v-chip size="small" color="primary" variant="tonal">{{ formatCurrencyBRL(product.price) }}</v-chip>
-                      <v-chip size="small" color="secondary" variant="tonal">Estoque: {{ product.stock ?? '—' }}</v-chip>
+                      <v-chip size="small" :color="stockChipColor(product.stock)" variant="tonal">
+                        {{ stockLabel(product.stock) }}
+                      </v-chip>
                       <v-chip size="small" :color="product.active ? 'success' : 'warning'" variant="tonal">
                         {{ product.active ? 'Ativo' : 'Inativo' }}
                       </v-chip>
@@ -156,8 +162,31 @@
               placeholder="0,00"
               prefix="R$"
               inputmode="numeric"
+              hide-details="auto"
             />
-            <v-text-field v-model.number="form.stock" type="number" min="0" label="Estoque" variant="outlined" />
+            <div class="stock-input-group">
+              <v-text-field
+                v-model.number="form.stock"
+                type="number"
+                min="0"
+                label="Estoque"
+                variant="outlined"
+                readonly
+                hide-details="auto"
+              />
+              <v-btn
+                color="secondary"
+                variant="tonal"
+                prepend-icon="mdi-package-variant-plus"
+                class="stock-entry-btn"
+                @click="openStockEntryDialog"
+              >
+                Entrada
+              </v-btn>
+            </div>
+          </div>
+          <div class="stock-helper-text">
+            Use "Entrada" para definir o estoque com histórico de fornecedor e data.
           </div>
           <v-file-input v-model="photoFile" label="Foto do produto" accept="image/*" prepend-icon="mdi-image-outline"
             variant="outlined" />
@@ -188,6 +217,42 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="stockDialog" max-width="560">
+      <v-card class="modal-card">
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">Entrada de estoque</div>
+            <div class="modal-subtitle">{{ editing?.name || 'Produto' }}</div>
+          </div>
+          <v-icon icon="mdi-package-variant-plus" />
+        </div>
+        <v-card-text class="form-grid">
+          <v-text-field v-model="stockEntryForm.supplier" label="Fornecedor" variant="outlined" />
+          <v-text-field v-model="stockEntryForm.entry_date" type="date" label="Data da entrada" variant="outlined" />
+          <v-text-field
+            v-model.number="stockEntryForm.quantity"
+            type="number"
+            min="1"
+            label="Quantidade"
+            variant="outlined"
+          />
+          <v-textarea
+            v-model="stockEntryForm.notes"
+            label="Observação"
+            rows="3"
+            variant="outlined"
+            placeholder="Lote, validade, nota fiscal etc."
+          />
+        </v-card-text>
+        <v-card-actions class="pa-5 mt-n7 mb-4">
+          <v-btn variant="text" @click="stockDialog = false">Cancelar</v-btn>
+          <v-btn color="secondary" variant="flat" :loading="savingStockEntry" @click="saveStockEntry">
+            Confirmar entrada
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -204,8 +269,10 @@ const products = ref([])
 const search = ref('')
 const loading = ref(false)
 const dialog = ref(false)
+const stockDialog = ref(false)
 const confirmDelete = ref(false)
 const saving = ref(false)
+const savingStockEntry = ref(false)
 const deletingLoading = ref(false)
 const editing = ref(null)
 const deleting = ref(null)
@@ -219,6 +286,12 @@ const form = ref({
   price: 0,
   stock: null,
   active: true,
+})
+const stockEntryForm = ref({
+  supplier: '',
+  entry_date: '',
+  quantity: 1,
+  notes: '',
 })
 
 const priceInput = computed({
@@ -238,6 +311,29 @@ const filteredProducts = computed(() => {
     )
   })
 })
+
+const stockLabel = (stock) => {
+  if (stock === null || stock === undefined) return 'Estoque não controlado'
+  const qty = Number(stock)
+  if (!Number.isFinite(qty)) return 'Estoque não controlado'
+  if (qty <= 0) return 'Sem estoque'
+  return `Estoque: ${qty}`
+}
+
+const stockChipColor = (stock) => {
+  if (stock === null || stock === undefined) return 'secondary'
+  const qty = Number(stock)
+  if (!Number.isFinite(qty)) return 'secondary'
+  if (qty <= 0) return 'error'
+  if (qty <= 5) return 'warning'
+  return 'success'
+}
+
+const todayDate = () => {
+  const now = new Date()
+  const offset = now.getTimezoneOffset() * 60000
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10)
+}
 
 const loadProducts = async () => {
   loading.value = true
@@ -260,9 +356,19 @@ const resetForm = () => {
   photoFile.value = null
 }
 
+const resetStockEntryForm = () => {
+  stockEntryForm.value = {
+    supplier: '',
+    entry_date: todayDate(),
+    quantity: 1,
+    notes: '',
+  }
+}
+
 const openCreate = () => {
   editing.value = null
   resetForm()
+  resetStockEntryForm()
   dialog.value = true
 }
 
@@ -276,7 +382,18 @@ const openEdit = (product) => {
     active: Boolean(product.active),
   }
   photoFile.value = null
+  resetStockEntryForm()
   dialog.value = true
+}
+
+const openStockEntryDialog = () => {
+  if (!editing.value?.id) {
+    alerts.warning('Salve o produto primeiro para registrar entradas de estoque.')
+    return
+  }
+
+  resetStockEntryForm()
+  stockDialog.value = true
 }
 
 const saveProduct = async () => {
@@ -310,6 +427,56 @@ const saveProduct = async () => {
     await loadProducts()
   } finally {
     saving.value = false
+  }
+}
+
+const saveStockEntry = async () => {
+  if (!editing.value?.id) {
+    alerts.warning('Produto inválido para entrada de estoque.')
+    return
+  }
+
+  const supplier = String(stockEntryForm.value.supplier || '').trim()
+  const entryDate = String(stockEntryForm.value.entry_date || '').trim()
+  const quantity = Number(stockEntryForm.value.quantity)
+
+  if (!supplier) {
+    alerts.warning('Informe o fornecedor.')
+    return
+  }
+
+  if (!entryDate) {
+    alerts.warning('Informe a data da entrada.')
+    return
+  }
+
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    alerts.warning('Informe uma quantidade válida.')
+    return
+  }
+
+  savingStockEntry.value = true
+  try {
+    const payload = {
+      supplier,
+      entry_date: entryDate,
+      quantity,
+      notes: String(stockEntryForm.value.notes || '').trim() || null,
+    }
+
+    const { data } = await api.post(`/api/products/${editing.value.id}/stock-entries`, payload)
+    const nextStock = data?.product?.stock
+
+    if (Number.isFinite(Number(nextStock))) {
+      form.value.stock = Number(nextStock)
+      editing.value = { ...editing.value, stock: Number(nextStock) }
+    }
+
+    alerts.success('Entrada de estoque registrada com sucesso.')
+    stockDialog.value = false
+    await loadProducts()
+  } finally {
+    savingStockEntry.value = false
   }
 }
 
@@ -425,6 +592,24 @@ onMounted(loadProducts)
   align-items: end;
 }
 
+.stock-input-group {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.stock-entry-btn {
+  height: 40px;
+}
+
+.stock-helper-text {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  font-size: 0.82rem;
+  color: rgba(42, 60, 74, 0.62);
+}
+
 .dialog-actions {
   margin-left: auto;
   padding: 0;
@@ -475,5 +660,15 @@ onMounted(loadProducts)
   padding: 24px;
   text-align: center;
   color: rgba(35, 58, 74, 0.6);
+}
+
+@media (max-width: 520px) {
+  .stock-input-group {
+    grid-template-columns: 1fr;
+  }
+
+  .stock-entry-btn {
+    width: 100%;
+  }
 }
 </style>
