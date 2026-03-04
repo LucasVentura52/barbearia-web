@@ -19,10 +19,16 @@ const StaffTeamView = () => import('@/views/staff/StaffTeamView.vue')
 const SuperAdminCompaniesView = () => import('@/views/super/SuperAdminCompaniesView.vue')
 const NotFoundView = () => import('@/views/NotFoundView.vue')
 
+const resolveAuthenticatedHomeRoute = (auth) => {
+  if (auth.isSuperAdmin) return { name: 'super-admin-companies' }
+  if (auth.isStaff) return { name: 'staff-dashboard' }
+  return { name: 'client-home' }
+}
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', redirect: '/client' },
+    { path: '/', redirect: { name: 'login' } },
     { path: '/login', name: 'login', component: LoginView, meta: { layout: 'auth' } },
 
     { path: '/client', name: 'client-home', component: ClientHomeView, meta: { layout: 'client' } },
@@ -153,7 +159,7 @@ const router = createRouter({
   },
 })
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from) => {
   const auth = useAuthStore()
   const isPublicRoute = ['login', 'not-found'].includes(String(to.name || ''))
 
@@ -176,9 +182,15 @@ router.beforeEach(async (to) => {
   }
 
   if (to.name === 'login' && auth.isAuthenticated) {
-    if (auth.isSuperAdmin) return { name: 'super-admin-companies' }
-    if (auth.isStaff) return { name: 'staff-dashboard' }
-    return { name: 'client-home' }
+    return resolveAuthenticatedHomeRoute(auth)
+  }
+
+  const targetName = String(to.name || '')
+  const isClientAreaRoute = targetName.startsWith('client-')
+  const isInitialNavigation = !from?.name
+  const isPostLoginNavigation = from?.name === 'login'
+  if (isClientAreaRoute && auth.isAuthenticated && !auth.isClient && (isInitialNavigation || isPostLoginNavigation)) {
+    return resolveAuthenticatedHomeRoute(auth)
   }
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
