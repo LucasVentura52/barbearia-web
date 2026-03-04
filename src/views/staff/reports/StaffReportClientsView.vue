@@ -139,6 +139,21 @@ onMounted(loadReport)
 </script>
 
 <style scoped>
-.toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.toolbar :deep(.v-input) {
+  flex: 1 1 240px;
+  min-width: 220px;
+}
+
+.toolbar :deep(.v-btn) {
+  height: 40px;
+}
+
 .chips-row { display: flex; gap: 8px; flex-wrap: wrap; }
 </style>
