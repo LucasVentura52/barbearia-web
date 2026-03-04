@@ -3,13 +3,13 @@
     <div class="section-title"><h2>Relatório de Colaboradores</h2></div>
     <v-card class="staff-toolbar-card mb-4" elevation="0">
       <v-card-text class="toolbar">
-        <v-date-input v-model="dateRange" label="Período" multiple="range" hide-details />
-        <v-text-field v-model="search" label="Buscar colaborador" variant="outlined" density="compact" hide-details />
-        <v-btn color="secondary" :loading="loading" @click="loadReport">Atualizar</v-btn>
-        <v-btn color="success" variant="tonal" prepend-icon="mdi-file-excel" :disabled="loading" @click="downloadExcel">
+        <v-date-input v-model="dateRange" label="Período" multiple="range" hide-details class="toolbar-field" />
+        <v-text-field v-model="search" label="Buscar colaborador" variant="outlined" density="compact" hide-details class="toolbar-field" />
+        <v-btn color="secondary" :loading="loading" class="toolbar-btn" @click="loadReport">Atualizar</v-btn>
+        <v-btn color="success" variant="tonal" prepend-icon="mdi-file-excel" :disabled="loading" class="toolbar-btn" @click="downloadExcel">
           Excel
         </v-btn>
-        <v-btn color="error" variant="tonal" prepend-icon="mdi-file-pdf-box" :disabled="loading" @click="downloadPdf">
+        <v-btn color="error" variant="tonal" prepend-icon="mdi-file-pdf-box" :disabled="loading" class="toolbar-btn" @click="downloadPdf">
           PDF
         </v-btn>
       </v-card-text>
@@ -140,13 +140,25 @@ onMounted(loadReport)
   align-items: flex-end;
 }
 
-.toolbar :deep(.v-input) {
+.toolbar-field {
   flex: 1 1 240px;
   min-width: 220px;
+  max-width: 100%;
 }
 
-.toolbar :deep(.v-btn) {
+.toolbar-btn {
   height: 40px;
+}
+
+@media (max-width: 720px) {
+  .toolbar {
+    align-items: stretch;
+  }
+
+  .toolbar-field {
+    flex-basis: 100%;
+    min-width: 0;
+  }
 }
 
 .chips-row { display: flex; gap: 8px; flex-wrap: wrap; }
