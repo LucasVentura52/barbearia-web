@@ -27,7 +27,10 @@
           <transition-group name="bubble">
             <div v-for="message in messages" :key="message.id" class="message-row"
               :class="`message-row--${message.role}`">
-              <div class="message-bubble" :class="`message-bubble--${message.role}`">
+              <div
+                class="message-bubble"
+                :class="[`message-bubble--${message.role}`, { 'message-bubble--gif': message.type === 'gif' }]"
+              >
                 <template v-if="message.type === 'gif' && message.mediaUrl">
                   <img :src="message.mediaUrl" :alt="message.alt || 'GIF'" class="message-gif" loading="lazy" />
                 </template>
@@ -56,7 +59,7 @@
                   <v-btn color="primary" size="large" prepend-icon="mdi-calendar-check-outline" @click="startBooking">
                     Novo agendamento
                   </v-btn>
-                  <v-btn color="secondary" variant="tonal" size="large" prepend-icon="mdi-content-cut" class="menu-btn--services"
+                  <v-btn color="warning" variant="tonal" size="large" prepend-icon="mdi-content-cut" class="menu-btn--services"
                     @click="openServices">
                     Ver serviços
                   </v-btn>
@@ -356,17 +359,11 @@
                     <v-card-text>
                       <div class="appointment-head">
                         <div class="appointment-main">
-                          <div class="appointment-photo">
-                            <v-img
-                              v-if="appointmentPrimaryPhoto(appointment)"
-                              :src="resolveMediaUrl(appointmentPrimaryPhoto(appointment))"
-                              cover
-                            />
-                            <v-icon v-else icon="mdi-calendar-star" size="24" />
-                          </div>
-
                           <div class="appointment-summary">
-                            <div class="appointment-title">{{ formatDate(appointment.start_at) }}</div>
+                            <div class="appointment-title">
+                              <v-icon icon="mdi-calendar" size="16" class="appointment-title-icon" />
+                              {{ formatDate(appointment.start_at) }}
+                            </div>
                             <div class="appointment-time">
                               {{ formatTime(appointment.start_at) }} - {{ formatTime(appointment.end_at) }}
                             </div>
@@ -391,7 +388,13 @@
                         </div>
 
                         <div class="appointment-status">
-                          <v-chip size="small" :color="statusColor(appointment.status)" variant="tonal">
+                          <v-chip
+                            size="small"
+                            class="appointment-status-chip"
+                            :class="statusChipClass(appointment.status)"
+                            :prepend-icon="statusIcon(appointment.status)"
+                            variant="flat"
+                          >
                             {{ statusLabel(appointment.status) }}
                           </v-chip>
                         </div>
@@ -1040,6 +1043,21 @@ const statusColor = (status) => {
   return map[status] || 'secondary'
 }
 
+const statusIcon = (status) => {
+  const map = {
+    scheduled: 'mdi-calendar-clock',
+    canceled: 'mdi-close-circle-outline',
+    done: 'mdi-check-circle-outline',
+    no_show: 'mdi-account-off-outline',
+  }
+  return map[status] || 'mdi-information-outline'
+}
+
+const statusChipClass = (status) => {
+  const allowed = ['scheduled', 'canceled', 'done', 'no_show']
+  return allowed.includes(status) ? `appointment-status-chip--${status}` : 'appointment-status-chip--default'
+}
+
 const formatDate = (value) => {
   if (!value) return '--'
   const date = new Date(value)
@@ -1137,13 +1155,6 @@ const appointmentServicesList = (appointment) =>
   Array.isArray(appointment?.services) ? appointment.services : []
 
 const appointmentServiceCount = (appointment) => appointmentServicesList(appointment).length
-
-const appointmentPrimaryPhoto = (appointment) => {
-  const serviceWithPhoto = appointmentServicesList(appointment).find((service) => service?.photo_url)
-  if (serviceWithPhoto?.photo_url) return serviceWithPhoto.photo_url
-  if (appointment?.staff?.avatar_url) return appointment.staff.avatar_url
-  return ''
-}
 
 const appointmentDurationMinutes = (appointment) => {
   const start = new Date(appointment?.start_at)
@@ -1426,28 +1437,33 @@ const confirmBooking = async () => {
       })
     )
 
-    sendBotMessage(
-      `Agendamento confirmado para ${formatDateTime(data?.start_at)} com ${data?.staff?.name || selectedStaff.value?.name || 'equipe'}.`
-    )
+    const isReschedule = Boolean(rescheduleSource.value?.id)
 
-    sendBotMessage(`Total confirmado: ${formatCurrencyBRL(data?.total_price || totalPrice.value)}.`)
-    sendBotMessage('Perfeito. Seu horario ja esta reservado e te aguardo no dia marcado.')
-    sendBotGif(BOOKING_SUCCESS_GIF_URL, 'Agendamento confirmado')
-    sendBotMessage('Se quiser, posso te ajudar com outro agendamento ou te mostrar seus horarios.')
+    if (isReschedule) {
+      sendBotMessage(
+        `Reagendamento confirmado para ${formatDateTime(data?.start_at)} com ${data?.staff?.name || selectedStaff.value?.name || 'equipe'}. Total confirmado: ${formatCurrencyBRL(data?.total_price || totalPrice.value)}.`
+      )
+      sendBotGif(BOOKING_RESCHEDULE_GIF_URL, 'Reagendamento confirmado')
 
-    if (rescheduleSource.value?.id) {
       try {
         await api.post(`/api/appointments/${rescheduleSource.value.id}/cancel`, {
           reason: 'Reagendado pelo cliente (chat)',
         })
         sendBotMessage('Seu horário anterior foi cancelado automaticamente.')
-        sendBotGif(BOOKING_RESCHEDULE_GIF_URL, 'Reagendamento confirmado')
       } catch {
         sendBotMessage('Consegui criar o novo horário, mas não cancelou o anterior. Cancele em "Meus horários".')
       }
-    }
 
-    alerts.success('Agendamento confirmado com sucesso.')
+      alerts.success('Reagendamento confirmado com sucesso.')
+    } else {
+      sendBotMessage(
+        `Agendamento confirmado para ${formatDateTime(data?.start_at)} com ${data?.staff?.name || selectedStaff.value?.name || 'equipe'}. Total confirmado: ${formatCurrencyBRL(data?.total_price || totalPrice.value)}.`
+      )
+      sendBotMessage('Perfeito. Seu horario ja esta reservado e te aguardo no dia marcado.')
+      sendBotGif(BOOKING_SUCCESS_GIF_URL, 'Agendamento confirmado')
+      sendBotMessage('Se quiser, posso te ajudar com outro agendamento ou te mostrar seus horarios.')
+      alerts.success('Agendamento confirmado com sucesso.')
+    }
 
     await loadAppointments({ silent: true })
     resetBooking()
@@ -1950,6 +1966,14 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(205, 229, 237, 0.35);
 }
 
+.message-bubble--gif {
+  width: fit-content;
+  max-width: min(320px, 100%);
+  padding: 0;
+  border: 0 !important;
+  background: transparent !important;
+}
+
 .message-bubble--bot {
   color: #f6fafc;
   border: 1px solid rgba(102, 170, 196, 0.34);
@@ -2060,7 +2084,13 @@ onBeforeUnmount(() => {
 }
 
 .inline-options-card :deep(.menu-btn--services) {
-  border: 1px solid rgba(246, 214, 183, 0.72) !important;
+  border: 1px solid rgba(245, 167, 70, 0.38) !important;
+  background: rgba(204, 129, 36, 0.12) !important;
+  color: rgba(250, 238, 220, 0.92) !important;
+}
+
+.inline-options-card :deep(.menu-btn--services .v-icon) {
+  color: rgba(241, 249, 252, 0.96) !important;
 }
 
 .inline-options-card :deep(.v-field) {
@@ -2340,22 +2370,8 @@ onBeforeUnmount(() => {
 .appointment-main {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
   min-width: 0;
   flex: 1;
-}
-
-.appointment-photo {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
-  overflow: hidden;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  color: rgba(224, 239, 247, 0.86);
-  border: 1px solid rgba(158, 193, 210, 0.24);
-  background: linear-gradient(148deg, rgba(46, 76, 93, 0.64), rgba(30, 50, 63, 0.8));
 }
 
 .appointment-summary {
@@ -2366,9 +2382,51 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
+.appointment-status :deep(.appointment-status-chip) {
+  font-weight: 800;
+  letter-spacing: 0.015em;
+  border-width: 1px;
+  border-style: solid;
+  box-shadow: 0 4px 12px rgba(8, 14, 18, 0.22);
+  color: rgba(243, 251, 255, 0.98) !important;
+  background: rgba(40, 62, 75, 0.48) !important;
+  border-color: rgba(153, 186, 202, 0.44) !important;
+}
+
+.appointment-status :deep(.appointment-status-chip .v-icon) {
+  opacity: 0.96;
+}
+
+.appointment-status :deep(.appointment-status-chip--scheduled) {
+  background: linear-gradient(140deg, rgba(78, 126, 194, 0.62), rgba(57, 92, 158, 0.66)) !important;
+  border-color: rgba(132, 174, 240, 0.68) !important;
+}
+
+.appointment-status :deep(.appointment-status-chip--done) {
+  background: linear-gradient(140deg, rgba(47, 138, 98, 0.64), rgba(34, 111, 79, 0.68)) !important;
+  border-color: rgba(124, 214, 172, 0.66) !important;
+}
+
+.appointment-status :deep(.appointment-status-chip--canceled) {
+  background: linear-gradient(140deg, rgba(170, 66, 66, 0.66), rgba(126, 45, 45, 0.7)) !important;
+  border-color: rgba(238, 140, 140, 0.64) !important;
+}
+
+.appointment-status :deep(.appointment-status-chip--no_show) {
+  background: linear-gradient(140deg, rgba(181, 126, 39, 0.66), rgba(140, 92, 23, 0.7)) !important;
+  border-color: rgba(244, 197, 118, 0.64) !important;
+}
+
 .appointment-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 700;
   color: #f2fbff;
+}
+
+.appointment-title-icon {
+  color: rgba(182, 214, 228, 0.9);
 }
 
 .appointment-time,
