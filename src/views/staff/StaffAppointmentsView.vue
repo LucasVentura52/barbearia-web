@@ -639,8 +639,17 @@ const fetchAppointments = async (info, successCallback, failureCallback) => {
     if (!staffId && !isAdmin.value) {
       staffId = auth.user?.id
     }
-    const staffParam = staffId ? `&staff_id=${staffId}` : ''
-    const { data } = await api.get(`/api/staff/appointments?from=${from}&to=${to}${staffParam}`)
+    const params = new URLSearchParams({
+      from,
+      to,
+      include_products: '1',
+    })
+
+    if (staffId) {
+      params.set('staff_id', String(staffId))
+    }
+
+    const { data } = await api.get(`/api/staff/appointments?${params.toString()}`)
     appointments.value = Array.isArray(data) ? data : []
     const filteredAppointments = selectedStatusFilter.value
       ? appointments.value.filter((appointment) => appointment.status === selectedStatusFilter.value)
