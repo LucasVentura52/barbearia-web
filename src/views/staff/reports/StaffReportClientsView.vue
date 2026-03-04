@@ -7,6 +7,12 @@
         <v-text-field v-model="search" label="Buscar cliente" variant="outlined" density="compact" hide-details />
         <v-text-field v-model.number="minSpent" type="number" min="0" label="Gasto mínimo" variant="outlined" density="compact" hide-details />
         <v-btn color="secondary" :loading="loading" @click="loadReport">Atualizar</v-btn>
+        <v-btn color="success" variant="tonal" prepend-icon="mdi-file-excel" :disabled="loading" @click="downloadExcel">
+          Excel
+        </v-btn>
+        <v-btn color="error" variant="tonal" prepend-icon="mdi-file-pdf-box" :disabled="loading" @click="downloadPdf">
+          PDF
+        </v-btn>
       </v-card-text>
     </v-card>
     <v-card class="glass-card" elevation="0">
@@ -37,6 +43,8 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '@/lib/api'
 import { formatCurrencyBRL } from '@/lib/currency'
+import { useAlertStore } from '@/stores/alerts'
+import { buildPeriodLabel, exportReportToExcel, exportReportToPdf } from '@/lib/reportExport'
 const pad = (v) => String(v).padStart(2, '0')
 const toDate = (value) => {
   if (!value) return ''
@@ -56,6 +64,7 @@ const dateRange = ref(monthRange())
 const search = ref('')
 const minSpent = ref(null)
 const loading = ref(false)
+const alerts = useAlertStore()
 const summary = ref({ total_with_appointments: 0, new_clients: 0, top_clients_count: 0 })
 const items = ref([])
 const period = computed(() => {
@@ -64,6 +73,57 @@ const period = computed(() => {
   if (values.length === 1) return { from: values[0], to: values[0] }
   return { from: values[0], to: values[values.length - 1] }
 })
+
+const periodLabel = computed(() => buildPeriodLabel(period.value.from, period.value.to))
+const summaryRows = computed(() => [
+  { label: 'Com agendamentos', value: summary.value.total_with_appointments },
+  { label: 'Novos clientes', value: summary.value.new_clients },
+  { label: 'Top listados', value: summary.value.top_clients_count },
+])
+
+const sections = computed(() => [
+  {
+    title: 'Ranking de clientes',
+    columns: [
+      { label: 'Cliente', key: 'name', width: 30 },
+      { label: 'Concluídos', key: 'appointments_done', width: 14 },
+      { label: 'Total gasto', width: 18, value: (row) => formatCurrencyBRL(row.total_spent) },
+      { label: 'Último atendimento', width: 22, value: (row) => formatDateTime(row.last_appointment_at) },
+    ],
+    rows: items.value,
+  },
+])
+
+const reportFileName = computed(() => `relatorio_clientes_${period.value.from}_${period.value.to}`)
+
+const downloadExcel = async () => {
+  try {
+    await exportReportToExcel({
+      fileName: reportFileName.value,
+      title: 'Relatório de Clientes',
+      periodLabel: periodLabel.value,
+      summary: summaryRows.value,
+      sections: sections.value,
+    })
+  } catch (error) {
+    alerts.error(error?.message || 'Não foi possível exportar o relatório em Excel.')
+  }
+}
+
+const downloadPdf = async () => {
+  try {
+    await exportReportToPdf({
+      fileName: reportFileName.value,
+      title: 'Relatório de Clientes',
+      periodLabel: periodLabel.value,
+      summary: summaryRows.value,
+      sections: sections.value,
+    })
+  } catch (error) {
+    alerts.error(error?.message || 'Não foi possível exportar o relatório em PDF.')
+  }
+}
+
 const loadReport = async () => {
   loading.value = true
   try {
