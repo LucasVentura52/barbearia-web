@@ -271,6 +271,7 @@ const navItems = [
   { title: 'Horários', to: { name: 'staff-schedule' }, icon: 'mdi-calendar-clock-outline' },
   { title: 'Serviços', to: { name: 'staff-services' }, icon: 'mdi-scissors-cutting' },
   { title: 'Produtos', to: { name: 'staff-products' }, icon: 'mdi-bottle-tonic-outline' },
+  { title: 'Colaboradores', to: { name: 'staff-team' }, icon: 'mdi-account-group', admin: true },
   {
     title: 'Relatórios',
     icon: 'mdi-chart-box-outline',
@@ -284,7 +285,6 @@ const navItems = [
     ],
   },
   { title: 'Perfil', to: { name: 'staff-profile' }, icon: 'mdi-account-tie' },
-  { title: 'Colaboradores', to: { name: 'staff-team' }, icon: 'mdi-account-group', admin: true },
   { title: 'Empresas', to: { name: 'super-admin-companies' }, icon: 'mdi-domain', superAdmin: true },
 ]
 
