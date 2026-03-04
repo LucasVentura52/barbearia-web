@@ -7,16 +7,40 @@
     <v-card class="staff-toolbar-card pb-4" elevation="0">
       <v-card-text class="calendar-toolbar">
         <div class="toolbar-left">
-          <v-chip size="small" variant="flat" class="status-chip status-chip--scheduled">
+          <v-chip
+            size="small"
+            :variant="isStatusFilterActive('scheduled') ? 'flat' : 'tonal'"
+            class="status-chip status-chip--scheduled"
+            :class="{ 'status-chip--active': isStatusFilterActive('scheduled') }"
+            @click="toggleStatusFilter('scheduled')"
+          >
             Agendados: {{ statusCount('scheduled') }}
           </v-chip>
-          <v-chip size="small" variant="flat" class="status-chip status-chip--done">
+          <v-chip
+            size="small"
+            :variant="isStatusFilterActive('done') ? 'flat' : 'tonal'"
+            class="status-chip status-chip--done"
+            :class="{ 'status-chip--active': isStatusFilterActive('done') }"
+            @click="toggleStatusFilter('done')"
+          >
             Finalizados: {{ statusCount('done') }}
           </v-chip>
-          <v-chip size="small" variant="flat" class="status-chip status-chip--no-show">
+          <v-chip
+            size="small"
+            :variant="isStatusFilterActive('no_show') ? 'flat' : 'tonal'"
+            class="status-chip status-chip--no-show"
+            :class="{ 'status-chip--active': isStatusFilterActive('no_show') }"
+            @click="toggleStatusFilter('no_show')"
+          >
             Não compareceu: {{ statusCount('no_show') }}
           </v-chip>
-          <v-chip size="small" variant="flat" class="status-chip status-chip--canceled">
+          <v-chip
+            size="small"
+            :variant="isStatusFilterActive('canceled') ? 'flat' : 'tonal'"
+            class="status-chip status-chip--canceled"
+            :class="{ 'status-chip--active': isStatusFilterActive('canceled') }"
+            @click="toggleStatusFilter('canceled')"
+          >
             Cancelados: {{ statusCount('canceled') }}
           </v-chip>
         </div>
@@ -395,6 +419,7 @@ const createSlots = ref([])
 const loadingCreateSlots = ref(false)
 const hasInitializedStaffSelection = ref(false)
 const savingAction = ref('')
+const selectedStatusFilter = ref('')
 const createForm = ref({
   client_user_id: null,
   staff_id: null,
@@ -453,6 +478,13 @@ const statusPalette = {
 
 const statusCount = (status) =>
   appointments.value.filter((appointment) => appointment.status === status).length
+
+const isStatusFilterActive = (status) => selectedStatusFilter.value === status
+
+const toggleStatusFilter = (status) => {
+  selectedStatusFilter.value = selectedStatusFilter.value === status ? '' : status
+  refetchEvents()
+}
 
 const resolveStaffIdForFilters = (value) => {
   if (value === 'mine') return auth.user?.id || null
@@ -609,8 +641,11 @@ const fetchAppointments = async (info, successCallback, failureCallback) => {
     }
     const staffParam = staffId ? `&staff_id=${staffId}` : ''
     const { data } = await api.get(`/api/staff/appointments?from=${from}&to=${to}${staffParam}`)
-    appointments.value = data
-    successCallback(data.map(buildEvent))
+    appointments.value = Array.isArray(data) ? data : []
+    const filteredAppointments = selectedStatusFilter.value
+      ? appointments.value.filter((appointment) => appointment.status === selectedStatusFilter.value)
+      : appointments.value
+    successCallback(filteredAppointments.map(buildEvent))
   } catch (error) {
     failureCallback(error)
   } finally {
@@ -1137,9 +1172,22 @@ watch(
 }
 
 .status-chip {
+  cursor: pointer;
   font-weight: 600;
+  border: 1px solid rgba(35, 58, 74, 0.1);
+  color: rgba(32, 50, 65, 0.82);
+  transition: all 0.18s ease;
+}
+
+.status-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(35, 58, 74, 0.12);
+}
+
+.status-chip--active {
   border: 1px solid rgba(35, 58, 74, 0.15);
   color: #203241;
+  box-shadow: 0 0 0 2px rgba(35, 58, 74, 0.12);
 }
 
 .status-chip--scheduled {
