@@ -211,7 +211,13 @@ const parseErrorMessage = (error) => {
   return 'Falha ao comunicar com o servidor.'
 }
 
-export const setupInterceptors = (auth, router, alerts) => {
+const notify = (ui, text, color) => {
+  if (typeof ui?.notify === 'function') {
+    ui.notify(text, color)
+  }
+}
+
+export const setupInterceptors = (auth, router, ui) => {
   api.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -240,7 +246,7 @@ export const setupInterceptors = (auth, router, alerts) => {
           })
         }
 
-        alerts?.warning('Empresa selecionada inválida. Selecione outra empresa.')
+        notify(ui, 'Empresa selecionada inválida. Selecione outra empresa.', 'warning')
         return Promise.reject(error)
       }
 
@@ -248,34 +254,35 @@ export const setupInterceptors = (auth, router, alerts) => {
         clearGetCache()
         if (typeof auth?.clearSession === 'function') {
           auth.clearSession()
-        } else {
-          auth.token = ''
-          auth.user = null
-          localStorage.removeItem('token')
         }
-        alerts?.error('Sessão expirada. Faça login novamente.')
+        notify(ui, 'Sessão expirada. Faça login novamente.', 'warning')
         if (router.currentRoute.value.name !== 'login') {
           router.replace({ name: 'login' })
         }
         return Promise.reject(error)
       }
+
       if (status === 403) {
-        alerts?.warning('Você não tem permissão para essa ação.')
+        notify(ui, 'Você não tem permissão para essa ação.', 'warning')
         return Promise.reject(error)
       }
+
       if (status === 422) {
-        alerts?.warning(message)
+        notify(ui, message, 'warning')
         return Promise.reject(error)
       }
+
       if (status >= 500) {
-        alerts?.error('Erro no servidor. Tente novamente em instantes.')
+        notify(ui, 'Erro no servidor. Tente novamente em instantes.', 'error')
         return Promise.reject(error)
       }
+
       if (!status) {
-        alerts?.error('Erro de conexão. Verifique sua internet ou a API.')
+        notify(ui, 'Erro de conexão. Verifique a API ou sua rede.', 'error')
       } else {
-        alerts?.error(message)
+        notify(ui, message, 'error')
       }
+
       return Promise.reject(error)
     }
   )

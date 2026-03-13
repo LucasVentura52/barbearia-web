@@ -17,9 +17,11 @@ export const useAuthStore = defineStore('auth', {
   }),
   getters: {
     isAuthenticated: (state) => Boolean(state.token),
-    isStaff: (state) => ['staff', 'admin', 'super_admin'].includes(state.user?.role),
     isClient: (state) => state.user?.role === 'client',
+    isStaff: (state) => ['staff', 'admin', 'super_admin'].includes(state.user?.role),
+    isOperationalStaff: (state) => ['staff', 'admin'].includes(state.user?.role),
     isSuperAdmin: (state) => state.user?.role === 'super_admin',
+    isAdmin: (state) => ['admin', 'super_admin'].includes(state.user?.role),
   },
   actions: {
     clearSession() {
@@ -29,24 +31,6 @@ export const useAuthStore = defineStore('auth', {
       this.hasValidatedSession = false
       localStorage.removeItem('token')
       clearGetCache()
-    },
-    async registerClient({ name, phone, email, password, companySlug }) {
-      const { data } = await api.post(
-        '/api/auth/register',
-        { name, phone, email, password },
-        {
-          params: { company_slug: companySlug },
-          skipCompanyHeader: true,
-        }
-      )
-      this.token = data.token
-      this.user = data.user
-      this.meRequest = null
-      this.hasValidatedSession = false
-      applyCompanyFromUser(data.user)
-      localStorage.setItem('token', data.token)
-      clearGetCache()
-      return data
     },
     async login({ phone, password }) {
       const { data } = await api.post('/api/auth/login', { phone, password }, { skipCompanyHeader: true })
@@ -95,8 +79,8 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       try {
         await api.post('/api/auth/logout')
-      } catch (err) {
-        // ignore
+      } catch {
+        // ignore logout transport errors
       }
       this.clearSession()
     },

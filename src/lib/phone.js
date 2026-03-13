@@ -33,9 +33,7 @@ export const formatPhone = (value = '', countryCode = '55') => {
   return `(${ddd}) ${formattedNumber}`.trim()
 }
 
-export const buildE164 = (countryCode = '55', localDigits = '') => {
-  return `${countryCode}${normalizePhone(localDigits, countryCode)}`
-}
+export const buildE164 = (countryCode = '55', localDigits = '') => `${countryCode}${normalizePhone(localDigits, countryCode)}`
 
 export const formatPhoneFromE164 = (value = '', defaultCountryCode = '55') => {
   const digits = digitsOnly(value)

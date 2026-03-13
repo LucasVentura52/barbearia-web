@@ -5,23 +5,22 @@ import router from './router'
 import vuetify from './plugins/vuetify'
 import { setupInterceptors } from './lib/api'
 import { useAuthStore } from './stores/auth'
-import { useAlertStore } from './stores/alerts'
-import { useAppStore } from './stores/app'
-import './style.css'
+import { useCompanyStore } from './stores/company'
+import { useUiStore } from './stores/ui'
+import './styles.css'
 
 const app = createApp(App)
-
 const pinia = createPinia()
+
 app.use(pinia)
 app.use(router)
 app.use(vuetify)
 
 const auth = useAuthStore(pinia)
-const alerts = useAlertStore(pinia)
-const appState = useAppStore(pinia)
-setupInterceptors(auth, router, alerts)
-
-appState.startBoot()
+const company = useCompanyStore(pinia)
+const ui = useUiStore(pinia)
+setupInterceptors(auth, router, ui)
+ui.startBoot()
 
 const bootstrap = async () => {
   try {
@@ -29,16 +28,21 @@ const bootstrap = async () => {
       try {
         await auth.restoreSession()
       } catch {
-        // Interceptors and guards already handle session failures.
+        // route guard and interceptors already handle invalid sessions
       }
+    }
+
+    if (auth.isAuthenticated) {
+      await company.loadMyCompanies()
+    } else {
+      await company.loadPublicCompanies()
     }
 
     await router.isReady()
   } finally {
-    appState.finishBoot()
+    ui.finishBoot()
   }
 }
 
 bootstrap()
-
 app.mount('#app')

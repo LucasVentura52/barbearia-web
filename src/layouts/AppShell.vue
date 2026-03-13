@@ -1,211 +1,251 @@
 <template>
   <v-app>
-    <div class="app-bg"></div>
-    <v-navigation-drawer v-model="drawer" :permanent="mdAndUp" :temporary="!mdAndUp" class="app-drawer">
-      <div class="drawer-header">
-        <v-avatar size="42" class="user-avatar">
-          <v-img v-if="userAvatarSrc" :src="userAvatarSrc" cover />
-          <span v-else class="user-initials">{{ userInitials }}</span>
+    <div class="shell-noise"></div>
+
+    <v-navigation-drawer
+      v-if="mdAndUp"
+      v-model="drawer"
+      :rail="mdAndUp && rail"
+      expand-on-hover
+      class="shell-drawer"
+    >
+      <div class="drawer-brand">
+        <v-avatar color="secondary" variant="tonal" size="52">
+          <v-img v-if="auth.user?.avatar_url" :src="resolveMediaUrl(auth.user.avatar_url)" cover />
+          <span v-else class="text-subtitle-1 font-weight-black">{{ userInitials }}</span>
         </v-avatar>
         <div>
-          <div class="brand-title">{{ drawerName }}</div>
-          <div class="brand-subtitle">{{ drawerSubtitle }}</div>
+          <div class="text-subtitle-1 font-weight-black">{{ auth.user?.name || 'Equipe interna' }}</div>
+          <div class="text-caption text-medium-emphasis">{{ roleLabel }}</div>
         </div>
       </div>
-      <v-list nav density="comfortable">
-        <v-list-item v-for="item in visibleNav" :key="item.to" :to="item.to" :prepend-icon="item.icon"
-          :title="item.title" @click="handleNavClick" />
+
+      <v-list nav class="px-2">
+        <v-list-item
+          v-for="item in visibleNavigationItems"
+          :key="item.name"
+          :to="item.to"
+          :prepend-icon="item.icon"
+          :title="item.title"
+          @click="handleNavClick"
+        />
       </v-list>
+
       <div class="drawer-footer">
-        <v-btn v-if="!auth.isAuthenticated" color="primary" size="large" block :to="{ name: 'login' }">
-          Entrar
-        </v-btn>
-        <v-btn v-else variant="tonal" color="primary" size="large" block @click="handleLogout">
-          Sair
-        </v-btn>
+        <v-sheet class="drawer-pulse pa-4" color="surface-variant">
+          <div class="d-flex align-center justify-space-between ga-3 mb-4">
+            <div>
+              <div class="text-overline">Empresa ativa</div>
+              <div class="text-h6 font-weight-black">{{ currentCompanyName }}</div>
+            </div>
+            <v-avatar color="secondary" variant="tonal" size="46">
+              <v-icon icon="mdi-domain" />
+            </v-avatar>
+          </div>
+          <div class="text-body-2 text-medium-emphasis mb-3">
+            Contexto atual enviado para a API via `X-Company-Slug`.
+          </div>
+          <company-switcher v-if="auth.isAuthenticated" />
+        </v-sheet>
       </div>
     </v-navigation-drawer>
 
-    <v-app-bar elevation="0" class="app-bar">
-      <v-btn icon @click="drawer = !drawer" class="d-md-none">
-        <v-icon icon="mdi-menu" />
+    <v-app-bar class="shell-bar px-2">
+      <v-btn v-if="mdAndUp" icon variant="text" @click="ui.toggleDrawer()" class="mr-1">
+        <v-icon :icon="smAndDown ? 'mdi-menu' : 'mdi-menu-open'" />
       </v-btn>
-      <div class="app-bar-title">Barbearia</div>
+
+      <div>
+        <div class="text-subtitle-1 font-weight-black">Atelier Barber</div>
+      </div>
+
       <v-spacer />
-      <v-menu v-if="smAndDown" location="bottom end">
+
+      <v-text-field
+        v-if="mdAndUp"
+        class="shell-search mr-3"
+        density="compact"
+        variant="solo-filled"
+        flat
+        hide-details
+        prepend-inner-icon="mdi-magnify"
+        placeholder="Buscar cliente, serviço ou insight"
+      />
+
+      <v-tooltip
+        v-if="mdAndUp"
+        location="bottom"
+        :text="rail ? 'Expandir menu lateral' : 'Compactar menu lateral'"
+      >
         <template #activator="{ props }">
-          <v-btn v-bind="props" icon>
-            <v-icon icon="mdi-dots-vertical" />
+          <v-btn v-bind="props" icon variant="text" class="mr-1" @click="ui.toggleRail()">
+            <v-icon :icon="rail ? 'mdi-arrow-expand-horizontal' : 'mdi-arrow-collapse-horizontal'" />
           </v-btn>
         </template>
-        <v-list density="compact" min-width="200">
-          <v-list-item v-if="auth.user" :title="auth.user.name" />
-          <v-divider v-if="auth.user" />
-          <v-list-item v-if="!auth.isAuthenticated" :to="{ name: 'login' }" prepend-icon="mdi-login" title="Login" />
-          <v-list-item v-else prepend-icon="mdi-logout" title="Sair" @click="handleLogout" />
-        </v-list>
+      </v-tooltip>
+
+      <v-tooltip location="bottom" :text="themeModeLabel">
+        <template #activator="{ props }">
+          <v-btn v-bind="props" icon variant="text" class="mr-1" @click="toggleTheme">
+            <v-icon :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'" />
+          </v-btn>
+        </template>
+      </v-tooltip>
+
+      <v-menu location="bottom end">
+        <template #activator="{ props }">
+          <v-btn v-bind="props" icon variant="text" class="mr-1">
+            <v-icon icon="mdi-account-circle-outline" />
+          </v-btn>
+        </template>
+
+        <v-card min-width="320">
+          <v-list lines="two">
+            <v-list-item
+              :title="auth.user?.name || 'Usuário'"
+              :subtitle="currentCompanyName"
+              prepend-icon="mdi-account-badge-outline"
+            />
+            <v-list-item
+              :title="roleLabel"
+              subtitle="Sessão autenticada"
+              prepend-icon="mdi-shield-account-outline"
+            />
+            <v-list-item
+              :title="apiBaseLabel"
+              subtitle="API configurada"
+              prepend-icon="mdi-lan-connect"
+            />
+            <v-list-item
+              title="Abrir perfil"
+              subtitle="Conta autenticada"
+              prepend-icon="mdi-account-cog-outline"
+              :to="{ name: 'profile' }"
+            />
+          </v-list>
+          <v-divider />
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="handleLogout">Sair</v-btn>
+          </v-card-actions>
+        </v-card>
       </v-menu>
-      <template v-else>
-        <v-btn v-if="!auth.isAuthenticated" color="primary" variant="flat" :to="{ name: 'login' }">
-          Login
-        </v-btn>
-        <v-btn v-else color="primary" variant="outlined" @click="handleLogout">
-          Sair
-        </v-btn>
-      </template>
+
     </v-app-bar>
 
     <v-main>
-      <div class="page-shell">
-        <slot />
-      </div>
+      <v-container fluid class="shell-content">
+        <div class="mb-6">
+          <div class="text-h4 font-weight-black">{{ pageTitle }}</div>
+          <div class="text-body-1 text-medium-emphasis">{{ pageSubtitle }}</div>
+        </div>
+
+        <router-view />
+      </v-container>
     </v-main>
+
+    <div v-if="smAndDown" class="shell-bottom-nav">
+      <div class="shell-bottom-nav__scroll">
+        <v-btn
+          v-for="item in visibleNavigationItems"
+          :key="item.name"
+          class="shell-bottom-nav__button"
+          :class="{ 'shell-bottom-nav__button--active': mobileRoute === item.name }"
+          stacked
+          rounded="xl"
+          variant="text"
+          :color="mobileRoute === item.name ? 'secondary' : undefined"
+          @click="router.push(item.to)"
+        >
+          <v-icon :icon="item.icon" />
+          <span>{{ item.title }}</span>
+        </v-btn>
+      </div>
+    </div>
+
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      location="top right"
+      timeout="3200"
+    >
+      {{ snackbar.text }}
+    </v-snackbar>
   </v-app>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
-import { useDisplay } from 'vuetify'
-import { useAuthStore } from '@/stores/auth'
+import { computed, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useDisplay, useTheme } from 'vuetify'
+import { useRoute, useRouter } from 'vue-router'
+import CompanySwitcher from '@/components/CompanySwitcher.vue'
+import { navigationItems } from '@/data/mock'
 import { resolveMediaUrl } from '@/lib/media'
+import { useAuthStore } from '@/stores/auth'
+import { useCompanyStore } from '@/stores/company'
+import { useUiStore } from '@/stores/ui'
 
+const route = useRoute()
+const router = useRouter()
+const theme = useTheme()
 const { mdAndUp, smAndDown } = useDisplay()
-const drawer = ref(mdAndUp.value)
 const auth = useAuthStore()
+const company = useCompanyStore()
+const ui = useUiStore()
+const { drawer, rail, snackbar } = storeToRefs(ui)
 
-const navItems = [
-  { title: 'Início', to: { name: 'home' }, icon: 'mdi-home-variant-outline' },
-  { title: 'Serviços', to: { name: 'services' }, icon: 'mdi-scissors-cutting' },
-  { title: 'Agendar', to: { name: 'booking' }, icon: 'mdi-calendar-check-outline', auth: true },
-  { title: 'Meus horários', to: { name: 'appointments' }, icon: 'mdi-calendar-clock', auth: true },
-  { title: 'Perfil', to: { name: 'profile' }, icon: 'mdi-account-outline', auth: true },
-]
+watch(mdAndUp, (value) => {
+  if (value) {
+    ui.toggleDrawer(true)
+  } else {
+    ui.toggleRail(false)
+    ui.toggleDrawer(false)
+  }
+}, { immediate: true })
 
-const visibleNav = computed(() =>
-  navItems.filter((item) => !item.auth || auth.isAuthenticated)
-)
-const userAvatarSrc = computed(() => resolveMediaUrl(auth.user?.avatar_url))
-const drawerName = computed(() => auth.user?.name || 'Visitante')
-const drawerSubtitle = computed(() => (auth.isAuthenticated ? 'Agenda inteligente' : 'Acesso público'))
-const userInitials = computed(() => {
-  const source = String(drawerName.value || '').trim()
-  if (!source) return '?'
-  const value = source
-    .split(/\s+/)
-    .filter(Boolean)
+const pageTitle = computed(() => String(route.meta.title || 'Atelier Barber'))
+const pageSubtitle = computed(() => String(route.meta.subtitle || ''))
+const isDark = computed(() => theme.global.current.value.dark)
+const themeModeLabel = computed(() => (isDark.value ? 'Trocar para modo claro' : 'Trocar para modo escuro'))
+const currentCompanyName = computed(() => company.currentCompany?.name || auth.user?.company?.name || 'Selecione a empresa')
+const apiBaseLabel = computed(() => String(import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'))
+const userInitials = computed(() =>
+  String(auth.user?.name || 'AB')
+    .split(' ')
     .slice(0, 2)
-    .map((part) => part[0])
+    .map((chunk) => chunk[0])
     .join('')
     .toUpperCase()
-  return value || '?'
+)
+const roleLabel = computed(() => {
+  if (auth.user?.role === 'super_admin') return 'Super admin'
+  if (auth.user?.role === 'admin') return 'Administrador'
+  return 'Colaborador'
 })
+const visibleNavigationItems = computed(() =>
+  navigationItems.filter((item) => item.visibility.includes(auth.user?.role || ''))
+)
+
+const mobileRoute = computed({
+  get: () => String(route.name || visibleNavigationItems.value[0]?.name || 'overview'),
+  set: () => {},
+})
+
+const handleNavClick = () => {
+  if (smAndDown.value) ui.toggleDrawer(false)
+}
+
+const toggleTheme = () => {
+  theme.global.name.value = isDark.value ? 'atelierLight' : 'atelierNight'
+  ui.notify(
+    isDark.value ? 'Modo claro ativado para a operação.' : 'Modo escuro ativado para o lounge.',
+    'primary'
+  )
+}
 
 const handleLogout = async () => {
   await auth.logout()
+  router.replace({ name: 'login' })
 }
-
-const handleNavClick = () => {
-  if (!mdAndUp.value) {
-    drawer.value = false
-  }
-}
-
-watch(mdAndUp, (desktop) => {
-  drawer.value = desktop
-})
 </script>
-
-<style scoped>
-.app-bg {
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(circle at top left, rgba(200, 163, 90, 0.15), transparent 45%),
-    radial-gradient(circle at 30% 20%, rgba(224, 98, 58, 0.12), transparent 40%),
-    linear-gradient(135deg, #edf3f7 0%, #f1e9dd 35%, #f7f3ec 100%);
-  z-index: 0;
-}
-
-.app-bar {
-  background: rgba(246, 241, 232, 0.8) !important;
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(35, 58, 74, 0.08);
-}
-
-.app-bar-title {
-  font-family: var(--display-font);
-  font-size: 1.4rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #203241;
-}
-
-.app-drawer {
-  background: rgba(255, 255, 255, 0.92);
-  border-right: 1px solid rgba(35, 58, 74, 0.08);
-}
-
-.drawer-header {
-  display: flex;
-  gap: 12px;
-  padding: 24px 20px 12px;
-  align-items: center;
-}
-
-.user-avatar {
-  background: var(--brand-gradient-strong);
-  box-shadow: 0 10px 24px rgba(75, 114, 117, 0.26);
-  color: #f6fbfc;
-  flex-shrink: 0;
-}
-
-.user-initials {
-  font-family: var(--display-font);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-}
-
-.brand-title {
-  font-family: var(--display-font);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 1rem;
-  color: #203241;
-}
-
-.brand-subtitle {
-  font-size: 0.85rem;
-  color: rgba(35, 58, 74, 0.6);
-}
-
-.drawer-footer {
-  margin-top: auto;
-  padding: 16px;
-}
-
-.page-shell {
-  position: relative;
-  z-index: 1;
-  padding: 32px 24px 64px;
-  animation: fadeUp 0.6s ease both;
-}
-
-@media (max-width: 960px) {
-  .page-shell {
-    padding: 24px 16px 48px;
-  }
-}
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

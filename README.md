@@ -1,57 +1,31 @@
-# Barbearia Web (Vue + Vite)
+# Barbearia Web Vuetify 4
 
-Frontend da plataforma de barbearia.
+Frontend novo da plataforma, criado em paralelo ao app atual, com foco em explorar melhor o ecossistema do Vuetify `4.0.1`.
 
-## Arquivos de ambiente
+## Stack
 
-- `.env.development`: configuração usada no `npm run dev`
-- `.env.production`: configuração usada no `npm run build`
-- `.env.example`: referência de desenvolvimento
-- `.env.development.example`: referência de desenvolvimento
-- `.env.production.example`: referência de produção
+- Vue 3
+- Vite
+- Vuetify `4.0.1`
+- Pinia
+- Vue Router
 
-Variáveis usadas:
+## Destaques da base
 
-- `VITE_API_URL`: URL base da API
-- `VITE_COMPANY_SLUG`: slug padrão da empresa
+- shell responsivo com `navigation drawer`, `app bar`, `bottom navigation` e `quick actions`
+- tema customizado com modos claro e escuro
+- uso de `tabs`, `window`, `carousel`, `timeline`, `dialogs`, `stepper`, `expansion panels`, `menus`, `tooltips` e componentes de formulário
+- telas de domínio pensadas para operação de barbearia: panorama, operações, clientes e estúdio de agendamento
 
 ## Desenvolvimento
 
-1. Instale dependências:
-
 ```bash
 npm install
-```
-
-2. Verifique se `.env.development` aponta para a API local:
-
-```env
-VITE_API_URL=http://127.0.0.1:8000
-VITE_COMPANY_SLUG=default
-```
-
-3. Rode o projeto:
-
-```bash
 npm run dev
 ```
 
-## Produção
-
-1. Ajuste `.env.production` (ou variáveis no provedor) com a URL real da API.
-2. Gere o build:
+## Build
 
 ```bash
 npm run build
 ```
-
-3. Publique a pasta `dist`.
-
-## Deploy no Render (Static Site)
-
-- Build command: `npm ci && npm run build`
-- Publish directory: `dist`
-- Env vars mínimas:
-  - `VITE_API_URL=https://barbearia-api-uhux.onrender.com`
-  - `VITE_COMPANY_SLUG=default`
-  - 

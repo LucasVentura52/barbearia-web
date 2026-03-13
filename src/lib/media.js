@@ -14,8 +14,6 @@ export const resolveMediaUrl = (url) => {
     try {
       const parsed = new URL(value)
       const path = parsed.pathname || ''
-
-      // Legacy rows may store absolute dev/prod hosts. For local disk media we always use current API host.
       if (path.startsWith('/storage/')) {
         return `${base}${path}${parsed.search || ''}${parsed.hash || ''}`
       }

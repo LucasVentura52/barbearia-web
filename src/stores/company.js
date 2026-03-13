@@ -33,7 +33,6 @@ export const useCompanyStore = defineStore('company', {
         localStorage.removeItem('company_slug')
       }
     },
-
     async loadPublicCompanies(options = {}) {
       const force = Boolean(options.force)
       const hasFreshData =
@@ -66,7 +65,6 @@ export const useCompanyStore = defineStore('company', {
 
       return this.publicLoadPromise
     },
-
     async loadMyCompanies(options = {}) {
       const force = Boolean(options.force)
       const hasFreshData =
@@ -99,7 +97,6 @@ export const useCompanyStore = defineStore('company', {
 
       return this.myLoadPromise
     },
-
     applyCurrentFromPayload(payload) {
       const payloadCurrentSlug = payload?.current?.slug ? String(payload.current.slug) : ''
 

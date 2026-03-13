@@ -18,24 +18,12 @@ import { computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCompanyStore } from '@/stores/company'
 
-const props = defineProps({
-  reloadOnChange: {
-    type: Boolean,
-    default: true,
-  },
-})
-
 const auth = useAuthStore()
 const company = useCompanyStore()
+
 const isLockedForAuthenticatedUser = computed(() => {
-  if (!auth.isAuthenticated) {
-    return false
-  }
-
-  if (auth.isSuperAdmin) {
-    return false
-  }
-
+  if (!auth.isAuthenticated) return false
+  if (auth.isSuperAdmin) return false
   return company.companies.length <= 1
 })
 
@@ -49,14 +37,10 @@ const loadCompanies = async () => {
 }
 
 const onSelect = async (value) => {
-  if (isLockedForAuthenticatedUser.value) {
-    return
-  }
+  if (isLockedForAuthenticatedUser.value) return
 
   const nextSlug = String(value || '').trim()
-  if (!nextSlug || nextSlug === company.currentSlug) {
-    return
-  }
+  if (!nextSlug || nextSlug === company.currentSlug) return
 
   const previousSlug = company.currentSlug
   company.setCurrentSlug(nextSlug)
@@ -70,9 +54,7 @@ const onSelect = async (value) => {
     }
   }
 
-  if (props.reloadOnChange) {
-    window.location.reload()
-  }
+  window.location.reload()
 }
 
 onMounted(loadCompanies)

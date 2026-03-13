@@ -5,29 +5,40 @@ import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import { VDateInput } from 'vuetify/labs/VDateInput'
 import { pt } from 'vuetify/locale'
 
-const brandColors = {
-  background: '#F3F7F6',
-  surface: '#FFFFFF',
-  'surface-variant': '#E7EFEC',
-  primary: '#5B8C8F',
-  secondary: '#B8885E',
-  accent: '#D7B38A',
-  info: '#6A8BA3',
-  success: '#6F917B',
-  warning: '#B99363',
-  error: '#B37A7A',
-  'on-surface': '#213139',
-  'on-surface-variant': '#607883',
+const atelierLight = {
+  dark: false,
+  colors: {
+    background: '#f6efe7',
+    surface: '#fffaf3',
+    'surface-variant': '#efe1d2',
+    primary: '#173133',
+    secondary: '#b67731',
+    accent: '#d9a15f',
+    info: '#4f6d7a',
+    success: '#3d7760',
+    warning: '#b46d27',
+    error: '#ab4f4f',
+    'on-surface': '#1e2627',
+    'on-surface-variant': '#5e5e59',
+  },
 }
 
-const barberLight = {
-  dark: false,
-  colors: brandColors,
-}
-
-const barberStaff = {
-  dark: false,
-  colors: brandColors,
+const atelierNight = {
+  dark: true,
+  colors: {
+    background: '#111616',
+    surface: '#18201f',
+    'surface-variant': '#253332',
+    primary: '#e5d3b6',
+    secondary: '#d99b53',
+    accent: '#7bc0b1',
+    info: '#8fb7c8',
+    success: '#71c397',
+    warning: '#f1af66',
+    error: '#f28f8f',
+    'on-surface': '#f5f0e7',
+    'on-surface-variant': '#b9c2be',
+  },
 }
 
 export default createVuetify({
@@ -42,27 +53,35 @@ export default createVuetify({
   date: {
     locale: { pt: 'pt-BR' },
   },
+  icons: {
+    defaultSet: 'mdi',
+    aliases,
+    sets: { mdi },
+  },
   theme: {
-    defaultTheme: 'barberLight',
-    variations: {
-      colors: ['primary', 'secondary'],
-      lighten: 2,
-      darken: 2,
-    },
+    defaultTheme: 'atelierLight',
     themes: {
-      barberLight,
-      barberStaff,
+      atelierLight,
+      atelierNight,
+    },
+    variations: {
+      colors: ['primary', 'secondary', 'accent'],
+      lighten: 1,
+      darken: 2,
     },
   },
   defaults: {
+    global: {
+      ripple: true,
+    },
     VAppBar: {
       flat: true,
       elevation: 0,
-      height: 68,
+      height: 76,
     },
     VNavigationDrawer: {
-      width: 292,
       elevation: 0,
+      width: 312,
     },
     VCard: {
       rounded: 'xl',
@@ -73,61 +92,63 @@ export default createVuetify({
       rounded: 'xl',
       elevation: 0,
     },
-    VTextField: {
-      density: 'compact',
-      variant: 'outlined',
-      rounded: 'lg',
-      color: 'primary',
-    },
-    VSelect: {
-      density: 'compact',
-      variant: 'outlined',
-      rounded: 'lg',
-      color: 'primary',
-    },
-    VTextarea: {
-      density: 'compact',
-      variant: 'outlined',
-      rounded: 'lg',
-      color: 'primary',
-    },
-    VFileInput: {
-      density: 'compact',
-      variant: 'outlined',
-      rounded: 'lg',
-      color: 'primary',
-    },
     VBtn: {
-      class: 'text-none font-weight-semibold',
-      rounded: 'lg',
-      height: 40,
+      class: 'text-none font-weight-bold',
+      rounded: 'xl',
+      height: 44,
     },
     VChip: {
-      rounded: 'lg',
+      rounded: 'xl',
       size: 'small',
+    },
+    VTextField: {
+      density: 'comfortable',
+      variant: 'outlined',
+      rounded: 'xl',
+      color: 'secondary',
+      hideDetails: 'auto',
+    },
+    VSelect: {
+      density: 'comfortable',
+      variant: 'outlined',
+      rounded: 'xl',
+      color: 'secondary',
+      hideDetails: 'auto',
+    },
+    VTextarea: {
+      density: 'comfortable',
+      variant: 'outlined',
+      rounded: 'xl',
+      color: 'secondary',
+      hideDetails: 'auto',
+    },
+    VAutocomplete: {
+      density: 'comfortable',
+      variant: 'outlined',
+      rounded: 'xl',
+      color: 'secondary',
+      hideDetails: 'auto',
+    },
+    VDateInput: {
+      density: 'comfortable',
+      variant: 'outlined',
+      rounded: 'xl',
+      prependIcon: '',
+      appendInnerIcon: 'mdi-calendar-month-outline',
+      hideDetails: 'auto',
+    },
+    VTabs: {
+      density: 'comfortable',
+      color: 'secondary',
+    },
+    VAlert: {
+      rounded: 'xl',
+      border: 'start',
+      variant: 'tonal',
     },
     VListItem: {
       rounded: 'lg',
-      minHeight: 42,
+      minHeight: 46,
     },
-    VTabs: {
-      density: 'compact',
-    },
-    VAlert: {
-      rounded: 'lg',
-      border: 'start',
-    },
-    VDateInput: {
-      density: 'compact',
-      variant: 'outlined',
-      rounded: 'lg',
-      prependIcon: '',
-      appendInnerIcon: '',
-    },
-  },
-  icons: {
-    defaultSet: 'mdi',
-    aliases,
-    sets: { mdi },
   },
 })
