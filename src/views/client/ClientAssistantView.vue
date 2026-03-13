@@ -115,16 +115,21 @@
                       v-for="staff in staffOptions"
                       :key="staff.id"
                       type="button"
-                      class="choice-card"
+                      class="choice-card choice-card--staff"
                       :class="{ 'choice-card--selected': booking.staffId === staff.id }"
                       @click="chooseStaff(staff)"
                     >
-                      <v-avatar size="44" class="choice-avatar">
-                        <v-img v-if="staff.avatar_url" :src="resolveMediaUrl(staff.avatar_url)" cover />
-                        <span v-else>{{ initials(staff.name) }}</span>
-                      </v-avatar>
-                      <div class="choice-title">{{ staff.name }}</div>
-                      <div class="choice-subtitle">{{ staff.services?.length || 0 }} serviço(s)</div>
+                      <div class="choice-card__body">
+                        <div class="choice-copy">
+                          <div class="choice-title">{{ staff.name }}</div>
+                          <div class="choice-subtitle">{{ staff.services?.length || 0 }} serviço(s)</div>
+                        </div>
+
+                        <v-avatar size="56" class="choice-avatar">
+                          <v-img v-if="staff.avatar_url" :src="resolveMediaUrl(staff.avatar_url)" cover />
+                          <span v-else>{{ initials(staff.name) }}</span>
+                        </v-avatar>
+                      </div>
                     </button>
                   </div>
 
@@ -2125,9 +2130,27 @@ onBeforeUnmount(() => {
   min-height: 220px;
 }
 
+.choice-card--staff {
+  justify-content: center;
+}
+
+.choice-card__body {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.choice-copy {
+  min-width: 0;
+  flex: 1;
+}
+
 .choice-avatar {
   background: linear-gradient(135deg, rgba(182, 119, 49, 0.22), rgba(23, 49, 51, 0.14));
   color: #173133;
+  flex-shrink: 0;
 }
 
 .choice-title {

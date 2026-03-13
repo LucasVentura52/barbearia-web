@@ -27,7 +27,7 @@
               class="hero-panel__field"
             />
           </v-col>
-          <v-col :cols="auth.isAdmin ? 12 : 12" :sm="auth.isAdmin ? 4 : 12" class="d-flex align-end">
+          <v-col :cols="auth.isAdmin ? 12 : 12" :sm="auth.isAdmin ? 4 : 12" class="d-flex align-end mt-n3 mt-sm-0 mb-2 mb-ms-0">
             <v-btn color="secondary" size="large" block :loading="loading" @click="loadDashboard">
               Atualizar painel
             </v-btn>
@@ -35,9 +35,9 @@
         </v-row>
 
         <div class="hero-chip-row">
-          <v-chip color="secondary" variant="flat">{{ periodLabel }}</v-chip>
-          <v-chip color="secondary" variant="flat">{{ nextAppointments.length }} próximos agendamentos</v-chip>
-          <v-chip color="secondary" variant="flat">{{ topServices.length }} serviços em destaque</v-chip>
+          <v-chip class="hero-panel__chip" variant="flat">{{ periodLabel }}</v-chip>
+          <v-chip class="hero-panel__chip" variant="flat">{{ nextAppointments.length }} próximos agendamentos</v-chip>
+          <v-chip class="hero-panel__chip" variant="flat">{{ topServices.length }} serviços em destaque</v-chip>
         </div>
       </v-sheet>
     </v-col>
@@ -350,6 +350,13 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.hero-panel__chip {
+  background: rgba(122, 149, 176, 0.2) !important;
+  color: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(10px);
+}
+
 .hero-panel__field :deep(.v-field) {
   background-color: rgba(255, 255, 255, 0.206);
   border-radius: 18px;
