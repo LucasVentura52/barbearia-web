@@ -67,7 +67,14 @@
                   <v-btn color="secondary" size="large" prepend-icon="mdi-calendar-check-outline" @click="startBooking()">
                     Novo agendamento
                   </v-btn>
-                  <v-btn variant="outlined" color="secondary" size="large" prepend-icon="mdi-content-cut" @click="openServices()">
+                  <v-btn
+                    variant="outlined"
+                    color="secondary"
+                    size="large"
+                    prepend-icon="mdi-content-cut"
+                    class="services-action-btn"
+                    @click="openServices()"
+                  >
                     Ver serviços
                   </v-btn>
                   <v-btn variant="outlined" color="secondary" size="large" prepend-icon="mdi-calendar-clock-outline" @click="openAppointments()">
@@ -2074,6 +2081,10 @@ onBeforeUnmount(() => {
   gap: 12px;
 }
 
+.services-action-btn {
+  background: rgba(var(--v-theme-secondary), 0.12);
+}
+
 .choice-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -2415,6 +2426,12 @@ onBeforeUnmount(() => {
   40% {
     transform: scale(1);
     opacity: 1;
+  }
+}
+
+@media (min-width: 1280px) {
+  .action-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 

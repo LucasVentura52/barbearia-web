@@ -1,8 +1,65 @@
 :root {
-  --ab-ink: #173133;
+  --ab-ink: #31454d;
+  --ab-ink-muted: rgba(49, 69, 77, 0.68);
+  --ab-border-soft: rgba(49, 69, 77, 0.08);
+  --ab-hover-soft: rgba(182, 119, 49, 0.08);
   --ab-gold: #b67731;
   --ab-paper: #fffaf3;
-  --ab-shadow: 0 30px 80px rgba(23, 49, 51, 0.12);
+  --ab-shadow: 0 30px 80px rgba(49, 69, 77, 0.12);
+  --ab-app-background:
+    radial-gradient(circle at top left, rgba(182, 119, 49, 0.18), transparent 24%),
+    radial-gradient(circle at top right, rgba(113, 132, 161, 0.14), transparent 20%),
+    linear-gradient(180deg, #f6efe7 0%, #efe3d6 100%);
+  --ab-noise-background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.4), transparent 18%),
+    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.2), transparent 14%);
+  --ab-noise-opacity: 0.55;
+  --ab-shell-drawer-bg: rgba(255, 250, 243, 0.84);
+  --ab-shell-bar-bg: rgba(246, 239, 231, 0.68);
+  --ab-shell-bottom-bg: rgba(255, 250, 243, 0.88);
+  --ab-shell-active-bg: rgba(182, 119, 49, 0.12);
+  --ab-panel-bg: rgba(255, 250, 243, 0.88);
+  --ab-preview-bg: rgba(17, 22, 22, 0.06);
+  --ab-card-surface: rgba(255, 255, 255, 0.84);
+  --ab-card-surface-selected: linear-gradient(180deg, rgba(255, 248, 239, 0.98), rgba(249, 238, 224, 0.94));
+  --ab-card-shadow-strong: 0 18px 48px rgba(182, 119, 49, 0.22);
+  --ab-card-shadow-soft: 0 18px 30px rgba(17, 24, 31, 0.08);
+  --ab-card-border: rgba(49, 69, 77, 0.12);
+  --ab-card-border-hover: rgba(182, 119, 49, 0.4);
+  --ab-card-border-selected: rgba(182, 119, 49, 0.7);
+  --ab-soft-surface: rgba(49, 69, 77, 0.08);
+  --ab-soft-surface-strong: rgba(49, 69, 77, 0.58);
+}
+
+.v-theme--atelierNight {
+  --ab-ink: #f5f0e7;
+  --ab-ink-muted: rgba(245, 240, 231, 0.72);
+  --ab-border-soft: rgba(229, 211, 182, 0.12);
+  --ab-hover-soft: rgba(217, 155, 83, 0.12);
+  --ab-shadow: 0 30px 80px rgba(0, 0, 0, 0.36);
+  --ab-app-background:
+    radial-gradient(circle at top left, rgba(217, 155, 83, 0.12), transparent 24%),
+    radial-gradient(circle at top right, rgba(108, 124, 164, 0.12), transparent 22%),
+    linear-gradient(180deg, #0f1114 0%, #15181d 52%, #1b1f25 100%);
+  --ab-noise-background:
+    radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.12), transparent 16%),
+    radial-gradient(circle at 82% 0%, rgba(217, 155, 83, 0.08), transparent 14%);
+  --ab-noise-opacity: 0.28;
+  --ab-shell-drawer-bg: rgba(17, 20, 24, 0.88);
+  --ab-shell-bar-bg: rgba(15, 18, 22, 0.78);
+  --ab-shell-bottom-bg: rgba(15, 18, 22, 0.92);
+  --ab-shell-active-bg: rgba(217, 155, 83, 0.16);
+  --ab-panel-bg: rgba(24, 28, 34, 0.9);
+  --ab-preview-bg: rgba(255, 255, 255, 0.04);
+  --ab-card-surface: rgba(28, 33, 39, 0.94);
+  --ab-card-surface-selected: linear-gradient(180deg, rgba(58, 47, 31, 0.96), rgba(39, 34, 29, 0.94));
+  --ab-card-shadow-strong: 0 18px 48px rgba(0, 0, 0, 0.34);
+  --ab-card-shadow-soft: 0 18px 30px rgba(0, 0, 0, 0.2);
+  --ab-card-border: rgba(229, 211, 182, 0.12);
+  --ab-card-border-hover: rgba(217, 155, 83, 0.4);
+  --ab-card-border-selected: rgba(217, 155, 83, 0.7);
+  --ab-soft-surface: rgba(255, 255, 255, 0.06);
+  --ab-soft-surface-strong: rgba(245, 240, 231, 0.62);
 }
 
 html,
@@ -15,10 +72,7 @@ body {
   margin: 0;
   font-family: 'Avenir Next', 'Montserrat', 'Segoe UI', sans-serif;
   color: var(--ab-ink);
-  background:
-    radial-gradient(circle at top left, rgba(182, 119, 49, 0.18), transparent 24%),
-    radial-gradient(circle at top right, rgba(23, 49, 51, 0.16), transparent 20%),
-    linear-gradient(180deg, #f6efe7 0%, #efe3d6 100%);
+  background: var(--ab-app-background);
 }
 
 body::before {
@@ -38,9 +92,30 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.4), transparent 18%),
-    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.2), transparent 14%);
-  opacity: 0.55;
+    var(--ab-noise-background);
+  opacity: var(--ab-noise-opacity);
+}
+
+.v-application {
+  background: var(--ab-app-background) !important;
+  color: var(--ab-ink);
+}
+
+.staff-shell {
+  --ab-app-background:
+    radial-gradient(circle at top left, rgba(182, 119, 49, 0.06), transparent 28%),
+    radial-gradient(circle at top right, rgba(113, 132, 161, 0.04), transparent 24%),
+    linear-gradient(180deg, #faf5ef 0%, #f4ede5 100%);
+  --ab-shell-bar-bg: rgba(232, 223, 213, 0.9);
+  --ab-noise-opacity: 0.18;
+}
+
+.staff-shell.v-theme--atelierNight {
+  --ab-app-background:
+    radial-gradient(circle at top left, rgba(217, 155, 83, 0.08), transparent 26%),
+    radial-gradient(circle at top right, rgba(108, 124, 164, 0.08), transparent 24%),
+    linear-gradient(180deg, #121419 0%, #171b21 52%, #1d2128 100%);
+  --ab-noise-opacity: 0.18;
 }
 
 .app-boot {
@@ -60,7 +135,7 @@ body::before {
 
 .shell-drawer {
   backdrop-filter: blur(18px);
-  background: rgba(255, 250, 243, 0.84);
+  background: var(--ab-shell-drawer-bg);
 }
 
 .drawer-brand {
@@ -76,14 +151,14 @@ body::before {
 }
 
 .drawer-pulse {
-  border: 1px solid rgba(23, 49, 51, 0.08);
+  border: 1px solid var(--ab-border-soft);
   box-shadow: var(--ab-shadow);
 }
 
 .shell-bar {
   backdrop-filter: blur(18px);
-  background: rgba(246, 239, 231, 0.68);
-  border-bottom: 1px solid rgba(23, 49, 51, 0.08);
+  background: var(--ab-shell-bar-bg);
+  border-bottom: 1px solid var(--ab-border-soft);
 }
 
 .shell-search {
@@ -103,8 +178,8 @@ body::before {
   z-index: 20;
   padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px));
   backdrop-filter: blur(18px);
-  background: rgba(255, 250, 243, 0.88);
-  border-top: 1px solid rgba(23, 49, 51, 0.08);
+  background: var(--ab-shell-bottom-bg);
+  border-top: 1px solid var(--ab-border-soft);
 }
 
 .shell-bottom-nav__scroll {
@@ -127,7 +202,7 @@ body::before {
   padding: 4px 10px 6px;
   text-transform: none;
   white-space: normal;
-  color: rgba(23, 49, 51, 0.68);
+  color: var(--ab-ink-muted);
 }
 
 .shell-bottom-nav__button .v-btn__content {
@@ -147,7 +222,7 @@ body::before {
 }
 
 .shell-bottom-nav__button--active {
-  background: rgba(182, 119, 49, 0.12);
+  background: var(--ab-shell-active-bg);
   box-shadow: none;
 }
 
@@ -155,7 +230,7 @@ body::before {
   position: relative;
   overflow: hidden;
   background:
-    linear-gradient(135deg, rgba(23, 49, 51, 0.96) 0%, rgba(53, 84, 85, 0.92) 56%, rgba(182, 119, 49, 0.82) 100%);
+    linear-gradient(135deg, rgba(49, 69, 77, 0.96) 0%, rgba(84, 100, 110, 0.92) 58%, rgba(182, 119, 49, 0.66) 100%);
   color: #fffdf8;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: var(--ab-shadow);
@@ -182,7 +257,7 @@ body::before {
 .table-panel,
 .booking-panel {
   backdrop-filter: blur(12px);
-  background: rgba(255, 250, 243, 0.88);
+  background: var(--ab-panel-bg);
   box-shadow: var(--ab-shadow);
 }
 
@@ -201,7 +276,7 @@ body::before {
 }
 
 .client-table tbody tr:hover {
-  background: rgba(182, 119, 49, 0.08);
+  background: var(--ab-hover-soft);
 }
 
 .client-table tbody td,
@@ -214,7 +289,7 @@ body::before {
 }
 
 .management-table tbody tr:hover {
-  background: rgba(182, 119, 49, 0.08);
+  background: var(--ab-hover-soft);
 }
 
 .management-table tbody td {
@@ -235,18 +310,18 @@ body::before {
 }
 
 .media-card__image {
-  border-bottom: 1px solid rgba(23, 49, 51, 0.08);
+  border-bottom: 1px solid var(--ab-border-soft);
 }
 
 .media-card__image .v-img {
-  background: rgba(23, 49, 51, 0.04);
+  background: var(--ab-soft-surface);
 }
 
 .media-preview {
   max-height: min(72vh, 760px);
   border-radius: 24px;
   overflow: hidden;
-  background: rgba(17, 22, 22, 0.06);
+  background: var(--ab-preview-bg);
 }
 
 .package-card {
@@ -271,8 +346,20 @@ body::before {
   background:
     linear-gradient(180deg, rgba(17, 22, 22, 0.1) 0%, rgba(17, 22, 22, 0.84) 100%),
     radial-gradient(circle at top right, rgba(217, 161, 95, 0.8), transparent 40%),
-    linear-gradient(135deg, rgba(23, 49, 51, 0.96), rgba(77, 110, 112, 0.9));
+    linear-gradient(135deg, rgba(49, 69, 77, 0.96), rgba(95, 112, 123, 0.9));
   color: #fffdf8;
+}
+
+.v-theme--atelierNight .hero-panel {
+  background:
+    linear-gradient(135deg, rgba(18, 21, 26, 0.96) 0%, rgba(34, 39, 48, 0.92) 60%, rgba(182, 119, 49, 0.62) 100%);
+}
+
+.v-theme--atelierNight .carousel-slide {
+  background:
+    linear-gradient(180deg, rgba(15, 18, 22, 0.08) 0%, rgba(15, 18, 22, 0.86) 100%),
+    radial-gradient(circle at top right, rgba(217, 161, 95, 0.72), transparent 40%),
+    linear-gradient(135deg, rgba(18, 21, 26, 0.98), rgba(42, 48, 58, 0.92));
 }
 
 .mini-kicker {

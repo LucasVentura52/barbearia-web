@@ -3,6 +3,17 @@
   <client-chat-shell v-else-if="layoutName === 'client-chat'" />
   <client-shell v-else-if="layoutName === 'client'" />
   <app-shell v-else />
+
+  <v-snackbar
+    v-if="layoutName === 'auth'"
+    v-model="ui.snackbar.show"
+    :color="ui.snackbar.color"
+    location="top right"
+    timeout="3200"
+  >
+    {{ ui.snackbar.text }}
+  </v-snackbar>
+
   <div v-if="ui.booting" class="app-boot">
     <v-progress-circular indeterminate color="secondary" :size="74" :width="7" />
   </div>

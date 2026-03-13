@@ -2,21 +2,21 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { resolveHomeRoute, resolveRedirectForRole } from '@/lib/sessionRouting'
 
-const LoginView = () => import('@/views/LoginView.vue')
-const ClientAssistantView = () => import('@/views/ClientAssistantView.vue')
-const OverviewView = () => import('@/views/OverviewView.vue')
-const OperationsView = () => import('@/views/OperationsView.vue')
-const ClientsView = () => import('@/views/ClientsView.vue')
-const BookingStudioView = () => import('@/views/BookingStudioView.vue')
-const ServicesView = () => import('@/views/ServicesView.vue')
-const ProductsView = () => import('@/views/ProductsView.vue')
-const TeamView = () => import('@/views/TeamView.vue')
-const ScheduleView = () => import('@/views/ScheduleView.vue')
-const CompanySettingsView = () => import('@/views/CompanySettingsView.vue')
-const MediaView = () => import('@/views/MediaView.vue')
-const ReportsView = () => import('@/views/ReportsView.vue')
-const ProfileView = () => import('@/views/ProfileView.vue')
-const SuperAdminView = () => import('@/views/SuperAdminView.vue')
+const LoginView = () => import('@/views/auth/LoginView.vue')
+const ClientAssistantView = () => import('@/views/client/ClientAssistantView.vue')
+const OverviewView = () => import('@/views/staff/OverviewView.vue')
+const OperationsView = () => import('@/views/staff/OperationsView.vue')
+const ClientsView = () => import('@/views/staff/ClientsView.vue')
+const BookingStudioView = () => import('@/views/staff/BookingStudioView.vue')
+const ServicesView = () => import('@/views/staff/ServicesView.vue')
+const ProductsView = () => import('@/views/staff/ProductsView.vue')
+const TeamView = () => import('@/views/staff/TeamView.vue')
+const ScheduleView = () => import('@/views/staff/ScheduleView.vue')
+const CompanySettingsView = () => import('@/views/staff/CompanySettingsView.vue')
+const MediaView = () => import('@/views/staff/MediaView.vue')
+const ReportsView = () => import('@/views/staff/ReportsView.vue')
+const ProfileView = () => import('@/views/shared/ProfileView.vue')
+const SuperAdminView = () => import('@/views/super/SuperAdminView.vue')
 
 const router = createRouter({
   history: createWebHistory(),

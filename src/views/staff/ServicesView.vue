@@ -173,7 +173,7 @@
 
       <v-col cols="12" xl="4">
         <div class="d-flex flex-column ga-6 management-side-card">
-          <v-card class="glass-panel">
+          <v-card class="glass-panel services-featured-card">
             <v-card-item>
               <template #prepend>
                 <v-avatar color="primary" variant="tonal">
@@ -183,10 +183,11 @@
               <v-card-title>Serviços em destaque</v-card-title>
               <v-card-subtitle>Leitura rápida do mix com maior valor.</v-card-subtitle>
             </v-card-item>
-            <v-card-text>
+            <v-card-text class="services-featured-card__body">
               <v-carousel
                 v-if="featuredServices.length"
-                height="220"
+                class="services-featured-card__carousel"
+                height="100%"
                 hide-delimiters
                 show-arrows="hover"
                 cycle
@@ -194,13 +195,30 @@
                 <v-carousel-item
                   v-for="service in featuredServices"
                   :key="service.id"
-                  class="carousel-slide"
                 >
-                  <div>
-                    <div class="mini-kicker">Curadoria do catálogo</div>
-                    <div class="text-h5 font-weight-black mb-2">{{ service.name }}</div>
-                    <div class="text-body-1 mb-3">{{ service.description || 'Serviço premium pronto para vitrine.' }}</div>
-                    <div class="d-flex flex-wrap ga-2">
+                  <div class="carousel-slide services-featured-slide h-100">
+                    <div class="services-featured-media">
+                      <v-img
+                        v-if="service.photo_url"
+                        :src="resolveMediaUrl(service.photo_url)"
+                        :alt="service.name"
+                        cover
+                        class="services-featured-media__img"
+                      />
+                      <div v-else class="services-featured-media__fallback">
+                        {{ initials(service.name) }}
+                      </div>
+                    </div>
+
+                    <div class="services-featured-copy">
+                      <div class="mini-kicker">Curadoria do catálogo</div>
+                      <div class="services-featured-name">{{ service.name }}</div>
+                      <div class="services-featured-description">
+                        {{ service.description || 'Serviço premium pronto para vitrine.' }}
+                      </div>
+                    </div>
+
+                    <div class="services-featured-footer">
                       <v-chip color="secondary" variant="flat">{{ formatCurrencyBRL(service.price) }}</v-chip>
                       <v-chip color="surface" variant="outlined">{{ Number(service.duration_minutes || 0) }} min</v-chip>
                     </div>
@@ -209,6 +227,7 @@
               </v-carousel>
               <v-alert
                 v-else
+                class="ma-4"
                 color="warning"
                 variant="tonal"
                 icon="mdi-scissors-cutting"
@@ -521,3 +540,86 @@ const deleteService = async () => {
 
 onMounted(loadServices)
 </script>
+
+<style scoped>
+.services-featured-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+.services-featured-card__body {
+  flex: 1;
+  display: flex;
+  padding: 0 !important;
+}
+
+.services-featured-card__carousel {
+  flex: 1;
+  width: 100%;
+}
+
+.services-featured-card__carousel :deep(.v-window__container),
+.services-featured-card__carousel :deep(.v-window-item),
+.services-featured-card__carousel :deep(.v-carousel-item) {
+  height: 100%;
+}
+
+.services-featured-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 16px;
+  padding: 18px;
+}
+
+.services-featured-media {
+  height: 116px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.services-featured-media__img {
+  width: 100%;
+  height: 100%;
+}
+
+.services-featured-media__fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: rgba(255, 253, 248, 0.92);
+}
+
+.services-featured-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.services-featured-name {
+  font-size: 1.45rem;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.services-featured-description {
+  font-size: 0.96rem;
+  line-height: 1.45;
+  color: rgba(255, 253, 248, 0.88);
+}
+
+.services-featured-footer {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+</style>

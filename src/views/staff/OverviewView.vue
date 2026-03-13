@@ -12,10 +12,10 @@
 
         <v-row class="mb-2">
           <v-col cols="12" sm="6">
-            <v-date-input v-model="filters.from" label="De" />
+            <v-date-input v-model="filters.from" label="De" class="hero-panel__field" />
           </v-col>
           <v-col cols="12" sm="6">
-            <v-date-input v-model="filters.to" label="Até" />
+            <v-date-input v-model="filters.to" label="Até" class="hero-panel__field" />
           </v-col>
           <v-col v-if="auth.isAdmin" cols="12" sm="8">
             <v-select
@@ -24,6 +24,7 @@
               item-title="title"
               item-value="value"
               label="Profissional"
+              class="hero-panel__field"
             />
           </v-col>
           <v-col :cols="auth.isAdmin ? 12 : 12" :sm="auth.isAdmin ? 4 : 12" class="d-flex align-end">
@@ -347,3 +348,32 @@ onMounted(async () => {
   ])
 })
 </script>
+
+<style scoped>
+.hero-panel__field :deep(.v-field) {
+  background-color: rgba(255, 255, 255, 0.206);
+  border-radius: 18px;
+  color: #173133;
+}
+
+.hero-panel__field :deep(.v-field__overlay) {
+  background: transparent;
+  opacity: 0;
+}
+
+.hero-panel__field :deep(.v-field__input),
+.hero-panel__field :deep(input),
+.hero-panel__field :deep(.v-icon) {
+  color: rgba(255, 255, 255, 0.96) !important;
+  font-weight: 500;
+}
+
+.hero-panel__field :deep(.v-field--dirty .v-label),
+.hero-panel__field :deep(.v-field--focused .v-label),
+.hero-panel__field :deep(.v-field--active .v-label) {
+  color: rgba(255, 255, 255, 0.96) !important;
+  font-weight: 700;
+  opacity: 1 !important;
+  text-shadow: 0 1px 20px rgba(17, 24, 31, 0.28);
+}
+</style>

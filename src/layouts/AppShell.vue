@@ -1,5 +1,5 @@
 <template>
-  <v-app>
+  <v-app class="staff-shell">
     <div class="shell-noise"></div>
 
     <v-navigation-drawer

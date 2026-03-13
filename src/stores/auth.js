@@ -43,6 +43,32 @@ export const useAuthStore = defineStore('auth', {
       clearGetCache()
       return data
     },
+    async register({ name, phone, email, password, companySlug }) {
+      const { data } = await api.post(
+        '/api/auth/register',
+        {
+          name,
+          phone,
+          email: email || null,
+          password,
+        },
+        {
+          skipCompanyHeader: true,
+          params: {
+            company_slug: companySlug,
+          },
+        }
+      )
+
+      this.token = data.token
+      this.user = data.user
+      this.meRequest = null
+      this.hasValidatedSession = false
+      applyCompanyFromUser(data.user)
+      localStorage.setItem('token', data.token)
+      clearGetCache()
+      return data
+    },
     async restoreSession() {
       if (!this.token) return true
       if (this.hasValidatedSession) return true

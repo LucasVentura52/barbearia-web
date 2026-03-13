@@ -30,9 +30,16 @@
                   <v-row>
                     <v-col v-for="service in services" :key="service.id" cols="12" md="6">
                       <v-card
-                        :class="['package-card h-100', { 'package-card--active': selectedServiceIds.includes(service.id) }]"
+                        :class="['package-card booking-service-card h-100', { 'booking-service-card--selected': selectedServiceIds.includes(service.id) }]"
                         @click="toggleService(service.id)"
                       >
+                        <div v-if="service.photo_url" class="booking-service-media">
+                          <v-img :src="resolveMediaUrl(service.photo_url)" :alt="service.name" cover class="booking-service-media__img" />
+                        </div>
+                        <div v-else class="booking-service-media booking-service-media--placeholder">
+                          <v-icon icon="mdi-content-cut" size="28" />
+                        </div>
+
                         <v-card-item>
                           <template #prepend>
                             <v-avatar color="secondary" variant="tonal">
@@ -174,24 +181,33 @@
           <v-card-subtitle>Carousel real usando o payload de `/api/staff`.</v-card-subtitle>
         </v-card-item>
 
-        <v-carousel height="280" hide-delimiters>
-          <v-carousel-item v-for="person in staff" :key="person.id">
+        <v-carousel v-model="staffCarouselIndex" height="280" hide-delimiters show-arrows="hover">
+          <v-carousel-item v-for="(person, index) in staff" :key="person.id" :value="index">
             <div class="carousel-slide h-100">
-              <div>
-                <div class="mini-kicker mb-3">{{ person.role === 'admin' ? 'Administrador' : 'Profissional' }}</div>
-                <div class="text-h4 font-weight-black mb-2">{{ person.name }}</div>
-                <div class="text-body-1 mb-4">
-                  {{ person.services?.length || 0 }} serviço(s) habilitado(s).
+              <div class="booking-staff-slide">
+                <div class="booking-staff-copy">
+                  <div class="mini-kicker mb-1">{{ person.role === 'admin' ? 'Administrador' : 'Profissional' }}</div>
+                  <div class="text-h4 font-weight-black mb-2">{{ person.name }}</div>
+                  <div class="text-body-1 mb-4">
+                    {{ person.services?.length || 0 }} serviço(s) habilitado(s).
+                  </div>
+                  <div class="d-flex flex-wrap ga-2">
+                    <v-chip
+                      v-for="service in (person.services || []).slice(0, 3)"
+                      :key="`${person.id}-${service.id}`"
+                      color="white"
+                      variant="tonal"
+                    >
+                      {{ service.name }}
+                    </v-chip>
+                  </div>
                 </div>
-                <div class="d-flex flex-wrap ga-2">
-                  <v-chip
-                    v-for="service in (person.services || []).slice(0, 3)"
-                    :key="`${person.id}-${service.id}`"
-                    color="white"
-                    variant="tonal"
-                  >
-                    {{ service.name }}
-                  </v-chip>
+
+                <div class="booking-staff-portrait">
+                  <v-avatar size="112" rounded="xl" class="booking-staff-avatar">
+                    <v-img v-if="person.avatar_url" :src="resolveMediaUrl(person.avatar_url)" cover />
+                    <span v-else>{{ initials(person.name) }}</span>
+                  </v-avatar>
                 </div>
               </div>
             </div>
@@ -228,6 +244,7 @@ import { useRouter } from 'vue-router'
 import api from '@/lib/api'
 import { formatCurrencyBRL } from '@/lib/currency'
 import { formatTime, toApiDate } from '@/lib/dates'
+import { resolveMediaUrl } from '@/lib/media'
 import { formatPhoneFromE164 } from '@/lib/phone'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
@@ -264,6 +281,7 @@ const selectedStaff = computed(() => staff.value.find((person) => person.id === 
 const selectedServicesLabel = computed(() => selectedServices.value.map((service) => service.name).join(', ') || 'Nenhum')
 const formattedDate = computed(() => (selectedDate.value ? new Date(selectedDate.value).toLocaleDateString('pt-BR') : 'Sem data'))
 const availabilityReady = computed(() => Boolean(selectedStaffId.value && selectedDate.value && selectedServiceIds.value.length))
+const staffCarouselIndex = ref(0)
 
 const staffOptions = computed(() => staff.value.map((person) => ({
   title: person.name,
@@ -277,6 +295,14 @@ const toggleService = (serviceId) => {
   }
   selectedServiceIds.value = [...selectedServiceIds.value, serviceId]
 }
+
+const initials = (value = '') =>
+  String(value)
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('') || 'SB'
 
 const loadCatalog = async () => {
   const [servicesResponse, staffResponse] = await Promise.all([
@@ -367,6 +393,17 @@ watch(
   { deep: true }
 )
 
+watch(staff, (items) => {
+  if (!items.length) {
+    staffCarouselIndex.value = 0
+    return
+  }
+
+  if (staffCarouselIndex.value >= items.length) {
+    staffCarouselIndex.value = 0
+  }
+})
+
 onBeforeUnmount(() => {
   window.clearTimeout(searchTimer)
 })
@@ -379,3 +416,80 @@ onMounted(async () => {
   await loadAvailability()
 })
 </script>
+
+<style scoped>
+.booking-service-card {
+  border: 1px solid var(--ab-card-border) !important;
+  background: var(--ab-card-surface) !important;
+  color: var(--ab-ink);
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.booking-service-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--ab-card-border-hover) !important;
+  box-shadow: var(--ab-card-shadow-soft);
+}
+
+.booking-service-card--selected {
+  border-color: var(--ab-card-border-selected) !important;
+  background: var(--ab-card-surface-selected) !important;
+  box-shadow: var(--ab-card-shadow-strong);
+}
+
+.booking-service-media {
+  height: 156px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--ab-border-soft);
+  background: var(--ab-soft-surface);
+}
+
+.booking-service-media--placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--ab-soft-surface-strong);
+}
+
+.booking-service-media__img {
+  width: 100%;
+  height: 100%;
+}
+
+.booking-staff-slide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  min-height: 100%;
+}
+
+.booking-staff-copy {
+  min-width: 0;
+}
+
+.booking-staff-portrait {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.booking-staff-avatar {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fffdf8;
+  font-size: 1.8rem;
+  font-weight: 800;
+  box-shadow: 0 18px 44px rgba(17, 24, 31, 0.22);
+}
+
+@media (max-width: 640px) {
+  .booking-staff-slide {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .booking-staff-portrait {
+    justify-content: flex-start;
+  }
+}
+</style>

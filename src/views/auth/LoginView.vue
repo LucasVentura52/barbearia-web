@@ -42,20 +42,39 @@
               <div class="login-card__header">
                 <div class="login-brand">
                   <v-avatar size="54" class="login-brand__avatar">
-                    <v-icon icon="mdi-account-lock-outline" />
+                    <v-icon :icon="authPanel === 'login' ? 'mdi-account-lock-outline' : 'mdi-account-plus-outline'" />
                   </v-avatar>
                   <div>
-                    <div class="login-brand__eyebrow">Acesso da plataforma</div>
-                    <div class="login-brand__title">Entrar na barbearia</div>
+                    <div class="login-brand__eyebrow">{{ authPanelEyebrow }}</div>
+                    <div class="login-brand__title">{{ authPanelTitle }}</div>
                   </div>
                 </div>
 
                 <div class="login-brand__subtitle">
-                  Use seu telefone e senha para continuar no ambiente correto sem precisar escolher perfil manualmente.
+                  {{ authPanelSubtitle }}
                 </div>
               </div>
 
-              <v-form class="login-form" @submit.prevent="handleLogin">
+              <div class="login-mode-switch mb-n2" role="tablist" aria-label="Modo de acesso">
+                <button
+                  type="button"
+                  class="login-mode-switch__button"
+                  :class="{ 'login-mode-switch__button--active': authPanel === 'login' }"
+                  @click="setAuthPanel('login')"
+                >
+                  Entrar
+                </button>
+                <button
+                  type="button"
+                  class="login-mode-switch__button"
+                  :class="{ 'login-mode-switch__button--active': authPanel === 'register' }"
+                  @click="setAuthPanel('register')"
+                >
+                  Criar conta
+                </button>
+              </div>
+
+              <v-form v-if="authPanel === 'login'" class="login-form" @submit.prevent="handleLogin">
                 <div class="login-form__group">
                   <div class="login-form__caption">Telefone de acesso</div>
 
@@ -114,9 +133,130 @@
                 </v-btn>
               </v-form>
 
+              <v-form v-else class="login-form" @submit.prevent="handleRegister">
+                <div class="login-form__group">
+                  <div class="login-form__caption">Empresa</div>
+
+                  <v-select
+                    v-model="registerForm.companySlug"
+                    :items="companyOptions"
+                    item-title="title"
+                    item-value="value"
+                    label="Escolha a empresa"
+                    prepend-inner-icon="mdi-domain"
+                    :loading="company.loading"
+                    :disabled="!companyOptions.length"
+                    variant="outlined"
+                    hide-details="auto"
+                  />
+                </div>
+
+                <div class="login-form__group">
+                  <div class="login-form__caption">Seus dados</div>
+
+                  <v-row>
+                    <v-col cols="12">
+                      <v-text-field
+                        v-model="registerForm.name"
+                        label="Nome completo"
+                        prepend-inner-icon="mdi-account-outline"
+                        variant="outlined"
+                        hide-details="auto"
+                      />
+                    </v-col>
+
+                    <v-col cols="12">
+                      <v-text-field
+                        v-model="registerForm.email"
+                        label="E-mail"
+                        prepend-inner-icon="mdi-email-outline"
+                        type="email"
+                        variant="outlined"
+                        hide-details="auto"
+                      />
+                    </v-col>
+                  </v-row>
+                </div>
+
+                <div class="login-form__group">
+                  <div class="login-form__caption">Telefone de acesso</div>
+
+                  <v-row>
+                    <v-col cols="12" sm="4">
+                      <v-select
+                        v-model="registerForm.country"
+                        :items="countryOptions"
+                        item-title="label"
+                        item-value="code"
+                        label="Pais"
+                        variant="outlined"
+                        hide-details="auto"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" sm="8">
+                      <v-text-field
+                        v-model="registerPhoneInput"
+                        label="Telefone"
+                        placeholder="(11) 99999-9999"
+                        prepend-inner-icon="mdi-phone-outline"
+                        type="tel"
+                        maxlength="15"
+                        variant="outlined"
+                        hide-details="auto"
+                      />
+                    </v-col>
+                  </v-row>
+                </div>
+
+                <div class="login-form__group">
+                  <div class="login-form__caption">Senha da conta</div>
+
+                  <v-row>
+                    <v-col cols="12" sm="6">
+                      <v-text-field
+                        v-model="registerForm.password"
+                        label="Senha"
+                        :type="showRegisterPassword ? 'text' : 'password'"
+                        prepend-inner-icon="mdi-lock-outline"
+                        :append-inner-icon="showRegisterPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                        variant="outlined"
+                        hide-details="auto"
+                        @click:append-inner="showRegisterPassword = !showRegisterPassword"
+                      />
+                    </v-col>
+
+                    <v-col cols="12" sm="6">
+                      <v-text-field
+                        v-model="registerForm.passwordConfirmation"
+                        label="Confirmar senha"
+                        :type="showRegisterPasswordConfirmation ? 'text' : 'password'"
+                        prepend-inner-icon="mdi-lock-check-outline"
+                        :append-inner-icon="showRegisterPasswordConfirmation ? 'mdi-eye-off' : 'mdi-eye'"
+                        variant="outlined"
+                        hide-details="auto"
+                        @click:append-inner="showRegisterPasswordConfirmation = !showRegisterPasswordConfirmation"
+                      />
+                    </v-col>
+                  </v-row>
+                </div>
+
+                <v-btn
+                  class="login-submit"
+                  color="secondary"
+                  size="large"
+                  type="submit"
+                  :loading="loading"
+                  :disabled="!companyOptions.length"
+                  block
+                >
+                  Criar conta de cliente
+                </v-btn>
+              </v-form>
+
               <div class="login-footnote">
                 <v-icon icon="mdi-shield-check-outline" size="18" />
-                <span>Cliente, colaborador e super admin usam o mesmo ponto de entrada.</span>
+                <span>{{ authPanelFootnote }}</span>
               </div>
             </v-card>
           </v-col>
@@ -128,23 +268,41 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useTheme } from 'vuetify'
 import { useRoute, useRouter } from 'vue-router'
 import { resolveRedirectForRole } from '@/lib/sessionRouting'
 import { useAuthStore } from '@/stores/auth'
 import { useCompanyStore } from '@/stores/company'
+import { useUiStore } from '@/stores/ui'
 import { buildE164, formatPhone, normalizePhone } from '@/lib/phone'
 
 const router = useRouter()
 const route = useRoute()
+const theme = useTheme()
 const auth = useAuthStore()
 const company = useCompanyStore()
+const ui = useUiStore()
+
+theme.global.name.value = 'atelierLight'
 
 const loading = ref(false)
+const authPanel = ref('login')
 const showPassword = ref(false)
+const showRegisterPassword = ref(false)
+const showRegisterPasswordConfirmation = ref(false)
 const form = ref({
   country: '55',
   phone: '',
   password: '',
+})
+const registerForm = ref({
+  companySlug: '',
+  name: '',
+  email: '',
+  country: '55',
+  phone: '',
+  password: '',
+  passwordConfirmation: '',
 })
 
 const countryOptions = [
@@ -172,6 +330,8 @@ const journeyItems = [
   },
 ]
 
+const companyOptions = computed(() => company.options)
+
 const phoneInput = computed({
   get: () => formatPhone(form.value.phone, form.value.country),
   set: (value) => {
@@ -179,8 +339,39 @@ const phoneInput = computed({
   },
 })
 
+const registerPhoneInput = computed({
+  get: () => formatPhone(registerForm.value.phone, registerForm.value.country),
+  set: (value) => {
+    registerForm.value.phone = normalizePhone(value, registerForm.value.country)
+  },
+})
+
+const authPanelEyebrow = computed(() =>
+  authPanel.value === 'login' ? 'Acesso da plataforma' : 'Cadastro do cliente'
+)
+
+const authPanelTitle = computed(() =>
+  authPanel.value === 'login' ? 'Entrar na barbearia' : 'Criar sua conta'
+)
+
+const authPanelSubtitle = computed(() =>
+  authPanel.value === 'login'
+    ? 'Use seu telefone e senha para entrar no ambiente.'
+    : 'Cadastre-se como cliente, escolha a empresa e entre direto no atendimento conversacional.'
+)
+
+const authPanelFootnote = computed(() =>
+  authPanel.value === 'login'
+    ? 'Cliente, colaborador e super admin usam o mesmo ponto de entrada.'
+    : 'Depois do cadastro, voce entra automaticamente na area do cliente.'
+)
+
 const resolveRedirect = () => {
   return resolveRedirectForRole(router, auth, route.query.redirect)
+}
+
+const setAuthPanel = (panel) => {
+  authPanel.value = panel
 }
 
 const handleLogin = async () => {
@@ -193,6 +384,37 @@ const handleLogin = async () => {
     })
     await auth.loadMe()
     await company.loadMyCompanies({ force: true })
+    ui.notify('Login realizado com sucesso.', 'success')
+    router.replace(resolveRedirect())
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleRegister = async () => {
+  if (!registerForm.value.companySlug) {
+    ui.notify('Selecione a empresa para criar a conta.', 'warning')
+    return
+  }
+
+  if (registerForm.value.password !== registerForm.value.passwordConfirmation) {
+    ui.notify('As senhas informadas nao conferem.', 'warning')
+    return
+  }
+
+  loading.value = true
+
+  try {
+    await auth.register({
+      companySlug: registerForm.value.companySlug,
+      name: registerForm.value.name,
+      email: registerForm.value.email,
+      phone: buildE164(registerForm.value.country, registerForm.value.phone),
+      password: registerForm.value.password,
+    })
+    await auth.loadMe()
+    await company.loadMyCompanies({ force: true })
+    ui.notify('Conta criada com sucesso.', 'success')
     router.replace(resolveRedirect())
   } finally {
     loading.value = false
@@ -201,6 +423,10 @@ const handleLogin = async () => {
 
 onMounted(async () => {
   await company.loadPublicCompanies()
+
+  if (!registerForm.value.companySlug) {
+    registerForm.value.companySlug = company.currentSlug || company.options[0]?.value || ''
+  }
 })
 </script>
 
@@ -434,6 +660,45 @@ onMounted(async () => {
   color: rgba(23, 49, 51, 0.72);
 }
 
+.login-mode-switch {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 5px;
+  padding: 6px;
+  border-radius: 20px;
+  background: rgba(23, 49, 51, 0.06);
+}
+
+.login-mode-switch__button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: rgba(23, 49, 51, 0.66);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+}
+
+.login-mode-switch__button--active {
+  background: rgba(255, 255, 255, 0.96);
+  color: #173133;
+  box-shadow: 0 12px 24px rgba(23, 49, 51, 0.1);
+}
+
+.login-mode-note {
+  position: relative;
+  z-index: 1;
+  margin-top: 14px;
+  color: rgba(23, 49, 51, 0.62);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .login-form {
   display: flex;
   flex-direction: column;
@@ -470,7 +735,7 @@ onMounted(async () => {
 }
 
 .login-submit {
-  min-height: 58px;
+  min-height: 50px;
   margin-top: 6px;
   border-radius: 18px;
   background: linear-gradient(135deg, rgba(182, 119, 49, 1), rgba(210, 150, 76, 1)) !important;
